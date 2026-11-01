@@ -84,6 +84,7 @@ jobs:
         include:
           - { os: windows-latest, target: x86_64-pc-windows-msvc, bin: clipd.exe }
           - { os: ubuntu-22.04, target: x86_64-unknown-linux-gnu, bin: clipd }
+          - { os: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu, bin: clipd }
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.96
@@ -99,11 +100,13 @@ jobs:
           mkdir "$name"
           cp "target/${{ matrix.target }}/release/${{ matrix.bin }}" "$name/"
           cp LICENSE-MIT LICENSE-APACHE README.md "$name/"
-          if [ "${{ runner.os }}" = "Windows" ]; then 7z a "$name.zip" "$name" >/dev/null; else tar czf "$name.tar.gz" "$name"; fi
+          if [ "${{ runner.os }}" = "Windows" ]; then 7z a "$name.zip" "$name" >/dev/null; else tar czf "$name.tar.gz" "$name" && sha256sum "$name.tar.gz" > "$name.tar.gz.sha256"; fi
+          ls
       - name: Upload to draft release
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           for i in 1 2 3 4 5 6; do gh release view "${{ github.ref_name }}" >/dev/null 2>&1 && break; sleep 30; done
-          gh release upload "${{ github.ref_name }}" $(ls clipd-*.zip clipd-*.tar.gz 2>/dev/null) --clobber
+          # install.sh downloads a tarball and its .sha256.
+          gh release upload "${{ github.ref_name }}" $(ls clipd-*.zip clipd-*.tar.gz clipd-*.sha256 2>/dev/null) --clobber
