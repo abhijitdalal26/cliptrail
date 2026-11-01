@@ -57,7 +57,7 @@ fn pump_runloop_for(d: Duration) {
     // Activation is delivered on the app's run loop; give it a moment.
     let limit = NSDate::dateWithTimeIntervalSinceNow(d.as_secs_f64());
     let _ = NSRunLoop::currentRunLoop()
-        .runMode_beforeDate(unsafe { &objc2_foundation::NSDefaultRunLoopMode }, &limit);
+        .runMode_beforeDate(unsafe { objc2_foundation::NSDefaultRunLoopMode }, &limit);
 }
 
 pub fn paste_into(target: ForeignWindow) -> Result<()> {

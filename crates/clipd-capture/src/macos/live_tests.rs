@@ -163,7 +163,7 @@ fn concealed_type_is_skipped() {
     let marker = NSString::from_str("org.nspasteboard.ConcealedType");
     write_item(&[
         (
-            unsafe { &NSPasteboardTypeString },
+            unsafe { NSPasteboardTypeString },
             ItemData::Text(text.clone()),
         ),
         (&marker, ItemData::Text(String::new())),
@@ -181,7 +181,7 @@ fn transient_type_is_skipped() {
     let marker = NSString::from_str("org.nspasteboard.TransientType");
     write_item(&[
         (
-            unsafe { &NSPasteboardTypeString },
+            unsafe { NSPasteboardTypeString },
             ItemData::Text(unique("transient")),
         ),
         (&marker, ItemData::Text(String::new())),

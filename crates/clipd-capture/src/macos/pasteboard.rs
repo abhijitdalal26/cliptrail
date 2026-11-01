@@ -18,19 +18,19 @@ use crate::WriteContent;
 
 // Extern-static UTIs (unsafe to touch: they are linked addresses).
 fn t_file_url() -> &'static NSString {
-    unsafe { &NSPasteboardTypeFileURL }
+    unsafe { NSPasteboardTypeFileURL }
 }
 fn t_string() -> &'static NSString {
-    unsafe { &NSPasteboardTypeString }
+    unsafe { NSPasteboardTypeString }
 }
 fn t_html() -> &'static NSString {
-    unsafe { &NSPasteboardTypeHTML }
+    unsafe { NSPasteboardTypeHTML }
 }
 fn t_png() -> &'static NSString {
-    unsafe { &NSPasteboardTypePNG }
+    unsafe { NSPasteboardTypePNG }
 }
 fn t_tiff() -> &'static NSString {
-    unsafe { &NSPasteboardTypeTIFF }
+    unsafe { NSPasteboardTypeTIFF }
 }
 
 /// UTIs producers use to say "don't record this" (1Password, Maccy-aware
