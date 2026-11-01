@@ -1,0 +1,80 @@
+title: Smart actions
+desc: Type-aware actions in {{B}}: clean tracking links, convert colours, prettify JSON, wrap code in Markdown, dedent, change case and more.
+---
+<h1>Smart actions</h1>
+<p class="doc-lede">Because {{B}} knows what each clip is, it can paste it the way you need it: a link without tracking junk, a colour as RGB, JSON pretty-printed. Actions never change the stored clip; they copy or paste a transformed version.</p>
+
+<h2 id="where">Where to find them</h2>
+<ul>
+  <li><strong>Dashboard:</strong> select a clip; the preview pane shows an <em>Actions</em> row with a live preview. The first five are shown inline, the rest under <em>More</em>. Clicking one copies the result.</li>
+  <li><strong>Quick picker:</strong> press <kbd>Ctrl</kbd> <kbd>Enter</kbd> (or <kbd>→</kbd> at the end of the search box) to open the action list for the selected clip, then <kbd>Enter</kbd> to paste the result into your app.</li>
+</ul>
+<p>Only actions that make sense for the clip <em>and would actually change it</em> are offered. A link with no tracking parameters doesn't get "Clean link"; a colour already in <code>rgb()</code> doesn't get "Copy as RGB". Sensitive, file and image clips have no text actions.</p>
+<p>Every clip can also be pasted as <strong>plain text</strong> (<kbd>Shift</kbd> <kbd>Enter</kbd>), which drops formatting such as fonts and colours from rich text.</p>
+
+<h2 id="links">Links</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Action</th><th scope="col">Example</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Clean link</strong><br><span class="m">Removes tracking parameters, keeps everything else byte for byte.</span></td><td class="example"><span class="from">https://shop.example/item?id=7&amp;utm_source=news&amp;fbclid=IwAR2</span><br>→ <span class="to">https://shop.example/item?id=7</span></td></tr>
+    <tr><td><strong>As Markdown link</strong></td><td class="example"><span class="from">https://www.rust-lang.org/learn</span><br>→ <span class="to">[rust-lang.org/learn](https://www.rust-lang.org/learn)</span></td></tr>
+    <tr><td><strong>Decode URL</strong><br><span class="m">Percent-decodes the address.</span></td><td class="example"><span class="from">https://example.com/search?q=caf%C3%A9%20menu</span><br>→ <span class="to">https://example.com/search?q=café menu</span></td></tr>
+  </tbody>
+</table></div>
+<h3 id="tracking">Which parameters count as tracking</h3>
+<p><code>utm_*</code>, <code>pk_*</code>, <code>wt_mc*</code>, <code>fbclid</code>, <code>gclid</code>, <code>gclsrc</code>, <code>gbraid</code>, <code>wbraid</code>, <code>dclid</code>, <code>msclkid</code>, <code>yclid</code>, <code>twclid</code>, <code>ttclid</code>, <code>li_fat_id</code>, <code>igshid</code>, <code>mc_cid</code>, <code>mc_eid</code>, <code>_hsenc</code>, <code>_hsmi</code>, <code>__hssc</code>, <code>__hstc</code>, <code>__hsfp</code>, <code>hsctatracking</code>, <code>mkt_tok</code>, <code>_ga</code>, <code>_gl</code>, <code>ref_src</code>, <code>ref_url</code>, <code>spm</code>, <code>vero_id</code>, <code>oly_enc_id</code>, <code>oly_anon_id</code>, <code>s_cid</code>; plus <code>si</code> on YouTube and Spotify links and <code>s</code>/<code>t</code> on X (Twitter) links, where those are share trackers.</p>
+<p>Turn on <strong>Clean links automatically</strong> in <a href="settings.html#privacy">Settings → Privacy</a> to strip these as you copy, before the link is even stored.</p>
+
+<h2 id="colors">Colours</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Action</th><th scope="col">Example</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Copy as HEX</strong><br><span class="m">Also expands shorthand; keeps your capitalisation.</span></td><td class="example"><span class="from">rgb(109, 93, 252)</span> → <span class="to">#6d5dfc</span><br><span class="from">#FA0</span> → <span class="to">#FFAA00</span></td></tr>
+    <tr><td><strong>Copy as RGB</strong></td><td class="example"><span class="from">#6D5DFC</span> → <span class="to">rgb(109, 93, 252)</span></td></tr>
+    <tr><td><strong>Copy as HSL</strong></td><td class="example"><span class="from">#6d5dfc</span> → <span class="to">hsl(246, 96.4%, 67.6%)</span></td></tr>
+  </tbody>
+</table></div>
+<p>Transparency is kept: <code>#6d5dfc80</code> becomes <code>rgba(109, 93, 252, 0.502)</code>.</p>
+
+<h2 id="code">Code and JSON</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Action</th><th scope="col">What it does</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Prettify JSON</strong></td><td>Re-indents valid JSON with two spaces. Key order, numbers and string escapes are left exactly as they were.</td></tr>
+    <tr><td><strong>Minify JSON</strong></td><td>Removes all whitespace between tokens.</td></tr>
+    <tr><td><strong>As Markdown code block</strong></td><td>Wraps the clip in a fenced block tagged with its detected language, e.g. <code>```rust</code>. Uses a longer fence if the code itself contains backticks.</td></tr>
+    <tr><td><strong>Dedent</strong></td><td>Removes the indentation every line has in common, handy for code copied from the middle of a file.</td></tr>
+    <tr><td><strong>Trim whitespace</strong></td><td>Trims the ends and strips trailing spaces from every line.</td></tr>
+  </tbody>
+</table></div>
+<pre data-nocopy><code><span class="c"># Prettify JSON</span>
+{"name":"demo","tags":["rust","tauri"]}
+<span class="c"># becomes</span>
+{
+  "name": "demo",
+  "tags": [
+    "rust",
+    "tauri"
+  ]
+}</code></pre>
+
+<h2 id="text">Text</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Action</th><th scope="col">Example</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Trim whitespace</strong></td><td>Trims the ends and trailing spaces on each line.</td></tr>
+    <tr><td><strong>Join into one line</strong></td><td class="example">Lines joined with single spaces, blank lines dropped: handy for text copied from PDFs.</td></tr>
+    <tr><td><strong>Dedent</strong></td><td>For multi-line text with common indentation.</td></tr>
+    <tr><td><strong>UPPERCASE</strong> / <strong>lowercase</strong></td><td class="example"><span class="from">Quarterly Report</span> → <span class="to">QUARTERLY REPORT</span></td></tr>
+    <tr><td><strong>Title Case</strong></td><td class="example"><span class="from">don't stop me now</span> → <span class="to">Don't Stop Me Now</span></td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="contacts">Contacts</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Action</th><th scope="col">Example</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Digits only</strong> (phone numbers)</td><td class="example"><span class="from">+1 (415) 555-0132</span> → <span class="to">+14155550132</span></td></tr>
+    <tr><td><strong>As mailto link</strong> (email addresses)</td><td class="example"><span class="from">ada@example.com</span> → <span class="to">mailto:ada@example.com</span></td></tr>
+  </tbody>
+</table></div>

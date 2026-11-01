@@ -1,0 +1,64 @@
+title: Data, backup & uninstall
+desc: Where {{B}} keeps your history on Windows, macOS and Linux, how to back it up, move it, reset it, and uninstall cleanly.
+---
+<h1>Data, backup &amp; uninstall</h1>
+<p class="doc-lede">Your whole history is one folder on your device. Nothing is stored anywhere else, so backing up, moving or deleting it is just a matter of that folder.</p>
+
+<h2 id="location">Where your data lives</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">System</th><th scope="col">Data folder</th></tr></thead>
+  <tbody>
+    <tr><td>Windows</td><td><code>%APPDATA%\{{B}}</code> (e.g. <code>C:\Users\you\AppData\Roaming\{{B}}</code>)</td></tr>
+    <tr><td>macOS</td><td><code>~/Library/Application Support/{{B}}</code></td></tr>
+    <tr><td>Linux</td><td><code>~/.local/share/{{B}}</code> (or <code>$XDG_DATA_HOME/{{B}}</code>)</td></tr>
+  </tbody>
+</table></div>
+<p>The quickest way there: <strong>Settings → Storage → Open folder</strong>, or run <code>clipd stats</code>, which prints the path.</p>
+
+<h3 id="contents">What's inside</h3>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">File / folder</th><th scope="col">Contents</th></tr></thead>
+  <tbody>
+    <tr><td><code>clips.db</code> (+ <code>-wal</code>, <code>-shm</code>)</td><td>Your history: text, metadata and the search index (SQLite).</td></tr>
+    <tr><td><code>images/</code></td><td>Full-size images as PNG.</td></tr>
+    <tr><td><code>thumbs/</code></td><td>Thumbnails for the timeline.</td></tr>
+    <tr><td><code>settings.json</code></td><td>Desktop app settings.</td></tr>
+    <tr><td><code>device_id</code></td><td>This device's random id.</td></tr>
+    <tr><td><code>sync.db</code></td><td>Sync state: paired devices, the hub's encrypted event log, progress. Only if you use sync.</td></tr>
+    <tr><td><code>keys/</code></td><td>Sync keys, only where the OS keychain isn't used (Linux, or <code>CLIPTRAIL_KEYSTORE=file</code>). On Windows and macOS the keys are in Credential Manager / Keychain.</td></tr>
+  </tbody>
+</table></div>
+<div class="callout warn">{{i:warn}}<div><p><strong>The database isn't encrypted at rest yet.</strong> It's protected by your OS account, like your browser history. Encrypting it is on the roadmap. Treat backups of this folder as sensitive.</p></div></div>
+
+<h2 id="custom">Use a different folder</h2>
+<p>Set <code>CLIPTRAIL_DATA_DIR</code> before starting the app or CLI to use another folder, for a throwaway test history or a folder on another drive:</p>
+<pre><code><span class="c"># Windows (PowerShell), for the current session</span>
+$env:CLIPTRAIL_DATA_DIR = "D:\ClipHistory"
+<span class="c"># Linux / macOS</span>
+export CLIPTRAIL_DATA_DIR="$HOME/clip-test"</code></pre>
+<p>The CLI also takes <code>--data-dir &lt;DIR&gt;</code> per command.</p>
+
+<h2 id="backup">Back up and restore</h2>
+<ol class="steps-list">
+  <li><strong>Quit {{B}}</strong> (tray → Quit) so the database is closed and complete.</li>
+  <li><strong>Copy the whole data folder</strong> somewhere safe.</li>
+  <li>To restore, quit {{B}}, put the folder back in the same place (or point <code>CLIPTRAIL_DATA_DIR</code> at it), and start the app.</li>
+</ol>
+<p>Restoring onto a <em>different</em> computer works for your history. For sync, run <code>clipd sync reset</code> there and pair again, because the keys live in the original computer's keychain.</p>
+
+<h2 id="reset">Reset</h2>
+<ul>
+  <li><strong>Delete some clips:</strong> select and press <kbd>Del</kbd> in the dashboard, or <code>clipd delete &lt;id&gt;</code>.</li>
+  <li><strong>Trim old history:</strong> set <a href="settings.html#storage">Keep history</a> to 30 or 90 days.</li>
+  <li><strong>Reset sync only:</strong> <code>clipd sync reset</code> with the app closed. Clips stay.</li>
+  <li><strong>Start completely fresh:</strong> quit {{B}} and delete the data folder. A new, empty one is created on next launch.</li>
+</ul>
+
+<h2 id="uninstall">Uninstall</h2>
+<ul>
+  <li><strong>Windows:</strong> <em>Settings → Apps → Installed apps → {{B}} → Uninstall</em>.</li>
+  <li><strong>Linux (.deb):</strong> <code>sudo apt remove</code> followed by the package name shown by <code>apt list --installed | grep -i clip</code>. <strong>AppImage:</strong> delete the file.</li>
+  <li><strong>macOS:</strong> drag the app from Applications to the Bin.</li>
+  <li><strong>CLI:</strong> <code>cargo uninstall clipd-cli</code>, or delete the <code>clipd</code> binary.</li>
+</ul>
+<p>Uninstalling leaves your history in place in case you come back. To remove everything, also delete the data folder above. If you used sync on Windows, you can remove its entries from <em>Credential Manager → Windows Credentials</em>.</p>

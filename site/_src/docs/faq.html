@@ -1,0 +1,51 @@
+title: FAQ
+desc: Frequently asked questions about {{B}}: price, privacy, platforms, Android and iOS, sync, and how it compares with built-in clipboard history.
+---
+<h1>Frequently asked questions</h1>
+<p class="doc-lede">Short answers, with links to the details.</p>
+
+<h2 id="general">General</h2>
+<h3 id="free">Is it free?</h3>
+<p>Yes. {{B}} is open source under MIT or Apache-2.0 (your choice). No account, no paid tier, no ads.</p>
+<h3 id="status">Is it ready to use?</h3>
+<p>It's pre-release. The first alpha, v0.1.0, is coming with installers for Windows and Linux, an experimental macOS build and the Android app. The desktop app, CLI and LAN sync work today if you <a href="index.html#build-from-source">build from source</a>. See the <a href="{{R}}changelog.html">changelog</a>.</p>
+<h3 id="vs-winv">How is it different from Win+V?</h3>
+<p>Windows' built-in history keeps a limited number of recent items, and unpinned items are cleared when you restart. {{B}} keeps everything you choose, sorts it by kind, searches it instantly, has a timeline and smart actions, and syncs with Linux and (soon) Android, without a Microsoft account.</p>
+<h3 id="name">Why does it need to run all the time?</h3>
+<p>To see every copy as it happens. It sits quietly in the tray, and you can pause capture at any time.</p>
+
+<h2 id="privacy">Privacy</h2>
+<h3 id="leave">Does my clipboard leave my computer?</h3>
+<p>Only to devices you pair yourself, encrypted, over your own network. There is no {{B}} server and no telemetry. See <a href="privacy-security.html">Privacy &amp; security</a>.</p>
+<h3 id="passwords">What about passwords?</h3>
+<p>Copies from password managers aren't stored. One-time codes, API keys, private keys and card numbers are masked, never searchable or synced, and deleted after an hour by default. A plain password copied from somewhere else looks like ordinary text, so pause capture first.</p>
+<h3 id="encrypted-local">Is my history encrypted on disk?</h3>
+<p>Not yet. It's protected by your OS account, like your browser history. Sync is end-to-end encrypted; on-device database encryption is on the roadmap.</p>
+
+<h2 id="platforms">Platforms</h2>
+<h3 id="android">When is Android coming?</h3>
+<p>With v0.1.0. It captures copies through an accessibility service plus a Quick Settings tile and the share menu, and ships as an APK you install yourself at first. See <a href="android.html">Android setup</a>.</p>
+<h3 id="ios">What about iOS?</h3>
+<p>Later. iOS doesn't let apps read the clipboard in the background, so it will start with a share extension and Shortcuts.</p>
+<h3 id="mac">Does it work on macOS?</h3>
+<p>An experimental build is produced, but clipboard capture and paste-back aren't implemented on macOS yet. Contributions welcome.</p>
+<h3 id="wayland">Does it work on Wayland?</h3>
+<p>Capture works on compositors with the data-control protocol (KDE Plasma, Sway, Hyprland). GNOME is limited. Paste-back needs X11; on Wayland you press <kbd>Ctrl</kbd> <kbd>V</kbd> yourself. See <a href="troubleshooting.html#capture">Troubleshooting</a>.</p>
+
+<h2 id="sync">Sync</h2>
+<h3 id="need-sync">Do I need two devices?</h3>
+<p>No. Every app is complete on its own. Pair devices only if you want shared history.</p>
+<h3 id="away">Does sync work when I'm away from home?</h3>
+<p>Not yet: devices sync while they're on the same network as the hub, and catch up when they're together again. Sync across networks is on the roadmap.</p>
+<h3 id="clipboard-overwrite">Will a copy on my phone overwrite my laptop's clipboard?</h3>
+<p>No. Synced clips show up in history and the picker; nothing changes your clipboard until you choose a clip.</p>
+<h3 id="how-many">How many devices can I pair?</h3>
+<p>There's no fixed limit. One computer acts as the hub; phones and other computers join it.</p>
+
+<h2 id="data">Data</h2>
+<h3 id="limit">Is there a limit on history?</h3>
+<p>No item limit. Keep everything forever, or let {{B}} delete clips older than 30 days, 90 days or a year. Pinned clips are always kept. Single text clips over 2 MB are skipped.</p>
+<h3 id="export">Can I get my data out?</h3>
+<p>Yes. It's a SQLite database and PNG files in a folder you own, and <code>clipd list --json</code> / <code>clipd search --json</code> export clips as JSON. See <a href="data.html">Data, backup &amp; uninstall</a>.</p>
+<h3 id="contribute">How can I help?</h3>
+<p>Try it, <a href="{{REPO}}/issues">report issues</a>, or contribute code; see <a href="{{REPO}}/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>. A star on GitHub helps others find it.</p>

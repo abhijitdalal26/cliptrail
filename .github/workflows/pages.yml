@@ -24,6 +24,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      - name: Drop site sources from the published artifact
+        run: rm -rf site/_src
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site

@@ -1,0 +1,56 @@
+title: The quick picker & paste-back
+desc: Open {{B}}'s quick picker from any app, search your history, and paste straight back into the window you were using.
+---
+<h1>The quick picker &amp; paste-back</h1>
+<p class="doc-lede">The picker is {{B}}'s fastest path: a hotkey, a few letters, Enter. The clip lands in the app you were already typing in.</p>
+
+<h2 id="open">Opening the picker</h2>
+<ul>
+  <li>Press <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Space</kbd> anywhere. It opens centred on your screen. You can change the hotkey in <a href="settings.html#shortcuts">Settings → Shortcuts</a>.</li>
+  <li>Or <strong>left-click the tray icon</strong>: the picker opens as a flyout next to it.</li>
+  <li>Or choose <strong>Quick picker</strong> from the tray menu (right-click).</li>
+</ul>
+<p>Press <kbd>Esc</kbd>, or click anywhere else, to close it without pasting.</p>
+
+<h2 id="find">Finding a clip</h2>
+<ul>
+  <li><strong>Type to search.</strong> Matching is by substring, anywhere in the text, file paths or source app name, and it isn't fooled by word boundaries: <code>ploy</code> finds <code>deploy.sh</code>.</li>
+  <li><strong>Switch kind</strong> with <kbd>Tab</kbd> and <kbd>Shift</kbd> <kbd>Tab</kbd>: All, Pinned, Links, Code, Text, Images, Files, Colors, Contacts, Sensitive.</li>
+  <li><strong>Move</strong> with <kbd>↑</kbd> <kbd>↓</kbd>, or <kbd>Page Up</kbd> <kbd>Page Down</kbd> for bigger jumps.</li>
+  <li><strong>Pin</strong> the selected clip with <kbd>Ctrl</kbd> <kbd>P</kbd> so it's never cleaned up and always under Pinned.</li>
+</ul>
+
+<h2 id="paste">Pasting</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Keys</th><th scope="col">What happens</th></tr></thead>
+  <tbody>
+    <tr><td><kbd>Enter</kbd></td><td>Pastes the selected clip into the app you were in, keeping formatting (rich text, images, files).</td></tr>
+    <tr><td><kbd>Shift</kbd> <kbd>Enter</kbd></td><td>Pastes as plain text, dropping any formatting.</td></tr>
+    <tr><td><kbd>Ctrl</kbd> <kbd>1</kbd> … <kbd>Ctrl</kbd> <kbd>9</kbd></td><td>Pastes one of the first nine items directly; the hint is shown on each row.</td></tr>
+    <tr><td><kbd>Ctrl</kbd> <kbd>Enter</kbd> or <kbd>→</kbd></td><td>Opens the <a href="smart-actions.html">action list</a> for the clip (clean link, copy as RGB, prettify JSON…). Pick one with <kbd>↑</kbd> <kbd>↓</kbd> and <kbd>Enter</kbd> to paste the result. <kbd>←</kbd> or <kbd>Esc</kbd> goes back.</td></tr>
+    <tr><td><kbd>Ctrl</kbd> <kbd>D</kbd></td><td>Opens the dashboard instead.</td></tr>
+  </tbody>
+</table></div>
+<figure>
+  <img class="only-light" src="{{R}}assets/screens/actions-light.webp" width="1200" height="891" alt="Picker with the action list open for a colour clip: Copy as RGB and Copy as HSL, each with a preview." loading="lazy">
+  <img class="only-dark" src="{{R}}assets/screens/actions-dark.webp" width="1200" height="891" alt="Picker with the action list open for a colour clip: Copy as RGB and Copy as HSL, each with a preview." loading="lazy">
+  <figcaption>The action list for a colour, opened with <kbd>Ctrl</kbd> <kbd>Enter</kbd>.</figcaption>
+</figure>
+
+<h2 id="how">How paste-back works</h2>
+<p>When the picker opens, {{B}} remembers which window had focus. When you choose a clip, it:</p>
+<ol>
+  <li>puts the clip on the system clipboard,</li>
+  <li>hides the picker and gives focus back to that window,</li>
+  <li>sends a <kbd>Ctrl</kbd> <kbd>V</kbd> keystroke.</li>
+</ol>
+<p>The clip stays on your clipboard afterwards, so if paste-back can't reach a window you can always press <kbd>Ctrl</kbd> <kbd>V</kbd> yourself.</p>
+
+<h3 id="limits">Where paste-back can't reach</h3>
+<ul>
+  <li><strong>Windows running as administrator</strong> (an elevated terminal, some installers): Windows doesn't let a normal app send keystrokes to them. Paste manually with <kbd>Ctrl</kbd> <kbd>V</kbd>, or run {{B}} elevated too (not recommended).</li>
+  <li><strong>Linux on Wayland:</strong> Wayland doesn't allow apps to type into other windows, so paste-back is X11-only. On Wayland the picker copies the clip and tells you to press <kbd>Ctrl</kbd> <kbd>V</kbd>.</li>
+  <li><strong>Terminals that paste with <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>V</kbd></strong> (most Linux terminals): the synthetic <kbd>Ctrl</kbd> <kbd>V</kbd> does nothing there. Press <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>V</kbd> yourself; the clip is already on the clipboard. Windows Terminal accepts <kbd>Ctrl</kbd> <kbd>V</kbd>.</li>
+  <li><strong>macOS:</strong> paste-back isn't implemented yet.</li>
+</ul>
+<p>More fixes in <a href="troubleshooting.html#paste-back">Troubleshooting</a>.</p>

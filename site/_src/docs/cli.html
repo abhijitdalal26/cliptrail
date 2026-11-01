@@ -1,0 +1,147 @@
+title: Command line (clipd)
+desc: Reference for clipd, the {{B}} command-line tool: watch, list, search, show, stats, pin, delete, prune, ingest and every sync command, with flags and examples.
+---
+<h1>Command line (<code>clipd</code>)</h1>
+<p class="doc-lede"><code>clipd</code> is {{B}} from a terminal: capture without the desktop app, search and script your history, and run or join a sync hub. It uses the same data folder as the app.</p>
+
+<h2 id="install">Install</h2>
+<pre><code>cargo install --locked --git https://github.com/abhijitdalal26/cliptrail clipd-cli</code></pre>
+<p>Needs Rust 1.96 or newer; on Linux also <code>libxcb1-dev</code> (Debian/Ubuntu). Prebuilt archives (<code>clipd-&lt;version&gt;-x86_64-pc-windows-msvc.zip</code>, <code>clipd-&lt;version&gt;-x86_64-unknown-linux-gnu.tar.gz</code>) are attached to each <a href="{{R}}download.html#cli">release</a>.</p>
+
+<div class="callout">{{i:info}}<div><p><strong>Content stays private in your terminal too.</strong> Only <code>clipd show</code> prints a clip in full. Everything else prints ids, kinds and a one-line preview, and <code>watch</code> and the sync commands never print clip content at all.</p></div></div>
+
+<h2 id="global">Global options</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Option</th><th scope="col">Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>--data-dir &lt;DIR&gt;</code></td><td>Use this data folder. Default: <code>$CLIPTRAIL_DATA_DIR</code>, else the <a href="data.html#location">OS data folder</a>.</td></tr>
+    <tr><td><code>-h</code>, <code>--help</code></td><td>Help for any command, e.g. <code>clipd sync host --help</code>.</td></tr>
+    <tr><td><code>-V</code>, <code>--version</code></td><td>Print the version.</td></tr>
+  </tbody>
+</table></div>
+<p>Wherever a command takes an <code>&lt;ID&gt;</code>, you can give the full id or any prefix that matches exactly one clip.</p>
+<p>Kinds for <code>--kind</code>: <code>link</code>, <code>code</code>, <code>text</code>, <code>contact</code>, <code>color</code>, <code>file</code>, <code>image</code>, <code>sensitive</code>.</p>
+
+<h2 id="watch">clipd watch</h2>
+<p>Watch the clipboard and store every copy until <kbd>Ctrl</kbd> <kbd>C</kbd>. Prints one line per event (time, outcome, kind, id), never the content, and removes expired sensitive clips every 5 minutes. Don't run it at the same time as the desktop app, which already captures.</p>
+<pre data-nocopy><code><span class="p">$ </span>clipd watch
+watching clipboard → C:\Users\you\AppData\Roaming\{{B}} (Ctrl+C to stop)
+14:02:11  stored   link/github.com     01JBX4Q8M7T2ZK9R3D5F6H0WNC
+14:02:40  stored   code/rust           01JBX4R4V1KQ8D2N6S0Y3C7FZB
+14:03:05  bumped   link/github.com     01JBX4Q8M7T2ZK9R3D5F6H0WNC
+14:03:30  skipped  (excluded source app)</code></pre>
+
+<h2 id="list">clipd list</h2>
+<p>Recent clips, newest first.</p>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Flag</th><th scope="col">Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>--kind &lt;KIND&gt;</code></td><td>Only this kind.</td></tr>
+    <tr><td><code>--pinned</code></td><td>Only pinned clips.</td></tr>
+    <tr><td><code>-n</code>, <code>--limit &lt;N&gt;</code></td><td>Maximum rows (default 25).</td></tr>
+    <tr><td><code>--json</code></td><td>Print JSON instead of a table.</td></tr>
+  </tbody>
+</table></div>
+<p>Each row shows the id, date, kind (with language or site), flags (<code>P</code> pinned, <code>+</code> copied more than once) and a one-line preview.</p>
+<pre><code>clipd list --kind link -n 10
+clipd list --pinned --json</code></pre>
+
+<h2 id="search">clipd search</h2>
+<p>Substring search over clip text, file paths and source app.</p>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Argument / flag</th><th scope="col">Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>&lt;QUERY&gt;</code></td><td>Text to find (quote it if it has spaces).</td></tr>
+    <tr><td><code>--kind &lt;KIND&gt;</code></td><td>Only this kind.</td></tr>
+    <tr><td><code>-n</code>, <code>--limit &lt;N&gt;</code></td><td>Maximum rows (default 25).</td></tr>
+    <tr><td><code>--json</code></td><td>Print JSON.</td></tr>
+  </tbody>
+</table></div>
+<pre><code>clipd search "deploy"
+clipd search kubectl --kind code --json</code></pre>
+
+<h2 id="show">clipd show</h2>
+<p>One clip in full: id, kind, created and last-seen times, copy count, source app, device, size, image paths, then the content.</p>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Argument / flag</th><th scope="col">Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>&lt;ID&gt;</code></td><td>Clip id or unique prefix.</td></tr>
+    <tr><td><code>--json</code></td><td>Print JSON.</td></tr>
+    <tr><td><code>--reveal</code></td><td>Also print the body of a masked (sensitive) clip. Without it, sensitive clips show <code>••••••</code>.</td></tr>
+  </tbody>
+</table></div>
+<pre><code>clipd show 01JBX4R4</code></pre>
+
+<h2 id="stats">clipd stats</h2>
+<p>Data folder, database size, total and pinned clips, counts by kind, top source apps and clips per day for the last 7 days.</p>
+
+<h2 id="pin">clipd pin / unpin</h2>
+<p><code>clipd pin &lt;ID&gt;</code> keeps a clip forever (never removed by retention); <code>clipd unpin &lt;ID&gt;</code> undoes it.</p>
+
+<h2 id="delete">clipd delete</h2>
+<p><code>clipd delete &lt;ID&gt;</code> deletes a clip and its image files. If sync is set up, the delete syncs to your other devices.</p>
+
+<h2 id="prune">clipd prune</h2>
+<p>Removes expired clips (sensitive clips past their lifetime) right away instead of waiting for the next automatic pass.</p>
+
+<h2 id="ingest">clipd ingest-text / ingest-image</h2>
+<p>Store a clip without touching the clipboard, for scripts and testing. It goes through the same pipeline (classification, dedup, exclusions) as a real copy.</p>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Command</th><th scope="col">Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>clipd ingest-text &lt;TEXT&gt;</code></td><td>Store text. Use <code>-</code> to read from standard input.</td></tr>
+    <tr><td><code>clipd ingest-image &lt;PATH&gt;</code></td><td>Store an image from a PNG file.</td></tr>
+    <tr><td><code>--app &lt;EXE&gt;</code></td><td>Pretend the copy came from this app, e.g. to test an exclusion.</td></tr>
+  </tbody>
+</table></div>
+<pre><code>git log -1 --format=%H | clipd ingest-text -
+clipd ingest-text "hunter2" --app keepassxc.exe   <span class="c"># skipped: excluded app</span>
+clipd ingest-image ./screenshot.png</code></pre>
+
+<h2 id="sync">clipd sync</h2>
+<p>Run a hub, pair with one, and manage devices from the terminal. These commands print device names, ids and event metadata only. Close the desktop app before using them on the same data folder.</p>
+
+<h3 id="sync-host">clipd sync host</h3>
+<p>Run this data folder as the sync hub and print a pairing QR code in the terminal (press <kbd>Enter</kbd> for a new code, <kbd>Ctrl</kbd> <kbd>C</kbd> to stop).</p>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Flag</th><th scope="col">Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>--port &lt;PORT&gt;</code></td><td>TCP port to listen on (default 47821).</td></tr>
+    <tr><td><code>--advertise &lt;HOST&gt;</code></td><td>Address to put in the QR instead of this computer's LAN addresses. Repeatable. E.g. <code>127.0.0.1</code> for a test on one machine.</td></tr>
+    <tr><td><code>--loopback</code></td><td>Listen on 127.0.0.1 only.</td></tr>
+    <tr><td><code>--name &lt;NAME&gt;</code></td><td>Name shown on paired devices.</td></tr>
+    <tr><td><code>--no-pair</code></td><td>Don't print a pairing QR at start.</td></tr>
+  </tbody>
+</table></div>
+
+<h3 id="sync-pair">clipd sync pair</h3>
+<p><code>clipd sync pair &lt;URI&gt; [--name &lt;NAME&gt;]</code> pairs this data folder as a client of a hub, using the <code>cliptrail://pair?…</code> link from the hub. It prints the hub's name, the check code to compare, and how many existing clips were queued to share. Fails if this folder is already a hub or paired; run <code>clipd sync reset</code> first.</p>
+
+<h3 id="sync-run">clipd sync run</h3>
+<p>Run the client loop until <kbd>Ctrl</kbd> <kbd>C</kbd>, printing connects, disconnects and event metadata. <code>--no-images</code> syncs thumbnails only and skips full image downloads.</p>
+
+<h3 id="sync-manage">devices, revoke, status, reset</h3>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Command</th><th scope="col">Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>clipd sync devices [--json]</code></td><td>Paired devices with id, name, platform and last seen.</td></tr>
+    <tr><td><code>clipd sync revoke &lt;DEVICE_ID&gt;</code></td><td>Hub only. The device's token stops working at once.</td></tr>
+    <tr><td><code>clipd sync status [--json]</code></td><td>Role (hub or client), device, hub address, log position, outbox, pending images, where keys are kept, the last problem, and devices.</td></tr>
+    <tr><td><code>clipd sync reset</code></td><td>Forget sync for this data folder: keys, sync progress and device list. Clips are kept.</td></tr>
+  </tbody>
+</table></div>
+<pre><code><span class="c"># Try sync on one machine with two data folders</span>
+clipd --data-dir ./hub sync host --loopback --advertise 127.0.0.1
+<span class="c"># in a second terminal, with the link it printed:</span>
+clipd --data-dir ./phone sync pair "cliptrail://pair?v=1&amp;h=127.0.0.1:47821&amp;…"
+clipd --data-dir ./phone sync run</code></pre>
+
+<h2 id="env">Environment variables</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Variable</th><th scope="col">Effect</th></tr></thead>
+  <tbody>
+    <tr><td><code>CLIPTRAIL_DATA_DIR</code></td><td>Data folder to use (same as <code>--data-dir</code>), for the app and the CLI.</td></tr>
+    <tr><td><code>CLIPTRAIL_KEYSTORE=file</code></td><td>Keep sync keys in a file in the data folder instead of the OS keychain.</td></tr>
+    <tr><td><code>RUST_LOG</code></td><td>Log level, e.g. <code>RUST_LOG=debug</code>. Logs go to stderr and never contain clip content.</td></tr>
+  </tbody>
+</table></div>

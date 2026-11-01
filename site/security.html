@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en" data-brand="ClipTrail">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security · ClipTrail</title>
+<meta name="description" content="ClipTrail&#x27;s security model and how to report a vulnerability privately.">
+<link rel="canonical" href="https://abhijitdalal26.github.io/cliptrail/security.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ClipTrail">
+<meta property="og:title" content="Security · ClipTrail">
+<meta property="og:description" content="ClipTrail&#x27;s security model and how to report a vulnerability privately.">
+<meta property="og:url" content="https://abhijitdalal26.github.io/cliptrail/security.html">
+<meta property="og:image" content="https://abhijitdalal26.github.io/cliptrail/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ClipTrail: your clipboard, everywhere, forever.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#fafaf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0d12" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("cliptrail-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}document.documentElement.classList.add("js")</script>
+<script src="assets/site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html" aria-label="ClipTrail home"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="3" width="26" height="26" rx="8" fill="var(--accent)"/><rect x="11" y="7.5" width="10" height="4" rx="2" fill="#fff" opacity=".95"/><path d="M10 15h12M10 19.5h9M10 24h6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" opacity=".95"/></svg>ClipTrail<span class="tag-alpha">alpha</span></a>
+    <nav class="nav" aria-label="Main"><a href="index.html#features">Features</a><a href="download.html">Download</a><a href="docs/index.html">Docs</a><a href="changelog.html">Changelog</a></nav>
+    <div class="header-actions">
+      <a class="icon-btn gh-btn" href="https://github.com/abhijitdalal26/cliptrail" aria-label="ClipTrail on GitHub"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.68-1.28-1.68-1.04-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.8 1.19 1.83 1.19 3.09 0 4.42-2.7 5.4-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg></a>
+      <button class="icon-btn theme-toggle" type="button" data-theme-toggle aria-label="Switch theme"><svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg><svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button>
+      <a class="btn btn-sm btn-primary btn-download" href="download.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>Download</a>
+      <button class="icon-btn menu-btn" type="button" data-menu-btn aria-expanded="false" aria-controls="mobile-nav" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    </div>
+  </div>
+</header>
+<div class="mobile-nav" id="mobile-nav"><a href="index.html#features">Features</a><a href="download.html">Download</a><a href="docs/index.html">Docs</a><a href="changelog.html">Changelog</a><a href="https://github.com/abhijitdalal26/cliptrail">GitHub</a><a class="btn btn-primary" href="download.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>Download</a></div>
+<main id="main">
+
+<section class="legal">
+  <div class="wrap">
+    <article class="prose">
+      <span class="eyebrow">Security</span>
+      <h1>Security</h1>
+      <p class="doc-lede">A clipboard manager sits in the most sensitive data path on your machine. This is what ClipTrail promises today, what it doesn't yet, and how to report a problem.</p>
+
+      <div class="callout warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg><div><p><strong>Pre-release software.</strong> ClipTrail hasn't had an independent security audit. Sync is end-to-end encrypted; on-device database encryption is on the roadmap.</p></div></div>
+
+      <h2 id="model">The model in brief</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">Where</th><th scope="col">Protection today</th></tr></thead>
+          <tbody>
+            <tr><td>On your device</td><td>A SQLite database and image files in your user's data folder, protected by your OS account. Not yet encrypted at rest.</td></tr>
+            <tr><td>Between devices</td><td>Every clip and image is sealed with XChaCha20-Poly1305 under a key only your paired devices hold. Requests are authenticated with HMAC-SHA256; the device token itself never travels.</td></tr>
+            <tr><td>Pairing</td><td>X25519 key agreement over a one-time QR secret (10-minute, single-use, rate-limited) plus a 4-digit check code shown on both devices.</td></tr>
+            <tr><td>Keys</td><td>Windows Credential Manager, macOS Keychain; elsewhere (Linux, Android) a file readable only by your user or the app.</td></tr>
+            <tr><td>Secrets you copy</td><td>Password-manager copies are skipped. OTPs, API keys, JWTs, private keys and card numbers are masked, not indexed, never synced and deleted after 1 hour by default.</td></tr>
+            <tr><td>Logs</td><td>Clip content is never logged or put in error messages; only ids, kinds and sizes.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The full explanation, including what an attacker on your network can and can't see, is in <a href="docs/privacy-security.html">Privacy &amp; security</a>.</p>
+
+      <h2 id="report">Reporting a vulnerability</h2>
+      <p>Please <strong>don't open a public issue</strong> for security problems.</p>
+      <ul>
+        <li>Report privately through <a href="https://github.com/abhijitdalal26/cliptrail/security/advisories/new">GitHub private vulnerability reporting</a>.</li>
+        <li>Read the repository's <a href="https://github.com/abhijitdalal26/cliptrail/blob/main/SECURITY.md">SECURITY.md</a> for scope and severity.</li>
+        <li>We aim to acknowledge reports within 72 hours.</li>
+      </ul>
+      <h3 id="critical">Treated as critical</h3>
+      <ul>
+        <li>Clip content reaching another party in plaintext, or reaching a device that wasn't paired.</li>
+        <li>Secrets or clip bodies written to logs.</li>
+        <li>Key material leaving the device it belongs to.</li>
+        <li>Seeing someone else's history.</li>
+      </ul>
+    </article>
+  </div>
+</section>
+
+</main>
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="brand" href="index.html"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="3" width="26" height="26" rx="8" fill="var(--accent)"/><rect x="11" y="7.5" width="10" height="4" rx="2" fill="#fff" opacity=".95"/><path d="M10 15h12M10 19.5h9M10 24h6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" opacity=".95"/></svg>ClipTrail</a>
+        <p>Open-source clipboard history that remembers everything you copy and moves it between your devices, end-to-end encrypted.</p>
+      </div>
+      <div>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="download.html">Download</a></li>
+          <li><a href="index.html#features">Features</a></li>
+          <li><a href="changelog.html">Changelog</a></li>
+          <li><a href="https://github.com/abhijitdalal26/cliptrail/blob/main/ROADMAP.md">Roadmap</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Docs</h2>
+        <ul>
+          <li><a href="docs/index.html">Getting started</a></li>
+          <li><a href="docs/shortcuts.html">Keyboard shortcuts</a></li>
+          <li><a href="docs/sync.html">Sync your devices</a></li>
+          <li><a href="docs/cli.html">Command line</a></li>
+          <li><a href="docs/troubleshooting.html">Troubleshooting</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Project</h2>
+        <ul>
+          <li><a href="https://github.com/abhijitdalal26/cliptrail">GitHub</a></li>
+          <li><a href="https://github.com/abhijitdalal26/cliptrail/issues/new">Report an issue</a></li>
+          <li><a href="security.html">Security</a></li>
+          <li><a href="privacy.html">Privacy</a></li>
+          <li><a href="https://github.com/abhijitdalal26/cliptrail/blob/main/LICENSE-MIT">License: MIT / Apache-2.0</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 ClipTrail contributors · Dual-licensed <a href="https://github.com/abhijitdalal26/cliptrail/blob/main/LICENSE-MIT">MIT</a> / <a href="https://github.com/abhijitdalal26/cliptrail/blob/main/LICENSE-APACHE">Apache-2.0</a></span>
+      <span>No cookies, analytics or trackers on this site.</span>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

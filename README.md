@@ -2,7 +2,7 @@
 
 **Your clipboard, everywhere, forever.** An open-source, end-to-end-encrypted clipboard history that captures everything you copy, organizes it automatically, and syncs it across Windows, macOS, Linux and Android — so the link from last Tuesday or the code you copied on your phone is always one hotkey away.
 
-> **Status: pre-alpha, v1 in active development.** Working today: the Rust core, Windows clipboard capture, the `clipd` CLI and the Windows desktop app (dashboard, quick picker, tray). In progress: encrypted laptop ↔ phone sync and the Android app. Linux capture is written and CI-checked but not yet tested on a real session. Website: <https://abhijitdalal26.github.io/cliptrail/>
+> **Status: pre-alpha, v1 in active development.** Working today: the Rust core, Windows clipboard capture, the `clipd` CLI and the Windows desktop app (dashboard, quick picker, tray). In progress: encrypted laptop ↔ phone sync and the Android app. Linux capture is written and CI-checked but not yet tested on a real session. Website: <https://abhijitdalal26.github.io/cliptrail/> · Docs: <https://abhijitdalal26.github.io/cliptrail/docs/>
 
 ## Try it (from source)
 

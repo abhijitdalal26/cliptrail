@@ -1,0 +1,73 @@
+title: Privacy & security
+desc: {{B}}'s threat model in plain words: what is encrypted where, how sync and pairing are protected, how secrets and password managers are handled, and what's not done yet.
+---
+<h1>Privacy &amp; security</h1>
+<p class="doc-lede">A clipboard manager sees passwords, private messages and keys. This page explains, in plain words, how {{B}} handles that, including what isn't finished yet.</p>
+
+<h2 id="principles">The short version</h2>
+<ul>
+  <li><strong>Local-first.</strong> Your history lives in a folder on your device. Every app works offline and alone.</li>
+  <li><strong>No telemetry.</strong> No analytics, crash reports, update checks or accounts. The apps never contact a {{B}} server; there isn't one.</li>
+  <li><strong>End-to-end encrypted sync.</strong> Only devices you paired can read your clips. Sync stays on your local network.</li>
+  <li><strong>Secrets handled carefully.</strong> Password managers are excluded; codes and keys are masked, unsearchable, never synced and short-lived.</li>
+  <li><strong>Open source.</strong> Every line is on <a href="{{REPO}}">GitHub</a> under MIT / Apache-2.0.</li>
+</ul>
+
+<h2 id="where">What's protected where</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Where your clips are</th><th scope="col">How they're protected today</th></tr></thead>
+  <tbody>
+    <tr><td><strong>On your device</strong></td><td>In your user's data folder (SQLite database plus PNG images), protected by your OS account and disk encryption if you use it. <strong>Not yet encrypted by {{B}} itself</strong>: on-device database encryption is on the roadmap.</td></tr>
+    <tr><td><strong>On the network</strong></td><td>Each clip and image is sealed with XChaCha20-Poly1305 (256-bit key, random 192-bit nonce) on the device that copied it. Eavesdroppers see event and device ids, timestamps and sizes, not content.</td></tr>
+    <tr><td><strong>On the hub</strong></td><td>The hub is one of <em>your</em> computers. It holds the key, so it decrypts clips into its own history just like your other devices. It also keeps the sealed event log so devices can catch up.</td></tr>
+    <tr><td><strong>In logs</strong></td><td>Never. Logs and error messages contain ids, kinds and sizes only; this is a hard rule in the code.</td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="threats">Threat model in plain words</h2>
+<h3 id="protects">What {{B}} protects against</h3>
+<ul>
+  <li><strong>Someone on the same Wi-Fi</strong> reading or altering your clips in transit. Everything is encrypted and authenticated; requests are signed with HMAC-SHA256 and timestamped, and the device token itself never travels.</li>
+  <li><strong>Someone on the network pairing a device without you.</strong> Pairing needs the one-time secret in the QR on your screen, which expires after 10 minutes and works once. Attempts are rate-limited, and both devices show a 4-digit check code to compare.</li>
+  <li><strong>A lost or replaced device.</strong> Revoke it on the hub and its token stops working immediately.</li>
+  <li><strong>Secrets lingering in history.</strong> Detected secrets are masked, kept out of search and sync, and deleted after 1 hour by default.</li>
+  <li><strong>Accidental capture from password managers</strong>, via the exclusion list and Windows' "don't record" clipboard flags.</li>
+</ul>
+<h3 id="not">What it doesn't protect against (yet)</h3>
+<ul>
+  <li><strong>Malware or another person using your unlocked user account.</strong> They can read the data folder, as they could your browser history. Database encryption at rest will raise the bar; nothing protects fully against software running as you.</li>
+  <li><strong>A device you paired and then lost before revoking</strong> still has the clips it already received.</li>
+  <li><strong>Metadata.</strong> Someone on your network can tell that sync is happening, when, and roughly how much.</li>
+  <li><strong>Secrets that don't look like secrets.</strong> Detection works by shape (codes, known key formats, card numbers). A plain password copied from a text file looks like text. Use a password manager, or pause capture first.</li>
+</ul>
+
+<h2 id="password-managers">Password managers and sensitive clips</h2>
+<p>Three layers keep secrets out of your history:</p>
+<ol>
+  <li><strong>Excluded apps.</strong> Copies made in 1Password, Bitwarden, KeePass, KeePassXC, Dashlane, LastPass, Enpass, NordPass, Proton Pass, Keeper, RoboForm, Password Safe, Authy and the GNOME/KDE keyrings are never stored. Add any other app in <a href="settings.html#privacy">Settings → Privacy</a>.</li>
+  <li><strong>Clipboard flags.</strong> On Windows, apps can mark a copy as "don't record in history". {{B}} honours those flags, which many password managers set. Android's "sensitive" flag is honoured by the Android app.</li>
+  <li><strong>Detection.</strong> One-time codes, API keys, JWTs, private keys and card numbers are <a href="kinds.html#sensitive">recognised by shape</a>, masked, never indexed for search, never synced, and deleted after the lifetime you choose (1 hour by default).</li>
+</ol>
+<p>Need to copy something private? <strong>Pause capture</strong> from the tray or the sidebar for 15 minutes, an hour, or until you resume.</p>
+
+<h2 id="pairing">How pairing works</h2>
+<ol>
+  <li>The hub creates a one-time offer: a fresh X25519 key pair and a random 16-byte secret, valid for 10 minutes. The QR carries the hub's addresses, its public key and the secret.</li>
+  <li>The new device makes its own key pair and sends its public key with a proof (an HMAC keyed by the secret) to the hub.</li>
+  <li>The hub checks the proof, burns the offer, derives a shared key with X25519 + HKDF-SHA256, and sends back the sync key and a fresh device token, sealed under that shared key.</li>
+  <li>Both sides derive the same 4-digit check code from the shared key and show it to you.</li>
+</ol>
+<p>Because the QR is shown on your screen, someone on the network can't swap in their own key, forge a proof, or open the reply.</p>
+
+<h2 id="keys">Where keys are kept</h2>
+<ul>
+  <li><strong>Windows:</strong> Windows Credential Manager.</li>
+  <li><strong>macOS:</strong> the Keychain.</li>
+  <li><strong>Linux and Android:</strong> a file in the app's data folder readable only by your user (or the app).</li>
+</ul>
+
+<h2 id="telemetry">No telemetry, no phone-home</h2>
+<p>{{B}} makes no network connections except the sync connections between your own paired devices. No analytics, no crash reporting, no update checks, no account. The project's rules forbid adding them.</p>
+
+<h2 id="report">Found a problem?</h2>
+<p>Please report security issues privately. See the <a href="{{R}}security.html">security policy</a>.</p>

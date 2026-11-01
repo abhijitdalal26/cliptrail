@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en" data-brand="ClipTrail">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Command line (clipd) · ClipTrail</title>
+<meta name="description" content="Reference for clipd, the ClipTrail command-line tool: watch, list, search, show, stats, pin, delete, prune, ingest and every sync command, with flags and examples.">
+<link rel="canonical" href="https://abhijitdalal26.github.io/cliptrail/docs/cli.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ClipTrail">
+<meta property="og:title" content="Command line (clipd) · ClipTrail">
+<meta property="og:description" content="Reference for clipd, the ClipTrail command-line tool: watch, list, search, show, stats, pin, delete, prune, ingest and every sync command, with flags and examples.">
+<meta property="og:url" content="https://abhijitdalal26.github.io/cliptrail/docs/cli.html">
+<meta property="og:image" content="https://abhijitdalal26.github.io/cliptrail/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ClipTrail: your clipboard, everywhere, forever.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#fafaf9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0d12" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+<script>try{var t=localStorage.getItem("cliptrail-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}document.documentElement.classList.add("js")</script>
+<script src="../assets/site.js" defer></script>
+</head>
+<body class="docs-page">
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header wide">
+  <div class="wrap">
+    <a class="brand" href="../index.html" aria-label="ClipTrail home"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="3" width="26" height="26" rx="8" fill="var(--accent)"/><rect x="11" y="7.5" width="10" height="4" rx="2" fill="#fff" opacity=".95"/><path d="M10 15h12M10 19.5h9M10 24h6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" opacity=".95"/></svg>ClipTrail<span class="tag-alpha">alpha</span></a>
+    <nav class="nav" aria-label="Main"><a href="../index.html#features">Features</a><a href="../download.html">Download</a><a href="../docs/index.html" aria-current="page">Docs</a><a href="../changelog.html">Changelog</a></nav>
+    <div class="header-actions">
+      <a class="icon-btn gh-btn" href="https://github.com/abhijitdalal26/cliptrail" aria-label="ClipTrail on GitHub"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.68-1.28-1.68-1.04-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.8 1.19 1.83 1.19 3.09 0 4.42-2.7 5.4-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg></a>
+      <button class="icon-btn theme-toggle" type="button" data-theme-toggle aria-label="Switch theme"><svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg><svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button>
+      <a class="btn btn-sm btn-primary btn-download" href="../download.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>Download</a>
+      <button class="icon-btn menu-btn" type="button" data-menu-btn aria-expanded="false" aria-controls="mobile-nav" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    </div>
+  </div>
+</header>
+<div class="mobile-nav" id="mobile-nav"><a href="../index.html#features">Features</a><a href="../download.html">Download</a><a href="../docs/index.html">Docs</a><a href="../changelog.html">Changelog</a><a href="https://github.com/abhijitdalal26/cliptrail">GitHub</a><a class="btn btn-primary" href="../download.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>Download</a></div>
+<div class="docs-layout">
+<aside class="docs-side" aria-label="Docs navigation">
+  <div class="docs-search"><label class="sr-only" for="docs-search">Search the docs</label><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="docs-search" type="search" placeholder="Search docs" autocomplete="off"><kbd>/</kbd></div>
+  <button class="btn btn-sm docs-menu-btn" type="button" data-docs-menu aria-expanded="false">All docs pages<span aria-hidden="true">▾</span></button>
+  <nav class="docs-nav" aria-label="Documentation"><h2>Get started</h2><ul><li data-keywords="install install-windows install-linux first run build source"><a href="index.html"><span>Getting started</span></a></li><li data-keywords="hotkey paste enter ctrl shift space"><a href="picker.html"><span>Quick picker & paste-back</span></a></li><li data-keywords="keys hotkeys keyboard"><a href="shortcuts.html"><span>Keyboard shortcuts</span></a></li></ul><h2>Using ClipTrail</h2><ul><li data-keywords="link code text contact color file image sensitive language detect"><a href="kinds.html"><span>Kinds & classification</span></a></li><li data-keywords="transform clean url tracking json color rgb hsl markdown dedent"><a href="smart-actions.html"><span>Smart actions</span></a></li><li data-keywords="find filter heatmap calendar date app pinned"><a href="search.html"><span>Search & timeline</span></a></li></ul><h2>Devices</h2><ul><li data-keywords="pair qr hub lan firewall wifi revoke encryption"><a href="sync.html"><span>Sync your devices</span></a></li><li data-keywords="samsung phone accessibility tile share battery apk"><a href="android.html"><span>Android setup</span><span class="chip chip-accent">v0.1</span></a></li></ul><h2>Reference</h2><ul><li data-keywords="preferences options retention exclude theme port"><a href="settings.html"><span>Settings</span></a></li><li data-keywords="cli terminal clipd commands flags"><a href="cli.html" aria-current="page"><span>Command line (clipd)</span></a></li><li data-keywords="folder backup reset remove appdata CLIPTRAIL_DATA_DIR"><a href="data.html"><span>Data, backup & uninstall</span></a></li></ul><h2>Trust</h2><ul><li data-keywords="encryption threat model telemetry password manager"><a href="privacy-security.html"><span>Privacy & security</span></a></li></ul><h2>Help</h2><ul><li data-keywords="problem fix not working wayland firewall samsung"><a href="troubleshooting.html"><span>Troubleshooting</span></a></li><li data-keywords="questions price free ios"><a href="faq.html"><span>FAQ</span></a></li></ul><p class="empty">No pages match. Try the <a href="faq.html">FAQ</a>.</p></nav>
+</aside>
+<main class="docs-main" id="main">
+  <div class="docs-crumb"><a href="index.html">Docs</a> / Reference</div>
+  <article class="prose">
+<h1>Command line (<code>clipd</code>)</h1>
+<p class="doc-lede"><code>clipd</code> is ClipTrail from a terminal: capture without the desktop app, search and script your history, and run or join a sync hub. It uses the same data folder as the app.</p>
+
+<h2 id="install">Install</h2>
+<pre><code>cargo install --locked --git https://github.com/abhijitdalal26/cliptrail clipd-cli</code></pre>
+<p>Needs Rust 1.96 or newer; on Linux also <code>libxcb1-dev</code> (Debian/Ubuntu). Prebuilt archives (<code>clipd-&lt;version&gt;-x86_64-pc-windows-msvc.zip</code>, <code>clipd-&lt;version&gt;-x86_64-unknown-linux-gnu.tar.gz</code>) are attached to each <a href="../download.html#cli">release</a>.</p>
+
+<div class="callout"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><div><p><strong>Content stays private in your terminal too.</strong> Only <code>clipd show</code> prints a clip in full. Everything else prints ids, kinds and a one-line preview, and <code>watch</code> and the sync commands never print clip content at all.</p></div></div>
+
+<h2 id="global">Global options</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Option</th><th scope="col">Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>--data-dir &lt;DIR&gt;</code></td><td>Use this data folder. Default: <code>$CLIPTRAIL_DATA_DIR</code>, else the <a href="data.html#location">OS data folder</a>.</td></tr>
+    <tr><td><code>-h</code>, <code>--help</code></td><td>Help for any command, e.g. <code>clipd sync host --help</code>.</td></tr>
+    <tr><td><code>-V</code>, <code>--version</code></td><td>Print the version.</td></tr>
+  </tbody>
+</table></div>
+<p>Wherever a command takes an <code>&lt;ID&gt;</code>, you can give the full id or any prefix that matches exactly one clip.</p>
+<p>Kinds for <code>--kind</code>: <code>link</code>, <code>code</code>, <code>text</code>, <code>contact</code>, <code>color</code>, <code>file</code>, <code>image</code>, <code>sensitive</code>.</p>
+
+<h2 id="watch">clipd watch</h2>
+<p>Watch the clipboard and store every copy until <kbd>Ctrl</kbd> <kbd>C</kbd>. Prints one line per event (time, outcome, kind, id), never the content, and removes expired sensitive clips every 5 minutes. Don't run it at the same time as the desktop app, which already captures.</p>
+<pre data-nocopy><code><span class="p">$ </span>clipd watch
+watching clipboard → C:\Users\you\AppData\Roaming\ClipTrail (Ctrl+C to stop)
+14:02:11  stored   link/github.com     01JBX4Q8M7T2ZK9R3D5F6H0WNC
+14:02:40  stored   code/rust           01JBX4R4V1KQ8D2N6S0Y3C7FZB
+14:03:05  bumped   link/github.com     01JBX4Q8M7T2ZK9R3D5F6H0WNC
+14:03:30  skipped  (excluded source app)</code></pre>
+
+<h2 id="list">clipd list</h2>
+<p>Recent clips, newest first.</p>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Flag</th><th scope="col">Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>--kind &lt;KIND&gt;</code></td><td>Only this kind.</td></tr>
+    <tr><td><code>--pinned</code></td><td>Only pinned clips.</td></tr>
+    <tr><td><code>-n</code>, <code>--limit &lt;N&gt;</code></td><td>Maximum rows (default 25).</td></tr>
+    <tr><td><code>--json</code></td><td>Print JSON instead of a table.</td></tr>
+  </tbody>
+</table></div>
+<p>Each row shows the id, date, kind (with language or site), flags (<code>P</code> pinned, <code>+</code> copied more than once) and a one-line preview.</p>
+<pre><code>clipd list --kind link -n 10
+clipd list --pinned --json</code></pre>
+
+<h2 id="search">clipd search</h2>
+<p>Substring search over clip text, file paths and source app.</p>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Argument / flag</th><th scope="col">Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>&lt;QUERY&gt;</code></td><td>Text to find (quote it if it has spaces).</td></tr>
+    <tr><td><code>--kind &lt;KIND&gt;</code></td><td>Only this kind.</td></tr>
+    <tr><td><code>-n</code>, <code>--limit &lt;N&gt;</code></td><td>Maximum rows (default 25).</td></tr>
+    <tr><td><code>--json</code></td><td>Print JSON.</td></tr>
+  </tbody>
+</table></div>
+<pre><code>clipd search "deploy"
+clipd search kubectl --kind code --json</code></pre>
+
+<h2 id="show">clipd show</h2>
+<p>One clip in full: id, kind, created and last-seen times, copy count, source app, device, size, image paths, then the content.</p>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Argument / flag</th><th scope="col">Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>&lt;ID&gt;</code></td><td>Clip id or unique prefix.</td></tr>
+    <tr><td><code>--json</code></td><td>Print JSON.</td></tr>
+    <tr><td><code>--reveal</code></td><td>Also print the body of a masked (sensitive) clip. Without it, sensitive clips show <code>••••••</code>.</td></tr>
+  </tbody>
+</table></div>
+<pre><code>clipd show 01JBX4R4</code></pre>
+
+<h2 id="stats">clipd stats</h2>
+<p>Data folder, database size, total and pinned clips, counts by kind, top source apps and clips per day for the last 7 days.</p>
+
+<h2 id="pin">clipd pin / unpin</h2>
+<p><code>clipd pin &lt;ID&gt;</code> keeps a clip forever (never removed by retention); <code>clipd unpin &lt;ID&gt;</code> undoes it.</p>
+
+<h2 id="delete">clipd delete</h2>
+<p><code>clipd delete &lt;ID&gt;</code> deletes a clip and its image files. If sync is set up, the delete syncs to your other devices.</p>
+
+<h2 id="prune">clipd prune</h2>
+<p>Removes expired clips (sensitive clips past their lifetime) right away instead of waiting for the next automatic pass.</p>
+
+<h2 id="ingest">clipd ingest-text / ingest-image</h2>
+<p>Store a clip without touching the clipboard, for scripts and testing. It goes through the same pipeline (classification, dedup, exclusions) as a real copy.</p>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Command</th><th scope="col">Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>clipd ingest-text &lt;TEXT&gt;</code></td><td>Store text. Use <code>-</code> to read from standard input.</td></tr>
+    <tr><td><code>clipd ingest-image &lt;PATH&gt;</code></td><td>Store an image from a PNG file.</td></tr>
+    <tr><td><code>--app &lt;EXE&gt;</code></td><td>Pretend the copy came from this app, e.g. to test an exclusion.</td></tr>
+  </tbody>
+</table></div>
+<pre><code>git log -1 --format=%H | clipd ingest-text -
+clipd ingest-text "hunter2" --app keepassxc.exe   <span class="c"># skipped: excluded app</span>
+clipd ingest-image ./screenshot.png</code></pre>
+
+<h2 id="sync">clipd sync</h2>
+<p>Run a hub, pair with one, and manage devices from the terminal. These commands print device names, ids and event metadata only. Close the desktop app before using them on the same data folder.</p>
+
+<h3 id="sync-host">clipd sync host</h3>
+<p>Run this data folder as the sync hub and print a pairing QR code in the terminal (press <kbd>Enter</kbd> for a new code, <kbd>Ctrl</kbd> <kbd>C</kbd> to stop).</p>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Flag</th><th scope="col">Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>--port &lt;PORT&gt;</code></td><td>TCP port to listen on (default 47821).</td></tr>
+    <tr><td><code>--advertise &lt;HOST&gt;</code></td><td>Address to put in the QR instead of this computer's LAN addresses. Repeatable. E.g. <code>127.0.0.1</code> for a test on one machine.</td></tr>
+    <tr><td><code>--loopback</code></td><td>Listen on 127.0.0.1 only.</td></tr>
+    <tr><td><code>--name &lt;NAME&gt;</code></td><td>Name shown on paired devices.</td></tr>
+    <tr><td><code>--no-pair</code></td><td>Don't print a pairing QR at start.</td></tr>
+  </tbody>
+</table></div>
+
+<h3 id="sync-pair">clipd sync pair</h3>
+<p><code>clipd sync pair &lt;URI&gt; [--name &lt;NAME&gt;]</code> pairs this data folder as a client of a hub, using the <code>cliptrail://pair?…</code> link from the hub. It prints the hub's name, the check code to compare, and how many existing clips were queued to share. Fails if this folder is already a hub or paired; run <code>clipd sync reset</code> first.</p>
+
+<h3 id="sync-run">clipd sync run</h3>
+<p>Run the client loop until <kbd>Ctrl</kbd> <kbd>C</kbd>, printing connects, disconnects and event metadata. <code>--no-images</code> syncs thumbnails only and skips full image downloads.</p>
+
+<h3 id="sync-manage">devices, revoke, status, reset</h3>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Command</th><th scope="col">Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>clipd sync devices [--json]</code></td><td>Paired devices with id, name, platform and last seen.</td></tr>
+    <tr><td><code>clipd sync revoke &lt;DEVICE_ID&gt;</code></td><td>Hub only. The device's token stops working at once.</td></tr>
+    <tr><td><code>clipd sync status [--json]</code></td><td>Role (hub or client), device, hub address, log position, outbox, pending images, where keys are kept, the last problem, and devices.</td></tr>
+    <tr><td><code>clipd sync reset</code></td><td>Forget sync for this data folder: keys, sync progress and device list. Clips are kept.</td></tr>
+  </tbody>
+</table></div>
+<pre><code><span class="c"># Try sync on one machine with two data folders</span>
+clipd --data-dir ./hub sync host --loopback --advertise 127.0.0.1
+<span class="c"># in a second terminal, with the link it printed:</span>
+clipd --data-dir ./phone sync pair "cliptrail://pair?v=1&amp;h=127.0.0.1:47821&amp;…"
+clipd --data-dir ./phone sync run</code></pre>
+
+<h2 id="env">Environment variables</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Variable</th><th scope="col">Effect</th></tr></thead>
+  <tbody>
+    <tr><td><code>CLIPTRAIL_DATA_DIR</code></td><td>Data folder to use (same as <code>--data-dir</code>), for the app and the CLI.</td></tr>
+    <tr><td><code>CLIPTRAIL_KEYSTORE=file</code></td><td>Keep sync keys in a file in the data folder instead of the OS keychain.</td></tr>
+    <tr><td><code>RUST_LOG</code></td><td>Log level, e.g. <code>RUST_LOG=debug</code>. Logs go to stderr and never contain clip content.</td></tr>
+  </tbody>
+</table></div>
+
+  </article>
+  <nav class="docs-pager" aria-label="Previous and next page"><a class="prev" href="settings.html"><span class="lbl">← Previous</span><span class="ttl">Settings</span></a><a class="next" href="data.html"><span class="lbl">Next →</span><span class="ttl">Data, backup & uninstall</span></a></nav>
+  <p class="docs-edit">Something wrong or missing? <a href="https://github.com/abhijitdalal26/cliptrail/blob/main/site/_src/docs/cli.html">Edit this page on GitHub</a>.</p>
+</main>
+<aside class="docs-toc" aria-label="On this page"><div class="toc-box"><h2>On this page</h2><ul id="toc-list"></ul></div>
+  <div class="toc-extra"><a href="https://github.com/abhijitdalal26/cliptrail/blob/main/site/_src/docs/cli.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Edit this page</a><a href="https://github.com/abhijitdalal26/cliptrail/issues/new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 2 1.88 1.88M14.12 3.88 16 2M9 7.13v-1a3 3 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6Z"/><path d="M12 20v-9M6.53 9C4.6 8.8 3 7.1 3 5M6 13H2M3 21c0-2.1 1.7-3.9 3.8-4M20.97 5c0 2.1-1.6 3.8-3.5 4M22 13h-4M17.2 17c2.1.1 3.8 1.9 3.8 4"/></svg>Report a problem</a></div></aside>
+</div>
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="brand" href="../index.html"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="3" width="26" height="26" rx="8" fill="var(--accent)"/><rect x="11" y="7.5" width="10" height="4" rx="2" fill="#fff" opacity=".95"/><path d="M10 15h12M10 19.5h9M10 24h6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" opacity=".95"/></svg>ClipTrail</a>
+        <p>Open-source clipboard history that remembers everything you copy and moves it between your devices, end-to-end encrypted.</p>
+      </div>
+      <div>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="../download.html">Download</a></li>
+          <li><a href="../index.html#features">Features</a></li>
+          <li><a href="../changelog.html">Changelog</a></li>
+          <li><a href="https://github.com/abhijitdalal26/cliptrail/blob/main/ROADMAP.md">Roadmap</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Docs</h2>
+        <ul>
+          <li><a href="../docs/index.html">Getting started</a></li>
+          <li><a href="../docs/shortcuts.html">Keyboard shortcuts</a></li>
+          <li><a href="../docs/sync.html">Sync your devices</a></li>
+          <li><a href="../docs/cli.html">Command line</a></li>
+          <li><a href="../docs/troubleshooting.html">Troubleshooting</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Project</h2>
+        <ul>
+          <li><a href="https://github.com/abhijitdalal26/cliptrail">GitHub</a></li>
+          <li><a href="https://github.com/abhijitdalal26/cliptrail/issues/new">Report an issue</a></li>
+          <li><a href="../security.html">Security</a></li>
+          <li><a href="../privacy.html">Privacy</a></li>
+          <li><a href="https://github.com/abhijitdalal26/cliptrail/blob/main/LICENSE-MIT">License: MIT / Apache-2.0</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 ClipTrail contributors · Dual-licensed <a href="https://github.com/abhijitdalal26/cliptrail/blob/main/LICENSE-MIT">MIT</a> / <a href="https://github.com/abhijitdalal26/cliptrail/blob/main/LICENSE-APACHE">Apache-2.0</a></span>
+      <span>No cookies, analytics or trackers on this site.</span>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

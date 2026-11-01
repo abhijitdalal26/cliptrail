@@ -1,0 +1,100 @@
+title: Sync your devices
+desc: Pair a phone or another computer with {{B}} by QR code. How LAN sync works, what's encrypted, firewall settings and how to revoke a device.
+---
+<h1>Sync your devices</h1>
+<p class="doc-lede">Pair a phone or another computer and they share one clipboard history: copy on one, find it on the others. Everything is end-to-end encrypted and stays on your own network. No account, no cloud.</p>
+
+<div class="callout info">{{i:info}}<div><p><strong>Sync is optional.</strong> Every {{B}} app is fully useful on its own. Pair devices only if you have more than one. The Android app arrives with v0.1; until then you can pair computers.</p></div></div>
+
+<h2 id="how">How it works</h2>
+<ul>
+  <li><strong>One computer is the hub.</strong> The desktop app runs a small sync service on your local network. Other devices (your phone, another computer) connect to it as clients.</li>
+  <li><strong>Every device keeps its full history.</strong> When you copy something, it's sealed (encrypted) on that device, sent to the hub, and passed on to every other paired device, which adds it to its own history.</li>
+  <li><strong>Same network.</strong> Devices sync while they're on the same Wi-Fi or LAN as the hub. Changes made while apart are queued and catch up when they meet again.</li>
+  <li><strong>History, not clipboard.</strong> A clip from another device appears in your timeline and picker; it doesn't silently replace what's on your clipboard. Pick it to paste it.</li>
+</ul>
+<figure>
+  <img class="only-light" src="{{R}}assets/screens/pairing-light.webp" width="1200" height="719" alt="Settings, Devices section: Sync with my devices is on, ready on 192.168.1.23:47821, with a pairing QR code and a Copy link button." loading="lazy">
+  <img class="only-dark" src="{{R}}assets/screens/pairing-dark.webp" width="1200" height="719" alt="Settings, Devices section: Sync with my devices is on, ready on 192.168.1.23:47821, with a pairing QR code and a Copy link button." loading="lazy">
+  <figcaption>Settings → Devices, with a pairing code on screen.</figcaption>
+</figure>
+
+<h2 id="before">Before you start</h2>
+<ul>
+  <li>Both devices are on the <strong>same Wi-Fi or LAN</strong>. Guest networks and some public or office networks block devices from talking to each other.</li>
+  <li>On the hub computer, <strong>Sync with my devices</strong> is on in <a href="settings.html#devices">Settings → Devices</a> (it's on by default). The status line should read <em>Ready on 192.168.x.x:47821</em>.</li>
+  <li><strong>Windows:</strong> the first time sync starts, Windows asks whether to let {{B}} through the firewall. Allow it on <strong>Private networks</strong>. Your Wi-Fi should be set to <em>Private</em>, not <em>Public</em>; see <a href="#firewall">firewall</a> below.</li>
+</ul>
+
+<h2 id="pair-phone">Pair a phone</h2>
+<ol class="steps-list">
+  <li>On your computer, open <strong>Settings → Devices</strong> and click <strong>Pair a phone</strong>. A QR code appears. It works once and expires after 10 minutes.</li>
+  <li>On your phone, open {{B}} and scan the code. (Android setup: <a href="android.html">Android setup</a>.)</li>
+  <li>Both screens show a <strong>4-digit check code</strong>. Make sure they match. If they don't, revoke the device (below) and pair again.</li>
+  <li>Done. The phone appears in the device list with a green dot while it's online.</li>
+</ol>
+<p>If nothing happens after about 20 seconds, the app suggests checking the Wi-Fi and the network profile. See <a href="troubleshooting.html#sync">sync not connecting</a>.</p>
+
+<h2 id="pair-computer">Pair another computer</h2>
+<p>A computer can join another computer's hub. For now this is done with the <a href="cli.html#sync">clipd command-line tool</a>:</p>
+<ol class="steps-list">
+  <li>On the hub computer, open <strong>Settings → Devices → Pair a phone</strong> and click <strong>Copy link</strong>. Send the <code>cliptrail://pair?…</code> link to the other computer (it's single-use and expires in 10 minutes).</li>
+  <li>On the other computer, quit {{B}} (tray → Quit). Because the app made that computer a hub of its own on first run, reset its sync state first. Your clips are kept:
+<pre><code>clipd sync reset
+clipd sync pair "cliptrail://pair?v=1&amp;h=…"</code></pre></li>
+  <li>Compare the check code it prints with the one on the hub.</li>
+  <li>Start {{B}} again. It now runs as a client of the hub, and its existing clips are shared with your other devices.</li>
+</ol>
+
+<h2 id="what-syncs">What syncs</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Synced</th><th scope="col">Not synced</th></tr></thead>
+  <tbody>
+    <tr><td>
+      <ul style="margin:0">
+        <li>New clips: text, rich text, links, code, contacts, colours</li>
+        <li>Images: thumbnail first, then the full image (up to 48 MB)</li>
+        <li>File clips, as their list of paths (not the files themselves)</li>
+        <li>Pins and deletes</li>
+        <li>Your existing history, when a device first joins</li>
+      </ul>
+    </td><td>
+      <ul style="margin:0">
+        <li><a href="kinds.html#sensitive">Sensitive clips</a>: they never leave the device they were copied on</li>
+        <li>Copies from excluded apps (they aren't stored at all)</li>
+        <li>Settings: hotkeys, theme, retention, excluded apps are per device</li>
+      </ul>
+    </td></tr>
+  </tbody>
+</table></div>
+<p>If the same clip is pinned on one device and deleted on another, the most recent change wins.</p>
+
+<h2 id="security">What's encrypted, and who can see what</h2>
+<ul>
+  <li><strong>Your paired devices</strong> share one secret key, created on the hub and handed to each new device during pairing, encrypted for that device alone. Every clip and image is sealed with <strong>XChaCha20-Poly1305</strong> before it leaves the device that copied it.</li>
+  <li><strong>The hub</strong> is your own computer and holds the key, so it decrypts clips into its own history like any of your devices.</li>
+  <li><strong>Anyone else on the network</strong> (another computer on the café Wi-Fi, your router) can see that two devices are talking, and per event: an event id, a device id, a timestamp and the size. Never the content. Requests are signed with HMAC-SHA256, so the device's secret token never travels.</li>
+  <li><strong>Pairing</strong> uses an X25519 key exchange bound to the one-time secret in the QR code. Someone on your network can't slip in their own key without seeing the QR, and pairing attempts are rate-limited.</li>
+  <li><strong>Keys</strong> are kept in Windows Credential Manager or the macOS Keychain; on Linux, in a file in your data folder readable only by you.</li>
+</ul>
+<p>More in <a href="privacy-security.html">Privacy &amp; security</a>.</p>
+
+<h2 id="firewall">Firewall and network profile</h2>
+<p>The hub listens on TCP port <strong>47821</strong> on your local network addresses.</p>
+<ul>
+  <li><strong>Windows:</strong> when the firewall prompt appears, allow access on <strong>Private networks</strong>. If you dismissed it, open <em>Windows Security → Firewall &amp; network protection → Allow an app through firewall</em> and tick <em>Private</em> for {{B}}.</li>
+  <li><strong>Make your Wi-Fi Private:</strong> <em>Settings → Network &amp; internet → Wi-Fi → (your network) → Network profile type → Private network</em>. On a Public profile Windows blocks incoming connections.</li>
+  <li><strong>Linux:</strong> if you run a firewall (ufw, firewalld), allow TCP 47821 from your LAN, e.g. <code>sudo ufw allow from 192.168.0.0/16 to any port 47821 proto tcp</code>.</li>
+  <li><strong>Different port:</strong> change it under <em>Settings → Devices → Network → Port</em> (1024–65535). Devices paired before the change may need to be paired again.</li>
+</ul>
+
+<h2 id="manage">See, revoke and turn off</h2>
+<ul>
+  <li><strong>Status:</strong> the sidebar shows <em>Synced · N devices</em>; Settings → Devices lists each device with <em>Online now</em> or when it was last seen.</li>
+  <li><strong>Revoke a device</strong> (on the hub): click <strong>Revoke</strong>, then <strong>Confirm revoke</strong>. Its access token stops working immediately and its connection is closed. Clips it already received stay on it; delete them there if needed. From a terminal: <code>clipd sync revoke &lt;device-id&gt;</code>.</li>
+  <li><strong>Turn sync off:</strong> switch off <strong>Sync with my devices</strong>. The hub stops and nothing listens on the network. Your history is untouched.</li>
+  <li><strong>Start over:</strong> <code>clipd sync reset</code> (with the app closed) forgets keys, devices and sync progress for this device, keeping all clips.</li>
+</ul>
+
+<h2 id="roadmap">Coming later</h2>
+<p>Sync across networks, so your devices stay in step when they're not on the same Wi-Fi, is on the <a href="{{REPO}}/blob/main/ROADMAP.md">roadmap</a>.</p>

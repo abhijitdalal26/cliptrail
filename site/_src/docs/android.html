@@ -1,0 +1,73 @@
+title: Android setup
+desc: Set up the {{B}} Android app (coming in v0.1): install the APK, enable the accessibility service, keep it running on Samsung and other phones, add the tile, and pair.
+---
+<h1>Android setup <span class="chip chip-accent">Available with v0.1</span></h1>
+<p class="doc-lede">The Android app saves what you copy on your phone and shares history with your computer. Android limits clipboard access more than desktops do, so setup takes a few extra taps. This page walks through all of them.</p>
+
+<div class="callout warn">{{i:warn}}<div><p><strong>Not released yet.</strong> The Android app is being built for v0.1.0 and has been tested first on a Samsung Galaxy (One UI). Screens and names below may change slightly before release.</p></div></div>
+
+<h2 id="why">Why the extra steps</h2>
+<p>Since Android 10, only the keyboard or the app on screen may read the clipboard. {{B}} doesn't ask you to switch keyboards. Instead it uses:</p>
+<ul>
+  <li>an <strong>accessibility service</strong> that notices when you tap <em>Copy</em> (or a "Copied" message appears) and reads the clipboard at that moment; it doesn't read or store anything else on screen;</li>
+  <li>a <strong>persistent notification</strong> so Android keeps it running;</li>
+  <li>a <strong>Quick Settings tile</strong>, the <strong>share menu</strong> and the <strong>text-selection menu</strong> as manual ways to save anything automatic capture misses.</li>
+</ul>
+<p>On Android 12 and newer you'll see a short "{{B}} pasted from your clipboard" message after each capture. That's Android telling you an app read the clipboard; it's expected.</p>
+
+<h2 id="install">1. Install the APK</h2>
+<ol class="steps-list">
+  <li>Download the <code>.apk</code> from the <a href="{{R}}download.html#android">Download page</a> on your phone.</li>
+  <li>Open it. If asked, allow <strong>Install unknown apps</strong> for your browser or file manager, then tap <strong>Install</strong>.</li>
+  <li>Requires Android 10 or newer.</li>
+</ol>
+
+<h2 id="accessibility">2. Turn on the accessibility service</h2>
+<ol class="steps-list">
+  <li>Open <strong>Settings → Accessibility → Installed apps</strong> (on some phones: <em>Downloaded apps</em> or <em>Installed services</em>).</li>
+  <li>Tap <strong>{{B}}</strong>, switch it <strong>On</strong>, and confirm with <strong>Allow</strong>.</li>
+</ol>
+<h3 id="restricted">If the switch is greyed out: restricted settings</h3>
+<p>Android 13+ blocks accessibility for apps installed from a file until you allow it once:</p>
+<ol class="steps-list">
+  <li>Try to turn the service on once (you'll see a "Restricted setting" message). Close it.</li>
+  <li>Open <strong>Settings → Apps → {{B}}</strong>, tap <strong>⋮</strong> in the top-right corner, then <strong>Allow restricted settings</strong>, and confirm with your PIN or fingerprint.</li>
+  <li>Go back to step 2 above; the switch now works.</li>
+</ol>
+
+<h2 id="notifications">3. Allow notifications</h2>
+<p>Allow notifications when asked. You'll see a quiet "capturing" notification; it keeps the app alive and has a <strong>Save clipboard</strong> button.</p>
+
+<h2 id="battery">4. Keep it running (Samsung)</h2>
+<p>Samsung (and Xiaomi, OnePlus, Huawei) phones aggressively stop background apps. On a Samsung Galaxy:</p>
+<ol class="steps-list">
+  <li>When the app asks "Let app always run in background?", tap <strong>Allow</strong>. Or: <em>Settings → Apps → {{B}} → Battery → <strong>Unrestricted</strong></em>.</li>
+  <li><em>Settings → Battery → Background usage limits → <strong>Never sleeping apps</strong></em> → <strong>+</strong> → add {{B}}.</li>
+  <li>On the same screen, turn off <strong>Put unused apps to sleep</strong>.</li>
+</ol>
+<p>Other brands: look for "Autostart", "No restrictions" or "Don't optimise" in the app's battery settings. <a href="https://dontkillmyapp.com/">dontkillmyapp.com</a> has per-brand instructions.</p>
+
+<h2 id="tile">5. Add the Quick Settings tile</h2>
+<ol class="steps-list">
+  <li>Swipe down twice from the top of the screen to open Quick Settings.</li>
+  <li>Tap the <strong>✎ edit</strong> (pencil) button.</li>
+  <li>Drag <strong>Save clipboard</strong> into your active tiles.</li>
+</ol>
+<p>Tap the tile after a copy that wasn't caught automatically. You can also select text and choose <strong>{{B}}</strong> from the selection menu (⋮), or use <strong>Share → {{B}}</strong> for text and images.</p>
+
+<h2 id="pair">6. Pair with your computer</h2>
+<ol class="steps-list">
+  <li>Make sure the phone is on the same Wi-Fi as your computer.</li>
+  <li>On the computer: <strong>Settings → Devices → Pair a phone</strong>.</li>
+  <li>On the phone: open {{B}}, choose pairing and scan the QR code.</li>
+  <li>Check that the 4-digit check code matches on both screens.</li>
+</ol>
+<p>From then on, copies on either device appear in the other's history. On the phone, tap a clip to copy it, then paste anywhere. Details in <a href="sync.html">Sync your devices</a>.</p>
+
+<h2 id="privacy">Privacy on Android</h2>
+<ul>
+  <li>The accessibility service only reacts to copy actions and reads the clipboard then. It doesn't log screen content.</li>
+  <li>Clips marked sensitive by the app you copied from (Android's "sensitive" flag) are skipped, and copies from password managers (such as Bitwarden, 1Password, KeePass apps, LastPass, Dashlane, Proton Pass, Samsung Pass) are never read.</li>
+  <li>Sync keys stay on the phone, in the app's private storage. The app only talks to your own hub on your local network.</li>
+</ul>
+<p>Something not working? See <a href="troubleshooting.html#android">Troubleshooting → Android</a>.</p>

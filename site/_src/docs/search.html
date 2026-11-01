@@ -1,0 +1,43 @@
+title: Search & timeline
+desc: Find anything you've copied in {{B}}: instant substring search, filters by kind and app, a day-by-day timeline and a calendar heatmap.
+---
+<h1>Search &amp; timeline</h1>
+<p class="doc-lede">Two ways to find a clip: search for something you remember about it, or browse back to when you copied it.</p>
+
+<figure>
+  <img class="only-light" src="{{R}}assets/screens/dashboard-light.webp" width="1920" height="1200" alt="Dashboard with the sidebar, the heatmap, the timeline grouped by day and the preview pane." loading="lazy">
+  <img class="only-dark" src="{{R}}assets/screens/dashboard-dark.webp" width="1920" height="1200" alt="Dashboard with the sidebar, the heatmap, the timeline grouped by day and the preview pane." loading="lazy">
+  <figcaption>The dashboard: filters on the left, heatmap and timeline in the middle, the selected clip on the right.</figcaption>
+</figure>
+
+<h2 id="search">Search</h2>
+<p>Press <kbd>/</kbd> or <kbd>Ctrl</kbd> <kbd>F</kbd> in the dashboard, or just start typing in the picker.</p>
+<ul>
+  <li><strong>Substring matching.</strong> Search finds your text anywhere inside a clip, even in the middle of a word: <code>ploy</code> matches <code>deploy.sh</code>, <code>4f2a</code> matches a commit hash. It's backed by a SQLite full-text index with trigrams, so it stays instant over years of history.</li>
+  <li><strong>What's searched:</strong> the clip's text, the paths of copied files, and the name of the app it came from.</li>
+  <li><strong>What isn't:</strong> <a href="kinds.html#sensitive">sensitive clips</a> are never indexed, and the pixels of images aren't searched (searchable screenshots via OCR are on the roadmap).</li>
+  <li><kbd>Esc</kbd> clears the search and filters.</li>
+</ul>
+
+<h2 id="filters">Filters</h2>
+<p>Filters combine with search and with each other:</p>
+<div class="def-grid">
+  <div class="def"><b>{{i:pin}} All clips / Pinned</b><p>Everything, or only the clips you pinned with <kbd>Ctrl</kbd> <kbd>P</kbd>.</p></div>
+  <div class="def"><b>{{i:tag}} Kind</b><p>Links, Code, Text, Contacts, Colors, Files, Images, Sensitive, each with a count.</p></div>
+  <div class="def"><b>{{i:monitor}} App</b><p>The apps you copy from most, such as Chrome, VS Code or Slack. Click again to clear.</p></div>
+  <div class="def"><b>{{i:calendar}} Time range</b><p>All time, Today, 7 days or 30 days, at the top of the timeline.</p></div>
+</div>
+
+<h2 id="timeline">Timeline</h2>
+<p>Clips are listed newest first and grouped by day (<em>Today</em>, <em>Yesterday</em>, then dates), each with its source app, how long ago it was copied, and how many times you've copied it. The list is virtualised, so scrolling stays smooth with tens of thousands of clips.</p>
+<p>Select a clip to see it in full in the preview pane: syntax-highlighted code, link details, colour swatches, image previews, file lists. From there you can copy it, copy it as plain text, run a <a href="smart-actions.html">smart action</a>, pin it or delete it (<kbd>Del</kbd>, with <kbd>Ctrl</kbd> <kbd>Z</kbd> to undo).</p>
+
+<h2 id="heatmap">Calendar heatmap</h2>
+<p>Above the timeline, a heatmap shows how much you copied each day over the last 16 weeks, with today's count, the 16-week total and your busiest day.</p>
+<ul>
+  <li><strong>Click a day</strong> to jump the timeline to that day. A "<em>Oct 28 and earlier</em>" chip shows where you are; remove it to go back to now.</li>
+  <li>Combine it with a kind or app filter: "the code I copied from VS Code around the 14th".</li>
+</ul>
+
+<h2 id="cli">From the terminal</h2>
+<p>The same search is available as <code>clipd search &lt;text&gt;</code>, with <code>--kind</code>, <code>--limit</code> and <code>--json</code>. See the <a href="cli.html#search">CLI reference</a>.</p>

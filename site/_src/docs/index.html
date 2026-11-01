@@ -1,0 +1,71 @@
+title: Getting started
+desc: Install {{B}} on Windows or Linux, make your first copies, open the quick picker and find your way around the dashboard.
+---
+<h1>Getting started</h1>
+<p class="doc-lede">{{B}} keeps a searchable history of everything you copy, sorts it by type, and pastes it back with a keystroke. This page gets you from download to your first paste in a couple of minutes.</p>
+
+<div class="callout info">{{i:info}}<div><p><strong>Pre-release.</strong> The first alpha, v0.1.0, is on its way. Until installers are published you can <a href="#build-from-source">build from source</a>. Windows is the main target today, Linux is in beta, macOS is experimental and Android arrives with v0.1.</p></div></div>
+
+<h2 id="install">1. Install</h2>
+<p>Get the installer for your system from the <a href="{{R}}download.html">Download page</a>.</p>
+<ul>
+  <li><strong>Windows:</strong> run the <code>-setup.exe</code>. It installs for your user only, without admin rights. Because the build isn't code-signed yet, SmartScreen asks first: click <strong>More info → Run anyway</strong>.</li>
+  <li><strong>Linux:</strong> install the <code>.deb</code> with <code>sudo apt install ./{{B}}_*.deb</code>, or make the AppImage executable and run it. See <a href="{{R}}download.html#install-notes">install notes</a> for Wayland.</li>
+  <li><strong>macOS:</strong> experimental; clipboard capture isn't implemented there yet.</li>
+</ul>
+
+<h2 id="first-run">2. First run</h2>
+<p>{{B}} starts in the system tray (the notification area on Windows) and the dashboard opens. From now on, every copy you make is saved:</p>
+<ol class="steps-list">
+  <li><strong>Copy a few things</strong> as you normally would: a link from your browser, a snippet of code, a colour from a design tool, a screenshot.</li>
+  <li><strong>Watch them appear</strong> in the dashboard timeline under <em>Today</em>, each with an icon for its kind (link, code, colour, image…) and the app it came from.</li>
+  <li><strong>Turn on "Start with Windows"</strong> (or "Start at login") in the tray menu or Settings so capture is always running.</li>
+</ol>
+
+<h2 id="picker">3. Paste from the picker</h2>
+<p>Click into any text field in any app, then:</p>
+<ol class="steps-list">
+  <li>Press <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Space</kbd>. The quick picker opens over your current window.</li>
+  <li>Type a few letters to search, or use <kbd>↑</kbd> <kbd>↓</kbd>. <kbd>Tab</kbd> switches between kinds.</li>
+  <li>Press <kbd>Enter</kbd>. The picker closes and the clip is pasted into the app you were in. <kbd>Shift</kbd> <kbd>Enter</kbd> pastes it as plain text.</li>
+</ol>
+<figure>
+  <img class="only-light" src="{{R}}assets/screens/picker-light.webp" width="1200" height="891" alt="The quick picker with a search box, kind tabs and recent clips." loading="lazy">
+  <img class="only-dark" src="{{R}}assets/screens/picker-dark.webp" width="1200" height="891" alt="The quick picker with a search box, kind tabs and recent clips." loading="lazy">
+  <figcaption>The quick picker. <kbd>Ctrl</kbd> <kbd>1</kbd>–<kbd>9</kbd> pastes one of the first nine items directly.</figcaption>
+</figure>
+<p>More in <a href="picker.html">The quick picker &amp; paste-back</a>.</p>
+
+<h2 id="dashboard">4. The dashboard</h2>
+<p>Open it from the tray, with <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>H</kbd>, or with <kbd>Ctrl</kbd> <kbd>D</kbd> from the picker.</p>
+<ul>
+  <li><strong>Sidebar:</strong> all clips, pinned clips, each kind with its count, and the apps you copy from most.</li>
+  <li><strong>Heatmap and timeline:</strong> the last 16 weeks at a glance; click a day to jump there. Clips are grouped by day.</li>
+  <li><strong>Preview pane:</strong> the selected clip in full, with <em>Copy</em>, <em>Copy as plain text</em>, smart actions, pin and delete.</li>
+</ul>
+<p>Press <kbd>?</kbd> in the dashboard to see every shortcut, or read <a href="shortcuts.html">Keyboard shortcuts</a>.</p>
+
+<h2 id="next">5. Next steps</h2>
+<div class="cards-3">
+  <a class="link-card" href="sync.html"><b>Sync your devices</b><span>Pair a phone or another computer with a QR code.</span></a>
+  <a class="link-card" href="smart-actions.html"><b>Smart actions</b><span>Clean links, convert colours, prettify JSON.</span></a>
+  <a class="link-card" href="settings.html"><b>Settings</b><span>Hotkeys, retention, excluded apps, theme.</span></a>
+</div>
+
+<h2 id="build-from-source">Build from source</h2>
+<p>Until installers are published, or if you'd rather build it yourself. You need <strong>Rust 1.96</strong> (the repo pins it in <code>rust-toolchain.toml</code>, so <code>rustup</code> picks it up automatically), <strong>Node 22</strong> and <strong>pnpm</strong>.</p>
+<ul>
+  <li><strong>Windows:</strong> the Microsoft C++ build tools ("Desktop development with C++").</li>
+  <li><strong>Linux:</strong> the Tauri system packages, for example on Ubuntu:</li>
+</ul>
+<pre><code>sudo apt install libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libxdo-dev libssl-dev libxcb1-dev</code></pre>
+<h3 id="build-desktop">Desktop app</h3>
+<pre><code>git clone https://github.com/abhijitdalal26/cliptrail
+cd cliptrail/apps/desktop
+pnpm install
+pnpm tauri dev      <span class="c"># run it</span>
+pnpm tauri build    <span class="c"># or build installers into target/release/bundle</span></code></pre>
+<h3 id="build-cli">Command-line tool</h3>
+<pre><code>cargo install --locked --git https://github.com/abhijitdalal26/cliptrail clipd-cli</code></pre>
+<p>That installs the <code>clipd</code> binary. See the <a href="cli.html">command-line reference</a>.</p>
+<div class="callout">{{i:info}}<div><p>Want a throwaway history while you experiment? Set <code>CLIPTRAIL_DATA_DIR</code> to an empty folder before starting the app or CLI. See <a href="data.html">Data, backup &amp; uninstall</a>.</p></div></div>

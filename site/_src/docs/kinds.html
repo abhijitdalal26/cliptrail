@@ -1,0 +1,68 @@
+title: Kinds & classification
+desc: How {{B}} recognises links, code, text, contacts, colours, files, images and secrets on your device, with no tagging and no cloud.
+---
+<h1>Kinds &amp; classification</h1>
+<p class="doc-lede">Every clip gets a kind the moment you copy it. Kinds decide how a clip is shown, what you can do with it, and how it's pasted. It all happens locally in well under a millisecond, using rules, not AI and not the cloud.</p>
+
+<h2 id="kinds">The eight kinds</h2>
+<div class="def-grid">
+  <div class="def"><b><span class="kind k-link">{{i:link}}Link</span></b><p>Web addresses: <code>https://…</code>, <code>http://…</code>, <code>ftp://…</code>, <code>www.…</code>, and bare domains with a path like <code>github.com/user/repo</code>. Shown with their site name.</p></div>
+  <div class="def"><b><span class="kind k-code">{{i:code}}Code</span></b><p>Snippets, commands, JSON, diffs, markup, SQL and config files, tagged with a language when one is clear.</p></div>
+  <div class="def"><b><span class="kind k-text">{{i:text}}Text</span></b><p>Everything else: sentences, notes, lists, messages.</p></div>
+  <div class="def"><b><span class="kind k-contact">{{i:contact}}Contact</span></b><p>A single email address (or <code>mailto:</code> link) or phone number.</p></div>
+  <div class="def"><b><span class="kind k-color">{{i:color}}Color</span></b><p><code>#rgb</code>, <code>#rrggbb</code> (with or without alpha), <code>rgb()</code>/<code>rgba()</code> and <code>hsl()</code>/<code>hsla()</code> values, shown with a swatch.</p></div>
+  <div class="def"><b><span class="kind k-file">{{i:file}}File</span></b><p>Files copied in your file manager, and copied paths such as <code>C:\Users\me\report.pdf</code>, <code>\\server\share\…</code>, <code>~/notes.md</code> or <code>file:///…</code>.</p></div>
+  <div class="def"><b><span class="kind k-image">{{i:image}}Image</span></b><p>Screenshots and copied images, saved as PNG with a thumbnail for the timeline.</p></div>
+  <div class="def"><b><span class="kind k-secret">{{i:secret}}Sensitive</span></b><p>One-time codes, API keys, tokens, private keys and card numbers. Masked and short-lived; see <a href="#sensitive">below</a>.</p></div>
+</div>
+
+<h2 id="order">How a clip is classified</h2>
+<p>Images and copied files are recognised from the clipboard format itself. For text, checks run in this order and the first match wins:</p>
+<ol>
+  <li><strong>Sensitive</strong>: does it look like a secret?</li>
+  <li><strong>Link</strong>: a single web address with no spaces.</li>
+  <li><strong>Contact</strong>: exactly one email address or phone number.</li>
+  <li><strong>Color</strong>: a single CSS colour value.</li>
+  <li><strong>File</strong>: a single file or folder path.</li>
+  <li><strong>Code</strong>: code-like structure or a known command.</li>
+  <li><strong>Text</strong>: anything else.</li>
+</ol>
+<p>Only the first 20,000 characters are examined, so even a huge paste is classified instantly. Text clips larger than 2 MB aren't stored.</p>
+
+<h2 id="code">Code and languages</h2>
+<p>A clip counts as code when it's a fenced Markdown block, valid JSON, a diff, an HTML or XML fragment, SQL, YAML or TOML, a shell or PowerShell command (<code>git</code>, <code>cargo</code>, <code>docker</code>, <code>kubectl</code>, prompts like <code>$ </code> and <code>PS C:\&gt;</code>…), or lines whose syntax reads as code rather than prose. A language is then guessed from fingerprints, and only shown when one language is clearly ahead:</p>
+<p>Rust · Python · JavaScript · TypeScript · Go · Java · Kotlin · C · C++ · C# · CSS · HTML · XML · SQL · Shell · PowerShell · JSON · YAML · TOML · Diff</p>
+<p>The language drives syntax highlighting in the preview and the language tag on <a href="smart-actions.html#code">As Markdown code block</a>.</p>
+
+<h2 id="tricky">Things it deliberately doesn't misread</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">You copy</th><th scope="col">Kind</th><th scope="col">Why</th></tr></thead>
+  <tbody>
+    <tr><td><code>#123</code></td><td>Text</td><td>Mixed-digit 3–4 character hashes read as issue or PR numbers. <code>#333</code> is still a grey.</td></tr>
+    <tr><td><code>192.168.1.1</code>, <code>10.0.26300</code></td><td>Text</td><td>IP addresses and version numbers aren't phone numbers.</td></tr>
+    <tr><td><code>2026-11-01</code></td><td>Text</td><td>Dates aren't phone numbers either.</td></tr>
+    <tr><td><code>1761998112</code></td><td>Text</td><td>A 10-digit number starting with 1 is usually a Unix timestamp.</td></tr>
+    <tr><td><code>$ 5.00</code></td><td>Text</td><td>A price, not a shell prompt.</td></tr>
+    <tr><td><code>2024</code>, <code>4821</code></td><td>Text</td><td>One-time codes are 6–8 digits; shorter numbers are usually years or counts.</td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="sensitive">Sensitive clips</h2>
+<p>These are detected by shape:</p>
+<ul>
+  <li><strong>One-time codes:</strong> 6–8 digits, or <code>123 456</code> / <code>123-456</code>.</li>
+  <li><strong>Card numbers:</strong> 13–19 digits that pass the Luhn checksum and start like a real card.</li>
+  <li><strong>API keys and tokens:</strong> AWS, GitHub, GitLab, Slack, Stripe, OpenAI/Anthropic-style <code>sk-…</code>, Google, npm, Hugging Face and SendGrid key formats, and JSON Web Tokens.</li>
+  <li><strong>Private keys:</strong> anything containing a <code>-----BEGIN … PRIVATE KEY-----</code> block.</li>
+</ul>
+<p>A sensitive clip is then:</p>
+<ul>
+  <li><strong>masked</strong> as <code>••••••</code> in the timeline, the picker and the tray;</li>
+  <li><strong>kept out of search</strong>: it's never added to the search index;</li>
+  <li><strong>never synced</strong> to your other devices;</li>
+  <li><strong>deleted automatically</strong> after 1 hour by default (5 minutes to 7 days in <a href="settings.html#privacy">Settings → Privacy</a>).</li>
+</ul>
+<p>You can still copy or paste it while it exists. Copies from password managers are never stored at all; see <a href="privacy-security.html#password-managers">Password managers</a>.</p>
+
+<h2 id="duplicates">Copying the same thing twice</h2>
+<p>Copying something you already have doesn't create a duplicate: the existing clip moves to the top and its copy count goes up (shown as <code>×4</code> in the dashboard).</p>

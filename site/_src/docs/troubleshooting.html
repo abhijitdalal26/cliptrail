@@ -1,0 +1,66 @@
+title: Troubleshooting
+desc: Fixes for common {{B}} problems: hotkey conflicts, paste-back not working, copies not captured, sync not connecting, and Android phones stopping the app.
+---
+<h1>Troubleshooting</h1>
+<p class="doc-lede">The common problems and how to fix them. If yours isn't here, <a href="{{REPO}}/issues/new">open an issue</a>; please never paste clip contents or secrets into it.</p>
+
+<h2 id="hotkey">The hotkey doesn't open the picker</h2>
+<ul>
+  <li><strong>Another app owns it.</strong> If <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Space</kbd> is taken (some input-method switchers and launchers use it), Settings shows "… is already in use by another app". Pick another combination in <a href="settings.html#shortcuts">Settings → Shortcuts</a>, e.g. <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>V</kbd> or <kbd>Win</kbd> <kbd>Shift</kbd> <kbd>V</kbd>.</li>
+  <li><strong>{{B}} isn't running.</strong> Check for the tray icon. Turn on <em>Start with Windows</em> so it's always there.</li>
+  <li><strong>Linux on Wayland:</strong> Wayland may not deliver global shortcuts to apps. Click the tray icon, or log in to an X11 session.</li>
+</ul>
+
+<h2 id="paste-back">Paste-back doesn't paste</h2>
+<p>The clip is always put on your clipboard first, so <kbd>Ctrl</kbd> <kbd>V</kbd> works as a fallback. If the automatic paste doesn't happen:</p>
+<ul>
+  <li><strong>Elevated (administrator) windows:</strong> Windows blocks normal apps from typing into them. Paste manually.</li>
+  <li><strong>Terminals:</strong> most Linux terminals paste with <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>V</kbd>, so the synthetic <kbd>Ctrl</kbd> <kbd>V</kbd> does nothing. Press <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>V</kbd> yourself. (Windows Terminal and PowerShell accept <kbd>Ctrl</kbd> <kbd>V</kbd>.)</li>
+  <li><strong>Wayland:</strong> paste-back is X11-only. The picker shows "Copied — press Ctrl+V to paste".</li>
+  <li><strong>Games and remote desktops</strong> may ignore synthetic keystrokes. Paste manually.</li>
+  <li><strong>Focus moved:</strong> if you clicked another window while the picker was open, it pastes into the window that had focus when the picker opened, or not at all if that window closed.</li>
+</ul>
+
+<h2 id="capture">Copies aren't being saved</h2>
+<ul>
+  <li><strong>Capture is paused.</strong> The sidebar shows <em>Paused</em> instead of <em>Capturing</em>; resume it there or from the tray.</li>
+  <li><strong>The app is excluded</strong> (Settings → Privacy → Excluded apps), or it marks its copies as private, as password managers do. That's on purpose.</li>
+  <li><strong>It was a secret.</strong> Codes and keys are saved as <em>Sensitive</em>, masked, and deleted after their lifetime. Look under Sensitive.</li>
+  <li><strong>It was huge.</strong> Text clips over 2 MB are skipped.</li>
+  <li><strong>Linux on GNOME (Wayland):</strong> GNOME doesn't offer the clipboard protocol {{B}} needs, so it falls back to X11 and only sees copies while an X11 (XWayland) window has focus. KDE Plasma, Sway and Hyprland work natively; an X11 session also works.</li>
+  <li><strong>macOS:</strong> capture isn't implemented yet.</li>
+</ul>
+
+<h2 id="sync">Sync doesn't connect</h2>
+<p>Pairing seems stuck, or a device shows as offline. Work through these in order:</p>
+<ol>
+  <li><strong>Same network?</strong> Both devices must be on the same Wi-Fi or LAN. Mobile data, a different Wi-Fi band on a separate network, or a guest network won't work.</li>
+  <li><strong>Hub running?</strong> Settings → Devices on the hub should say <em>Ready on 192.168.x.x:47821</em>. If it says <em>Not running</em>, click <strong>Retry</strong>. Another program, or <code>clipd sync host</code>, may be using the port; change it under <em>Network → Port</em>.</li>
+  <li><strong>Windows firewall:</strong> allow {{B}} on <strong>Private networks</strong>: <em>Windows Security → Firewall &amp; network protection → Allow an app through firewall</em>.</li>
+  <li><strong>Network set to Public:</strong> Windows blocks incoming connections on Public networks. <em>Settings → Network &amp; internet → Wi-Fi → your network → Network profile type → Private</em>.</li>
+  <li><strong>Wi-Fi client isolation:</strong> many office, hotel, café and guest networks stop devices from seeing each other ("AP isolation"). Use your home network, or a hotspot from a third device.</li>
+  <li><strong>VPN:</strong> a VPN on either device can route local traffic away. Allow LAN access in the VPN's settings ("local network sharing") or pause it while pairing.</li>
+  <li><strong>Laptop asleep:</strong> the hub must be awake. Devices catch up automatically when it wakes.</li>
+  <li><strong>Check code didn't match</strong> or the code expired: revoke the device if it was added, then click <strong>Pair a phone</strong> again for a fresh code.</li>
+</ol>
+<p><code>clipd sync status</code> shows the last error a device ran into, which usually says which of these it is.</p>
+
+<h2 id="android">Android: capture stops after a while</h2>
+<p>This is almost always the phone's battery manager stopping the app. On Samsung:</p>
+<ul>
+  <li><em>Settings → Apps → {{B}} → Battery</em>: <strong>Unrestricted</strong>.</li>
+  <li><em>Settings → Battery → Background usage limits</em>: add {{B}} to <strong>Never sleeping apps</strong> and turn off <strong>Put unused apps to sleep</strong>.</li>
+  <li>Check the accessibility service is still on (<em>Settings → Accessibility → Installed apps</em>). Android may turn it off after an app update or a crash.</li>
+  <li>Keep the "capturing" notification; dismissing or blocking it lets Android stop the service.</li>
+</ul>
+<p>Accessibility switch greyed out? That's Android's <a href="android.html#restricted">restricted settings</a>. For a copy that wasn't caught, tap the <strong>Save clipboard</strong> tile. More in <a href="android.html">Android setup</a>.</p>
+
+<h2 id="windows-install">Windows says "Windows protected your PC"</h2>
+<p>Pre-release installers aren't code-signed yet. Click <strong>More info → Run anyway</strong>. Builds are made by GitHub Actions from the public source.</p>
+
+<h2 id="reset">Still stuck?</h2>
+<ul>
+  <li>Quit and restart {{B}} from the tray.</li>
+  <li>Run <code>clipd stats</code> to check the data folder opens.</li>
+  <li><a href="{{REPO}}/issues/new">Open an issue</a> with your OS, version and what you tried. Logs never include clip content, but check before you paste them anyway.</li>
+</ul>

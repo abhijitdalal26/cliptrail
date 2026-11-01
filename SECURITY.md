@@ -11,7 +11,8 @@ The sync relay stores and forwards **ciphertext only**. It can observe metadata 
 - Honors OS "concealed/transient" clipboard flags.
 - Auto-detects OTPs, API keys, tokens, private-key headers, and card numbers by shape → skipped or auto-expiring by default.
 - Ships a preset exclusion list for password managers (1Password, Bitwarden, KeePassXC, …) plus a per-app blocklist you control.
-- Local database is encrypted at rest.
+- Sync is end-to-end encrypted; the hub and relays only handle ciphertext.
+- Local database encryption at rest is on the roadmap (not yet implemented); rely on full-disk encryption (BitLocker, FileVault, LUKS) meanwhile.
 
 ## Scope
 

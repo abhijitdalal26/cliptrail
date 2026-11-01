@@ -1,0 +1,67 @@
+title: Settings reference
+desc: Every {{B}} desktop setting: start at login, pausing capture, devices and sync, hotkeys, theme, link cleaning, sensitive clips, excluded apps and history retention.
+---
+<h1>Settings</h1>
+<p class="doc-lede">Open Settings with <kbd>Ctrl</kbd> <kbd>,</kbd> in the dashboard, the gear at the bottom of the sidebar, or <em>Settings…</em> in the tray menu. Changes save automatically.</p>
+
+<h2 id="general">General</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Setting</th><th scope="col">What it does</th><th scope="col">Default</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Start with Windows</strong> / <strong>Start at login</strong></td><td>Launches {{B}} quietly into the tray when you sign in. Also in the tray menu.</td><td>Off</td></tr>
+    <tr><td><strong>Clipboard capture</strong></td><td>Pause saving for 15 minutes, 1 hour, or until you resume. Handy before copying something private. Also in the tray menu and at the bottom of the sidebar.</td><td>Capturing</td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="devices">Devices</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Setting</th><th scope="col">What it does</th><th scope="col">Default</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Sync with my devices</strong></td><td>Runs the encrypted sync hub on your local network so paired devices share history. Off means nothing listens on the network.</td><td>On</td></tr>
+    <tr><td><strong>Pair a phone</strong></td><td>Shows a single-use QR code (10 minutes) and a link you can copy for pairing another computer.</td><td>—</td></tr>
+    <tr><td><strong>Paired devices</strong></td><td>Each device with its online state, last seen and paired time, and a <strong>Revoke</strong> button.</td><td>—</td></tr>
+    <tr><td><strong>Network → Port</strong></td><td>TCP port of the hub, 1024–65535.</td><td>47821</td></tr>
+  </tbody>
+</table></div>
+<p>See <a href="sync.html">Sync your devices</a>.</p>
+
+<h2 id="shortcuts">Shortcuts</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Setting</th><th scope="col">What it does</th><th scope="col">Default</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Quick picker</strong></td><td>Global hotkey for the picker. Click it and press a new combination; <kbd>Esc</kbd> cancels.</td><td><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Space</kbd></td></tr>
+    <tr><td><strong>Open dashboard</strong></td><td>Global hotkey that shows or hides the dashboard. Can be switched off.</td><td><kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>H</kbd></td></tr>
+  </tbody>
+</table></div>
+<p>Both hotkeys must be different, and need a modifier unless they're a function key. If another app already uses the combination, you'll see "… is already in use by another app".</p>
+
+<h2 id="appearance">Appearance</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Setting</th><th scope="col">What it does</th><th scope="col">Default</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Theme</strong></td><td>System, Light or Dark. Applies to the dashboard and the picker.</td><td>System</td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="privacy">Privacy</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Setting</th><th scope="col">What it does</th><th scope="col">Default</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Clean links automatically</strong></td><td>Removes tracking parameters (<code>utm_*</code>, <code>fbclid</code>, <code>gclid</code>, …) from links as you copy them, before they're stored. <a href="smart-actions.html#tracking">Full list</a>.</td><td>Off</td></tr>
+    <tr><td><strong>Sensitive clips</strong></td><td>How long one-time codes, API keys and card numbers are kept before they're deleted: 5 minutes, 15 minutes, 1 hour, 1 day or 7 days.</td><td>1 hour</td></tr>
+    <tr><td><strong>Excluded apps</strong></td><td>Copies made in these apps are never saved. Add an app by its executable name (e.g. <code>keepass.exe</code> on Windows, the process name on Linux); <code>*</code> works as a wildcard. <strong>Restore defaults</strong> brings back any default you removed.</td><td>Common password managers</td></tr>
+  </tbody>
+</table></div>
+<p>The default exclusions cover 1Password, Bitwarden, KeePass, KeePassXC, KeePassX, Dashlane, LastPass, Enpass, NordPass, Proton Pass, Keeper, RoboForm, Password Safe, Authy, GNOME Seahorse and KWallet. On Windows, {{B}} also skips anything an app marks as "don't record" on the clipboard, which many password managers do.</p>
+
+<h2 id="storage">Storage</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Setting</th><th scope="col">What it does</th><th scope="col">Default</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Keep history</strong></td><td>Forever, 1 year, 90 days or 30 days. Older clips are deleted automatically; <strong>pinned clips are always kept</strong>.</td><td>Forever</td></tr>
+    <tr><td><strong>Data folder</strong></td><td>Where your history lives, with an <strong>Open folder</strong> button. See <a href="data.html">Data, backup &amp; uninstall</a>.</td><td>Per OS</td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="file">Where settings are stored</h2>
+<p>Desktop settings are saved as <code>settings.json</code> in the <a href="data.html#location">data folder</a>. Settings are per device and aren't synced.</p>
