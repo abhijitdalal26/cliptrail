@@ -674,6 +674,7 @@ enum Mode {
     /// Client: true while the LAN hub session is connected.
     Client { hub_up: watch::Receiver<bool> },
     /// Hub: publish an envelope to LAN streams.
+    #[cfg_attr(not(feature = "hub"), allow(dead_code))]
     Hub {
         publish: Arc<dyn Fn(SeqEnvelope) + Send + Sync>,
     },
@@ -767,6 +768,7 @@ pub(crate) fn start_client(
 }
 
 /// Start the hub's relay bridge.
+#[cfg_attr(not(feature = "hub"), allow(dead_code))]
 pub(crate) fn start_hub(
     engine: Arc<Engine>,
     keystore: Arc<dyn KeyStore>,

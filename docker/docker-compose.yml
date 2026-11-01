@@ -1,0 +1,69 @@
+# Self-hosted ClipTrail relay with automatic HTTPS (Caddy + Let's Encrypt).
+#
+#   cd docker
+#   cp relay.env.example .env      # set RELAY_DOMAIN and RELAY_INVITE
+#   docker compose up -d --build
+#
+# Cloudflare Tunnel instead of open ports 80/443 (no Caddy):
+#   docker compose --profile tunnel up -d --build relay cloudflared
+#
+# See docker/README.md.
+
+services:
+  relay:
+    build:
+      context: ..
+      dockerfile: docker/relay.Dockerfile
+    image: cliptrail-relay:local
+    restart: unless-stopped
+    environment:
+      CLIPD_RELAY_PUBLIC_URL: "https://${RELAY_DOMAIN:-localhost}"
+      # Required to register a new space. Share it only with yourself.
+      CLIPD_RELAY_INVITE: "${RELAY_INVITE:?set RELAY_INVITE in docker/.env}"
+      # Caddy / cloudflared put the real client IP in X-Forwarded-For.
+      CLIPD_RELAY_TRUST_PROXY: "true"
+      CLIPD_RELAY_MAX_SPACE_MB: "${RELAY_MAX_SPACE_MB:-256}"
+      CLIPD_RELAY_MAX_SPACES: "${RELAY_MAX_SPACES:-20}"
+      CLIPD_RELAY_RETENTION_DAYS: "${RELAY_RETENTION_DAYS:-30}"
+      CLIPD_RELAY_LOG: "${RELAY_LOG:-info}"
+    volumes:
+      - relay-data:/data
+    expose:
+      - "8787"
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - relay
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      RELAY_DOMAIN: "${RELAY_DOMAIN:?set RELAY_DOMAIN in docker/.env}"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+  # Alternative to Caddy: expose the relay through a Cloudflare Tunnel
+  # (Zero Trust → Networks → Tunnels; public hostname → http://relay:8787).
+  cloudflared:
+    image: cloudflare/cloudflared:latest # pin a release tag in production
+    profiles: ["tunnel"]
+    restart: unless-stopped
+    depends_on:
+      - relay
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: "${CLOUDFLARE_TUNNEL_TOKEN:-}"
+
+volumes:
+  relay-data:
+  caddy-data:
+  caddy-config:

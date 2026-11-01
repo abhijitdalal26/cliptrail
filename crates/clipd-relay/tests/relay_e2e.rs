@@ -246,6 +246,14 @@ async fn off_lan_sync_through_relay() {
         "standby",
         "B got it from the hub, not the relay"
     );
+    // A LAN-only device's clip goes desk → hub → (bridge, signed by the
+    // hub's key) → relay → phone.
+    text(&bp, "from LAN desk");
+    b.notify_local_change();
+    wait("LAN desk clip forwarded to the off-LAN phone", || {
+        find(&ap, "from LAN desk").is_some()
+    })
+    .await;
 
     // Images both ways (thumbnail inline, full image as a sealed blob).
     let laptop_img = image(&hp, 3);

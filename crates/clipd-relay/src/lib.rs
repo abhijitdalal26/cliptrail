@@ -707,9 +707,13 @@ async fn post_events(
             .is_some_and(|b| !clipd_sync::engine::valid_blob_id(b))
         {
             Some("bad blob id".to_owned())
-        } else if it.env.device_id != a.device {
-            Some("device_id mismatch".to_owned())
         } else {
+            // No `env.device_id == a.device` check on purpose: the hub
+            // forwards its whole log, i.e. envelopes of LAN-only devices,
+            // signed with its own key. The sender id inside an envelope is
+            // authenticated by the space key (AEAD), which every member
+            // holds anyway, so the relay can't add assurance here; revoked
+            // devices are already refused at authentication.
             None
         };
         match bad {

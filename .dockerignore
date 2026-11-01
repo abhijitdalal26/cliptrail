@@ -1,0 +1,15 @@
+# Keep the Docker build context small (the relay image only needs the
+# Cargo workspace).
+.git
+target
+refs
+scratch
+site
+docs
+tools
+**/node_modules
+apps/desktop/dist
+apps/desktop/src-tauri/gen
+apps/desktop/src-tauri/target
+apps/android-spike
+.env

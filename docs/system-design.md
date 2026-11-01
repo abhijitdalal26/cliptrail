@@ -160,7 +160,7 @@ sequenceDiagram
 - **Echo suppression:** sender writes its own hash into a quiet window so its watcher doesn't re-capture the clip it just pasted/synced (decentpaste pattern).
 - **Deletes propagate** as tombstones; content is wiped, not just hidden.
 - **Conflicts:** last-writer-wins on `pinned/section/deleted`; clip bodies are immutable so conflicts are rare and cheap.
-- **Relay ACL:** each `space` is a bucket; devices authenticate with a per-device bearer token issued at pairing; revoked devices' tokens die immediately.
+- **Relay ACL:** each `space` is a bucket; devices authenticate with a per-device bearer token issued at pairing; revoked devices' tokens die immediately. *(Superseded for the relay by [ADR 0001](adr/0001-off-lan-sync.md): per-device Ed25519 request signatures, the relay stores only public keys; enroll key shared in a sealed `SpaceConfig` event.)*
 
 ## 6. Crypto & pairing
 

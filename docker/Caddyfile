@@ -1,0 +1,6 @@
+# Caddy gets and renews a Let's Encrypt certificate for RELAY_DOMAIN and
+# proxies HTTPS + WebSockets to the relay. No access log on purpose (request
+# headers carry per-request signatures; nothing about them is useful).
+{$RELAY_DOMAIN} {
+	reverse_proxy relay:8787
+}
