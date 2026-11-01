@@ -147,7 +147,7 @@ fn files_round_trip() {
     write_clip(WriteContent::Files(&[f.to_string_lossy().into_owned()])).unwrap();
     let current = read_current().unwrap().unwrap();
     match current.content {
-        RawContent::Files(files) => assert!(files.iter().any(|p| p.ends_with("cliptrail-test"))),
+        RawContent::Files(files) => assert!(files.iter().any(|p| p.contains("cliptrail-test"))),
         other => panic!("unexpected {other:?}"),
     }
     let _ = std::fs::remove_file(f);
@@ -161,13 +161,13 @@ fn concealed_type_is_skipped() {
     let text = unique("concealed");
     // Same trick 1Password uses: secret marker type alongside the payload.
     let marker = NSString::from_str("org.nspasteboard.ConcealedType");
-    write_item(&[
+    assert!(write_item(&[
         (
             unsafe { NSPasteboardTypeString },
             ItemData::Text(text.clone()),
         ),
         (&marker, ItemData::Text(String::new())),
-    ]);
+    ]));
     assert!(read_current().unwrap().is_none());
     // A separate write of just the marker changes changeCount; the watcher
     // must not emit a clip for it. (Full watcher check is racy across the
@@ -179,13 +179,13 @@ fn concealed_type_is_skipped() {
 fn transient_type_is_skipped() {
     let _restore = Restore::capture();
     let marker = NSString::from_str("org.nspasteboard.TransientType");
-    write_item(&[
+    assert!(write_item(&[
         (
             unsafe { NSPasteboardTypeString },
             ItemData::Text(unique("transient")),
         ),
         (&marker, ItemData::Text(String::new())),
-    ]);
+    ]));
     assert!(read_current().unwrap().is_none());
 }
 

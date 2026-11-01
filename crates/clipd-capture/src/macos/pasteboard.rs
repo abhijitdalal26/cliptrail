@@ -143,7 +143,7 @@ pub fn read_current() -> Result<Option<RawClip>> {
 
 /// Write one item carrying `entries` (UTI -> payload) — used by tests for
 /// opt-out types as well as by `write_clip`.
-pub(super) fn write_item(entries: &[(&NSString, ItemData)]) {
+pub(super) fn write_item(entries: &[(&NSString, ItemData)]) -> bool {
     let pb = NSPasteboard::generalPasteboard();
     pb.clearContents();
     let item = NSPasteboardItem::new();
@@ -157,14 +157,11 @@ pub(super) fn write_item(entries: &[(&NSString, ItemData)]) {
             }
         }
     }
-    // writeObjects needs NSPasteboardWriting objects; an item is not one.
-    // declareTypes + the setters above publish a single item.
-    unsafe {
-        pb.declareTypes_owner(
-            &NSArray::from_slice(&entries.iter().map(|(t, _)| *t).collect::<Vec<_>>()),
-            None,
-        );
-    }
+    // NSPasteboardItem conforms to NSPasteboardWriting; writeObjects both
+    // declares the item's types and delivers its data.
+    pb.writeObjects(&NSArray::from_retained_slice(&[
+        ProtocolObject::from_retained(item),
+    ]))
 }
 
 pub(super) enum ItemData {
@@ -187,13 +184,17 @@ pub fn write_clip(content: WriteContent<'_>) -> Result<()> {
     autoreleasepool(|_| -> Result<()> {
         match content {
             WriteContent::Text { text, html } => {
-                write_item(&text_offers(text, html));
+                if !write_item(&text_offers(text, html)) {
+                    bail!("NSPasteboard refused the text write");
+                }
             }
             WriteContent::ImagePng(path) => {
                 let png = std::fs::read(path).with_context(|| format!("reading {path}"))?;
                 image::load_from_memory_with_format(&png, image::ImageFormat::Png)
                     .with_context(|| format!("decoding PNG {path}"))?;
-                write_item(&[(t_png(), ItemData::Bytes(png))]);
+                if !write_item(&[(t_png(), ItemData::Bytes(png))]) {
+                    bail!("NSPasteboard refused the image write");
+                }
             }
             WriteContent::Files(files) => {
                 let pb = NSPasteboard::generalPasteboard();
