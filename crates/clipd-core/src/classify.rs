@@ -1378,7 +1378,10 @@ mod tests {
         ),
         (
             // Fake tokens are split so secret scanners don't flag the source.
-            concat!("xox", "b-123456789012-1234567890123-AbCdEfGhIjKlMnOpQrStUvWx"),
+            concat!(
+                "xox",
+                "b-123456789012-1234567890123-AbCdEfGhIjKlMnOpQrStUvWx"
+            ),
             Kind::Sensitive,
             Some("api-key"),
         ),
