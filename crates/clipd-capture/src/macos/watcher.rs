@@ -29,9 +29,12 @@ impl Watcher {
     {
         let stop = Arc::new(AtomicBool::new(false));
         let stop2 = Arc::clone(&stop);
+        // Baseline must be taken here, not inside the thread: a write that
+        // lands before the thread's first poll would otherwise be missed.
+        let baseline = NSPasteboard::generalPasteboard().changeCount();
         let thread = std::thread::Builder::new()
             .name("clipd-clipboard-watcher".into())
-            .spawn(move || run(Box::new(on_clip), stop2))
+            .spawn(move || run(Box::new(on_clip), stop2, baseline))
             .context("spawning clipboard watcher thread")?;
         Ok(Watcher {
             stop,
@@ -49,9 +52,8 @@ impl Drop for Watcher {
     }
 }
 
-fn run(on_clip: Box<dyn Fn(RawClip) + Send>, stop: Arc<AtomicBool>) {
+fn run(on_clip: Box<dyn Fn(RawClip) + Send>, stop: Arc<AtomicBool>, mut last: isize) {
     let pb = NSPasteboard::generalPasteboard();
-    let mut last = pb.changeCount();
     while !stop.load(Ordering::Relaxed) {
         std::thread::sleep(Duration::from_millis(POLL_MS));
         let cc = pb.changeCount();
