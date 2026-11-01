@@ -39,10 +39,12 @@ export function MobileApp() {
     document.documentElement.classList.add("mobile");
   }, []);
 
-  // Status / navigation bars follow the theme.
+  // Status / navigation bars follow the theme, and the surface under them: the clip view is a
+  // full-screen panel, so the bars take the panel colour while it is open.
+  const sheetOpen = openId !== null;
   useEffect(() => {
-    if (isTauri && isAndroid) void api.setWindowTheme(dark).catch(() => undefined);
-  }, [dark]);
+    if (isTauri && isAndroid) void api.setWindowTheme(dark, sheetOpen).catch(() => undefined);
+  }, [dark, sheetOpen]);
 
   const query = useMemo<ListQuery>(
     () => ({
@@ -117,6 +119,9 @@ export function MobileApp() {
 
   // ---------- back gesture / Escape ----------
   const back = useEvent((): boolean => {
+    // An open dialog closes first: Modal handles Escape (and marks it handled).
+    const esc = new KeyboardEvent("keydown", { key: "Escape", cancelable: true });
+    if (!window.dispatchEvent(esc)) return true;
     if (openId) {
       setOpenId(null);
       return true;
@@ -153,7 +158,8 @@ export function MobileApp() {
       );
     }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && back()) e.preventDefault();
+      // Synthetic Escapes come from back() itself; ones a dialog handled are done.
+      if (e.key === "Escape" && e.isTrusted && !e.defaultPrevented && back()) e.preventDefault();
     };
     window.addEventListener("keydown", onKey);
     return () => {
@@ -167,7 +173,10 @@ export function MobileApp() {
   const copy = useEvent((id: string, plain: boolean) => {
     api
       .copyClip(id, plain)
-      .then(() => toast(plain ? "Copied as plain text" : "Copied"))
+      .then(() => {
+        // Android 13+ confirms every copy itself; a second toast would just repeat it.
+        if (!(isAndroid && (status?.sdk ?? 0) >= 33)) toast(plain ? "Copied as plain text" : "Copied");
+      })
       .catch((e) => toast({ message: errorMessage(e), tone: "error" }));
   });
 
@@ -397,7 +406,7 @@ export function MobileApp() {
           }}
         />
       )}
-      <Toasts compact />
+      <Toasts compact raised={isAndroid} />
     </div>
   );
 }

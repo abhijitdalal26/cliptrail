@@ -2,14 +2,15 @@ import { CircleAlert, CircleCheck } from "lucide-react";
 import { cx } from "../lib/cx";
 import { dismiss, useToasts } from "../lib/toast";
 
-export function Toasts({ compact }: { compact?: boolean }) {
+/** `raised`: phone layout, keep toasts clear of the floating Save button. */
+export function Toasts({ compact, raised }: { compact?: boolean; raised?: boolean }) {
   const toasts = useToasts();
   return (
     <div
       aria-live="polite"
       className={cx(
         "pointer-events-none fixed inset-x-0 z-[60] flex flex-col items-center gap-2",
-        compact ? "bottom-12" : "bottom-5",
+        raised ? "bottom-[92px]" : compact ? "bottom-12" : "bottom-5",
       )}
     >
       {toasts.map((t) => (
@@ -26,7 +27,7 @@ export function Toasts({ compact }: { compact?: boolean }) {
           ) : (
             <CircleCheck size={15} className="shrink-0 text-[#4ade80]" />
           )}
-          <span className="max-w-[420px] truncate">{t.message}</span>
+          <span className={cx("truncate", raised ? "max-w-[calc(100vw-140px)]" : "max-w-[420px]")}>{t.message}</span>
           {t.action && (
             <button
               onClick={() => {

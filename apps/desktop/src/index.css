@@ -381,6 +381,29 @@
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
 }
+/* Phone: the system's fading overlay scrollbars, not the desktop gutter (which narrowed the list). */
+.mobile .scroll-y {
+  scrollbar-width: none;
+}
+/* Android WebView ignores scrollbar-width and draws the ::-webkit-scrollbar gutter instead. */
+.mobile .scroll-y::-webkit-scrollbar {
+  display: none;
+}
+/* Phone: every button gets at least a 44 × 44 px touch area, without changing how it looks.
+   In the base layer, so utilities such as `absolute` / `fixed` on a button still win. */
+@layer base {
+  .mobile button {
+    position: relative;
+  }
+  .mobile button::after {
+    content: "";
+    position: absolute;
+    top: min(0px, calc((100% - 44px) / 2));
+    bottom: min(0px, calc((100% - 44px) / 2));
+    left: min(0px, calc((100% - 44px) / 2));
+    right: min(0px, calc((100% - 44px) / 2));
+  }
+}
 @keyframes sheet-in {
   from { transform: translateY(24px); opacity: 0; }
   to { transform: none; opacity: 1; }

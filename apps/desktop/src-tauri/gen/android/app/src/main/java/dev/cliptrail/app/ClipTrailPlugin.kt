@@ -11,6 +11,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.PersistableBundle
 import android.os.PowerManager
+import android.os.SystemClock
 import android.provider.Settings
 import android.webkit.WebView
 import androidx.activity.result.ActivityResult
@@ -40,6 +41,7 @@ class OpenArgs {
 @InvokeArg
 class DarkArgs {
     var dark: Boolean = false
+    var panel: Boolean = false
 }
 
 @InvokeArg
@@ -118,10 +120,13 @@ class ClipTrailPlugin(private val activity: Activity) : Plugin(activity) {
         val target = invoke.parseArgs(OpenArgs::class.java).target
         val pkg = activity.packageName
         val ok = when (target) {
+            // The per-service page needs a privileged permission, so this normally lands on the
+            // Accessibility list; the fragment key highlights our entry where Settings supports it.
             "accessibility" -> tryStart(
                 Intent("android.settings.ACCESSIBILITY_DETAILS_SETTINGS")
                     .putExtra(Intent.EXTRA_COMPONENT_NAME, a11yComponent().flattenToString()),
-                Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS),
+                Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                    .putExtra(":settings:fragment_args_key", a11yComponent().flattenToString()),
             )
             "appInfo" -> tryStart(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", pkg, null)))
             "batteryOptimization" -> tryStart(
@@ -167,10 +172,12 @@ class ClipTrailPlugin(private val activity: Activity) : Plugin(activity) {
             invoke.resolve(JSObject().put("granted", false))
             return
         }
+        val asked = SystemClock.uptimeMillis()
         wry.requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS)) { granted ->
             if (granted == true && Prefs.autoCapture(activity)) KeepAliveService.start(activity)
-            // Denied before: the dialog no longer shows, so open the setting instead.
-            if (granted != true) {
+            // Denied before: Android answers at once without showing the dialog, so open the setting
+            // instead. A slower "no" is the user's own answer to the dialog; respect it.
+            if (granted != true && SystemClock.uptimeMillis() - asked < 400) {
                 tryStart(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, activity.packageName))
             }
             invoke.resolve(JSObject().put("granted", granted == true))
@@ -206,6 +213,21 @@ class ClipTrailPlugin(private val activity: Activity) : Plugin(activity) {
         } catch (e: Exception) {
             invoke.reject("Couldn't copy: ${e.javaClass.simpleName}")
         }
+    }
+
+    /**
+     * Plain text on the clipboard, for the "Paste" button next to the pairing-link box: the WebView
+     * denies navigator.clipboard.readText. The app is focused, so the read is allowed. Never logged.
+     */
+    @Command
+    fun readClipboardText(invoke: Invoke) {
+        val cm = activity.getSystemService(ClipboardManager::class.java)
+        val text = try {
+            cm?.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(activity)?.toString()
+        } catch (_: Exception) {
+            null
+        }
+        invoke.resolve(JSObject().put("text", text ?: ""))
     }
 
     /** The in-app "Save clipboard" button (the app is focused, so the read is allowed). */
@@ -252,9 +274,9 @@ class ClipTrailPlugin(private val activity: Activity) : Plugin(activity) {
 
     @Command
     fun setBarStyle(invoke: Invoke) {
-        val dark = invoke.parseArgs(DarkArgs::class.java).dark
+        val args = invoke.parseArgs(DarkArgs::class.java)
         activity.runOnUiThread {
-            MainActivity.applyBarStyle(activity, dark)
+            MainActivity.applyBarStyle(activity, args.dark, args.panel)
         }
         invoke.resolve()
     }

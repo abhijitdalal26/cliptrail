@@ -35,13 +35,19 @@ class MainActivity : TauriActivity() {
     private var readOnFocus = false
 
     companion object {
-        /** Matches --bg in src/index.css, so the bars blend into the UI. */
-        private fun background(dark: Boolean) = if (dark) Color.rgb(0x0e, 0x0e, 0x10) else Color.rgb(0xf4, 0xf4, 0xf6)
+        /** Matches --bg (or --panel) in src/index.css, so the bars blend into the screen under them. */
+        private fun background(dark: Boolean, panel: Boolean) = when {
+            panel && dark -> Color.rgb(0x15, 0x15, 0x17)
+            panel -> Color.rgb(0xff, 0xff, 0xff)
+            dark -> Color.rgb(0x0e, 0x0e, 0x10)
+            else -> Color.rgb(0xf4, 0xf4, 0xf6)
+        }
 
-        fun applyBarStyle(activity: Activity, dark: Boolean) {
+        fun applyBarStyle(activity: Activity, dark: Boolean, panel: Boolean = false) {
             val window = activity.window
-            window.decorView.setBackgroundColor(background(dark))
-            activity.findViewById<View>(android.R.id.content)?.setBackgroundColor(background(dark))
+            val color = background(dark, panel)
+            window.decorView.setBackgroundColor(color)
+            activity.findViewById<View>(android.R.id.content)?.setBackgroundColor(color)
             WindowCompat.getInsetsController(window, window.decorView).apply {
                 isAppearanceLightStatusBars = !dark
                 isAppearanceLightNavigationBars = !dark

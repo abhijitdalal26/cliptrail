@@ -186,6 +186,7 @@ pub fn run() {
             commands::android_minimize,
             commands::android_take_pair_link,
             commands::android_save_clipboard,
+            commands::android_read_clipboard,
             sync::sync_status,
             sync::sync_set_enabled,
             sync::sync_set_port,

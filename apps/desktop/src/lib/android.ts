@@ -54,6 +54,8 @@ export const androidApi = {
   saveClipboard: () => call<{ message: string }>("android_save_clipboard"),
   /** A cliptrail://pair link that opened the app, once. */
   takePairLink: () => call<{ link: string | null }>("android_take_pair_link"),
+  /** Plain text on the clipboard ("" when none); the WebView can't read it itself. */
+  readClipboard: () => call<{ text: string }>("android_read_clipboard"),
 };
 
 // ---- browser mock ----
@@ -101,6 +103,8 @@ async function mockCall(cmd: string, a: Record<string, unknown>): Promise<unknow
       return { message: "Nothing to save" };
     case "android_take_pair_link":
       return { link: null };
+    case "android_read_clipboard":
+      return { text: await navigator.clipboard.readText() };
     default:
       return null;
   }

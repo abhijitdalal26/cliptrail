@@ -9,6 +9,7 @@ import { subkindLabel } from "../lib/kinds";
 import type { ClipSummary } from "../lib/types";
 import { AppAvatar, KindBadge, KindTile } from "../components/ui";
 import { DeviceBadge } from "../components/DeviceBadge";
+import { useOtherDevice } from "../lib/sync";
 
 interface Props {
   clip: ClipSummary;
@@ -185,14 +186,21 @@ function CodePreview({ clip }: { clip: ClipSummary }) {
 
 function Meta({ clip }: { clip: ClipSummary }) {
   const sub = clip.kind === "code" || clip.kind === "image" ? subkindLabel(clip.kind, clip.subkind) : null;
+  const other = useOtherDevice(clip.device_id);
+  const lead = clip.kind === "code" || clip.kind === "sensitive" || !!clip.source_app || !!other;
   return (
     <div className="mt-1.5 flex items-center gap-1.5 text-[11.5px] text-fg-3">
       {clip.kind === "code" && <KindBadge kind="code" label={sub ?? "Code"} />}
       {clip.kind === "sensitive" && <KindBadge kind="sensitive" />}
-      <AppAvatar app={clip.source_app} size={14} />
-      <span className="truncate">{appName(clip.source_app)}</span>
+      {/* No "Unknown app" noise in the list (the clip view still says so). */}
+      {clip.source_app && (
+        <>
+          <AppAvatar app={clip.source_app} size={14} />
+          <span className="truncate">{appName(clip.source_app)}</span>
+        </>
+      )}
       <DeviceBadge deviceId={clip.device_id} />
-      <span className="text-fg-4">·</span>
+      {lead && <span className="text-fg-4">·</span>}
       <span className="shrink-0 tabular-nums">{shortTime(clip.last_seen_at)}</span>
       {clip.copy_count > 1 && (
         <>

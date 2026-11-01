@@ -70,6 +70,8 @@ export const Timeline = forwardRef<TimelineHandle, Props>(function Timeline(p, r
       return r.clip.kind === "image" ? 96 : r.clip.kind === "code" || r.clip.kind === "text" ? 94 : 70;
     },
     overscan: 8,
+    // Phone: room to scroll the last clip clear of the floating Save button.
+    paddingEnd: p.mobile ? 92 : 0,
     getItemKey: (i) => {
       const r = rows[i];
       return r.type === "clip" ? r.clip.id : r.type === "header" ? `h:${r.key}` : r.type;

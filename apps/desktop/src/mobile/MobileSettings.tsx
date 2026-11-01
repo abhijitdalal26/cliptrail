@@ -91,7 +91,7 @@ export function MobileSettings({
 
   return (
     <div className="anim-sheet fixed inset-0 z-40 flex flex-col bg-bg">
-      <div className="flex h-12 shrink-0 items-center gap-1 border-b border-line bg-panel px-1.5">
+      <div className="flex h-12 shrink-0 items-center gap-1 border-b border-line bg-bg px-1.5">
         <button
           aria-label="Back"
           onClick={onClose}
@@ -502,9 +502,11 @@ function DevicesSection({ pairLink, onPairLinkUsed }: { pairLink: string | null;
                 <Button
                   icon={ClipboardPaste}
                   onClick={() =>
-                    void navigator.clipboard
-                      ?.readText()
-                      .then((t) => setLink(t.trim()))
+                    void (isAndroid ? androidApi.readClipboard().then((r) => r.text) : navigator.clipboard.readText())
+                      .then((t) => {
+                        setError(null);
+                        setLink(t.trim());
+                      })
                       .catch(() => setError("Couldn't read the clipboard; long-press the box and paste"))
                   }
                 >

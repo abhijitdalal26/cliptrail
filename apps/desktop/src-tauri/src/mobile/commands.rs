@@ -111,9 +111,12 @@ pub fn window_effects() -> bool {
 }
 
 /// Status / navigation bar icons and window background follow the theme.
+/// `panel`: a full-screen panel-coloured view (the clip view) is under the
+/// bars, so they take the panel colour instead of the page background.
 #[tauri::command]
-pub async fn set_window_theme(app: AppHandle, dark: bool) {
-    let _ = bridge::call::<Value>(&app, "setBarStyle", json!({ "dark": dark })).await;
+pub async fn set_window_theme(app: AppHandle, dark: bool, panel: Option<bool>) {
+    let args = json!({ "dark": dark, "panel": panel.unwrap_or(false) });
+    let _ = bridge::call::<Value>(&app, "setBarStyle", args).await;
 }
 
 /// Capture health + onboarding checklist (see ClipTrailPlugin.status).
@@ -157,6 +160,13 @@ pub async fn android_take_pair_link(app: AppHandle) -> CmdResult<Value> {
 pub async fn android_minimize(app: AppHandle) -> CmdResult<()> {
     bridge::call::<Value>(&app, "minimize", json!({})).await?;
     Ok(())
+}
+
+/// Plain text on the clipboard (for pasting a pairing link; the WebView
+/// can't read the clipboard itself). `{ text }`, empty when there's none.
+#[tauri::command]
+pub async fn android_read_clipboard(app: AppHandle) -> CmdResult<Value> {
+    bridge::call(&app, "readClipboardText", json!({})).await
 }
 
 /// Read the clipboard now (the app is focused) and save it.

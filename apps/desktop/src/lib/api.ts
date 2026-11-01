@@ -72,7 +72,8 @@ export const api = {
   resumeCapture: () => call<void>("resume_capture"),
   /** True when a native backdrop (Mica/acrylic) is applied to this window. */
   windowEffects: () => call<boolean>("window_effects"),
-  setWindowTheme: (dark: boolean) => call<void>("set_window_theme", { dark }),
+  /** `panel` (Android): the bars sit over a panel-coloured screen (the clip view). Ignored on desktop. */
+  setWindowTheme: (dark: boolean, panel = false) => call<void>("set_window_theme", { dark, panel }),
   backendStatus: () => call<string | null>("backend_status"),
   getSettings: () => call<SettingsView>("get_settings"),
   updateSettings: (settings: Settings) => call<SettingsView>("update_settings", { settings }),
