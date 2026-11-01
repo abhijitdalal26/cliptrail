@@ -7,10 +7,11 @@ ClipTrail: an open-source, end-to-end-encrypted clipboard history that syncs acr
 ## Read first
 
 1. `docs/product-spec.md` — the product spec (goals, data model, classifier, dashboard)
-2. `docs/technical-blueprint.md` — tech decisions, feature priorities, UI design, landmines
-3. `docs/build-plan.md` — the 3-day MVP plan and this repo's intended layout
-4. `docs/market-research.md` — competitive research backing the above
-5. `docs/reference-codebases.md` — external repos to study, with license rules per repo
+2. `docs/system-design.md` — the architecture doc: components, pipeline, data model, sync, crypto, platform matrix
+3. `docs/technical-blueprint.md` — tech decisions, feature priorities, UI design, landmines
+4. `docs/build-plan.md` — the 3-day MVP plan and this repo's intended layout
+5. `docs/market-research.md` — competitive research backing the above
+6. `docs/reference-codebases.md` — external repos to study, with license rules per repo
 
 ## Hard rules
 
