@@ -25,7 +25,7 @@ async def main() -> int:
             tools = await session.list_tools()
             names = [t.name for t in tools.tools]
             print("tools:", names)
-            assert len(names) == 7, names
+            assert len(names) == 8, names
 
             r = await session.call_tool(
                 "search_clips", {"query": "cliptrail", "kind": "link"}

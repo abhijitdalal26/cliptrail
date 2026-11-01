@@ -2,6 +2,7 @@
 
 use anyhow::{Result, bail};
 use chrono::NaiveDate;
+use clipd_capture::WriteContent;
 use clipd_core::{Kind, ListQuery, Millis, Store, store::MASKED_PREVIEW};
 use serde_json::{Value, json};
 
@@ -135,6 +136,31 @@ pub fn call(store: &Store, name: &str, args: &Value) -> Result<Value> {
             store.set_pinned(&id, pinned)?;
             Ok(text_result(&json!({ "id": id, "pinned": pinned })))
         }
+        "copy_to_clipboard" => {
+            let id = args
+                .get("id")
+                .and_then(Value::as_str)
+                .ok_or_else(|| anyhow::anyhow!("missing required arg: id"))?;
+            let id = resolve_id(store, id)?;
+            let Some(clip) = store.get(&id)? else {
+                bail!("no clip with id {id}")
+            };
+            if clip.summary.masked {
+                bail!("refusing to copy a sensitive clip");
+            }
+            if let Some(path) = &clip.image_path {
+                clipd_capture::write_clip(WriteContent::ImagePng(path))?;
+            } else if !clip.summary.files.is_empty() {
+                clipd_capture::write_clip(WriteContent::Files(&clip.summary.files))?;
+            } else {
+                let text = clip.text.unwrap_or_default();
+                clipd_capture::write_clip(WriteContent::Text {
+                    text: &text,
+                    html: clip.html.as_deref(),
+                })?;
+            }
+            Ok(text_result(&json!({ "id": id, "copied": true })))
+        }
         _ => bail!("unknown tool: {name}"),
     }
 }
@@ -144,6 +170,7 @@ pub fn definitions() -> Value {
         {
             "name": "search_clips",
             "description": "Search clipboard history: full-text query plus kind, source app, pinned and date filters. Returns clip summaries (masked previews for sensitive clips).",
+            "annotations": { "readOnlyHint": true, "openWorldHint": false },
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -160,6 +187,7 @@ pub fn definitions() -> Value {
         {
             "name": "recent_clips",
             "description": "Newest clips first, without a text query — 'what did I copy recently'. Same filters as search_clips minus query.",
+            "annotations": { "readOnlyHint": true, "openWorldHint": false },
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -175,6 +203,7 @@ pub fn definitions() -> Value {
         {
             "name": "get_clip",
             "description": "Fetch one clip's full body by id (accepts a ULID prefix from list results). Masked/sensitive clips return metadata only — body is withheld.",
+            "annotations": { "readOnlyHint": true, "openWorldHint": false },
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -186,16 +215,19 @@ pub fn definitions() -> Value {
         {
             "name": "clip_stats",
             "description": "Totals: clip count per kind, pinned count, top source apps.",
+            "annotations": { "readOnlyHint": true, "openWorldHint": false },
             "inputSchema": { "type": "object", "properties": {} }
         },
         {
             "name": "list_source_apps",
             "description": "Apps clips were copied from (for filtering by source_app).",
+            "annotations": { "readOnlyHint": true, "openWorldHint": false },
             "inputSchema": { "type": "object", "properties": {} }
         },
         {
             "name": "day_counts",
             "description": "Clip counts per calendar day — 'what did I do on Tuesday' style questions and activity heatmaps.",
+            "annotations": { "readOnlyHint": true, "openWorldHint": false },
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -206,11 +238,24 @@ pub fn definitions() -> Value {
         {
             "name": "pin_clip",
             "description": "Pin or unpin a clip by id or prefix so it stays at the top of history.",
+            "annotations": { "readOnlyHint": false, "idempotentHint": true, "destructiveHint": false, "openWorldHint": false },
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "id": { "type": "string" },
                     "pinned": { "type": "boolean", "description": "default true" }
+                },
+                "required": ["id"]
+            }
+        },
+        {
+            "name": "copy_to_clipboard",
+            "description": "Put a clip back on the OS clipboard so the user can paste it — 'get me that link/snippet ready to paste'. Refuses masked/sensitive clips.",
+            "annotations": { "readOnlyHint": false, "idempotentHint": true, "destructiveHint": false, "openWorldHint": false },
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "string", "description": "Clip id or unique prefix" }
                 },
                 "required": ["id"]
             }

@@ -188,14 +188,14 @@ mod tests {
     }
 
     #[test]
-    fn tools_list_has_seven_tools() {
+    fn tools_list_has_eight_tools() {
         let store = Store::open_in_memory().unwrap();
         let resp = handle(
             &store,
             r#"{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}"#,
         )
         .unwrap();
-        assert_eq!(resp["result"]["tools"].as_array().unwrap().len(), 7);
+        assert_eq!(resp["result"]["tools"].as_array().unwrap().len(), 8);
     }
 
     #[test]

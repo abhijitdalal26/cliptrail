@@ -3,7 +3,7 @@
 An [MCP](https://modelcontextprotocol.io) server that lets AI agents (Claude Code, Claude Desktop, Cursor, Devin, …) search your ClipTrail clipboard history. "Find that connection string I copied in March" becomes a tool call instead of a manual dig.
 
 - **Stdio transport** — the agent spawns `clipd-mcp` and talks JSON-RPC over stdin/stdout.
-- **Read-mostly** — `search_clips`, `recent_clips`, `get_clip`, `clip_stats`, `list_source_apps`, `day_counts`, plus `pin_clip`. No delete/edit/copy-to-clipboard.
+- **Read-mostly** — `search_clips`, `recent_clips`, `get_clip`, `clip_stats`, `list_source_apps`, `day_counts`, plus `pin_clip` and `copy_to_clipboard` (put a clip back so you can paste it — masked clips refused). No delete/edit.
 - **Privacy boundary stays on-device** — clips are served only to the local agent. Masked (sensitive) clips never expose their body: `get_clip` returns metadata + `••••••`.
 
 ## Install
@@ -44,6 +44,7 @@ ChatGPT connectors call a **remote** MCP endpoint over HTTPS+OAuth — they cann
 - "find the Postgres connection string I copied in March" → `search_clips` + date filter
 - "what code did I copy from VS Code yesterday" → `search_clips(kind=code, source_app=code, from=...)`
 - "pin the clip I copied an hour ago" → `recent_clips` → `pin_clip`
+- "get that link ready to paste" → `search_clips` → `copy_to_clipboard`
 - "how much did I copy this week" → `clip_stats` / `day_counts`
 
 ## Testing
