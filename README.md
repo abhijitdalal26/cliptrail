@@ -29,6 +29,7 @@ Existing tools split into two camps: **great history, one machine** (Ditto, Macc
 | [docs/system-design.md](docs/system-design.md) | Architecture: components, capture pipeline, data model, sync protocol, crypto, platform matrix |
 | [docs/build-plan.md](docs/build-plan.md) | The 3-day MVP plan and this repo's structure |
 | [docs/reference-codebases.md](docs/reference-codebases.md) | External repos to study — what each teaches, license, reuse vs read-only |
+| [docs/feature-candidates.md](docs/feature-candidates.md) | Final sweep: missed products + every user ask, marked A/B/C for review |
 
 ## Planned architecture
 
