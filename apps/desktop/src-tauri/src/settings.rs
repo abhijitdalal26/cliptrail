@@ -1,0 +1,96 @@
+//! User settings persisted as `settings.json` in the data dir.
+
+use std::path::{Path, PathBuf};
+
+use anyhow::{Context, Result};
+use serde::{Deserialize, Serialize};
+
+/// Default global hotkey for the quick picker. Change here to change the default.
+pub const DEFAULT_PICKER_SHORTCUT: &str = "Ctrl+Shift+Space";
+/// Default global hotkey for the dashboard (rarely bound by other apps).
+pub const DEFAULT_DASHBOARD_SHORTCUT: &str = "Ctrl+Alt+H";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum Theme {
+    #[default]
+    System,
+    Light,
+    Dark,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Settings {
+    pub picker_shortcut: String,
+    /// None = no dashboard hotkey.
+    pub dashboard_shortcut: Option<String>,
+    pub theme: Theme,
+    /// Delete unpinned clips older than this many days. None = keep forever.
+    pub retention_days: Option<u32>,
+    /// Lifetime of sensitive clips (OTPs, keys) in minutes.
+    pub sensitive_ttl_minutes: u32,
+    /// Lowercased executable / process names whose copies are never stored.
+    pub excluded_apps: Vec<String>,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Settings {
+            picker_shortcut: DEFAULT_PICKER_SHORTCUT.into(),
+            dashboard_shortcut: Some(DEFAULT_DASHBOARD_SHORTCUT.into()),
+            theme: Theme::System,
+            retention_days: None,
+            sensitive_ttl_minutes: 60 * 24,
+            excluded_apps: Vec::new(),
+        }
+    }
+}
+
+impl Settings {
+    pub fn path(data_dir: &Path) -> PathBuf {
+        data_dir.join("settings.json")
+    }
+
+    /// Load settings, or None when the file doesn't exist yet.
+    pub fn load(data_dir: &Path) -> Result<Option<Settings>> {
+        let path = Self::path(data_dir);
+        match std::fs::read(&path) {
+            Ok(bytes) => Ok(Some(
+                serde_json::from_slice(&bytes).context("settings.json is not valid")?,
+            )),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Err(e) => Err(e).context("reading settings.json"),
+        }
+    }
+
+    pub fn save(&self, data_dir: &Path) -> Result<()> {
+        std::fs::create_dir_all(data_dir).context("creating data dir")?;
+        let path = Self::path(data_dir);
+        let tmp = path.with_extension("json.tmp");
+        std::fs::write(&tmp, serde_json::to_vec_pretty(self)?).context("writing settings")?;
+        std::fs::rename(&tmp, &path).context("replacing settings.json")?;
+        Ok(())
+    }
+
+    /// Normalize user input: lowercase + dedupe excluded apps, clamp numbers.
+    pub fn normalized(mut self) -> Settings {
+        let mut apps: Vec<String> = self
+            .excluded_apps
+            .iter()
+            .map(|a| a.trim().to_lowercase())
+            .filter(|a| !a.is_empty())
+            .collect();
+        apps.sort();
+        apps.dedup();
+        self.excluded_apps = apps;
+        self.sensitive_ttl_minutes = self.sensitive_ttl_minutes.clamp(1, 60 * 24 * 30);
+        self.retention_days = self.retention_days.filter(|d| *d > 0);
+        self.picker_shortcut = self.picker_shortcut.trim().to_string();
+        self.dashboard_shortcut = self
+            .dashboard_shortcut
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty());
+        self
+    }
+}

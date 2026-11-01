@@ -1,0 +1,38 @@
+[package]
+name = "cliptrail-desktop"
+description = "ClipTrail desktop app (Tauri 2): dashboard, quick picker, tray"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+default-run = "cliptrail"
+
+[[bin]]
+name = "cliptrail"
+path = "src/main.rs"
+
+[lib]
+name = "cliptrail_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.7", features = [] }
+
+[dependencies]
+clipd-core.workspace = true
+clipd-capture.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+tauri = { version = "2.12.5", features = ["tray-icon", "image-png", "protocol-asset"] }
+tauri-plugin-opener = "2.7"
+tauri-plugin-global-shortcut = "2.4"
+tauri-plugin-single-instance = "2.5"
+tauri-plugin-autostart = "2.7"
+
+# Mica / acrylic backdrop; Windows only (Linux falls back to opaque windows).
+[target.'cfg(target_os = "windows")'.dependencies]
+window-vibrancy = "0.8"

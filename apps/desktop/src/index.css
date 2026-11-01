@@ -1,0 +1,381 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ------------------------------------------------------------------
+   Design tokens. One neutral ramp + one accent (iris). Everything in
+   the UI reads these, so light/dark/Mica are just token swaps.
+   ------------------------------------------------------------------ */
+:root {
+  --bg: #f4f4f6;
+  --panel: #ffffff;
+  --panel-2: #fafafb;
+  --elevated: #ffffff;
+  --hover: rgb(20 20 30 / 0.045);
+  --active: rgb(20 20 30 / 0.075);
+  --border: rgb(20 20 35 / 0.085);
+  --border-strong: rgb(20 20 35 / 0.15);
+  --fg: #16161b;
+  --fg-2: #4a4a55;
+  --fg-3: #85858f;
+  --fg-4: #b3b3bc;
+  --accent: #5b4ee6;
+  --accent-hover: #4e42d8;
+  --accent-fg: #ffffff;
+  --accent-soft: rgb(91 78 230 / 0.1);
+  --accent-text: #4b3fd4;
+  --ring: rgb(91 78 230 / 0.38);
+  --danger: #dc2626;
+  --success: #16a34a;
+  --heat-0: rgb(20 20 35 / 0.06);
+  --heat-1: #d9d5fb;
+  --heat-2: #ada3f6;
+  --heat-3: #7d6ff0;
+  --heat-4: #5446dd;
+  --shadow-sm: 0 1px 2px rgb(16 16 24 / 0.05);
+  --shadow-md: 0 1px 2px rgb(16 16 24 / 0.04), 0 6px 20px -8px rgb(16 16 24 / 0.14);
+  --shadow-lg: 0 2px 6px rgb(16 16 24 / 0.05), 0 24px 60px -16px rgb(16 16 24 / 0.28);
+
+  --k-link: #2563eb;
+  --k-code: #7c3aed;
+  --k-text: #5b5b66;
+  --k-contact: #059669;
+  --k-color: #db2777;
+  --k-file: #c2780a;
+  --k-image: #0891b2;
+  --k-sensitive: #dc2626;
+
+  --syn-keyword: #7c3aed;
+  --syn-string: #15803d;
+  --syn-number: #c2410c;
+  --syn-comment: #9a9aa4;
+  --syn-func: #2563eb;
+  --syn-type: #b45309;
+  --syn-attr: #0e7490;
+  --syn-meta: #be185d;
+
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #0e0e10;
+  --panel: #151517;
+  --panel-2: #19191c;
+  --elevated: #1c1c20;
+  --hover: rgb(255 255 255 / 0.045);
+  --active: rgb(255 255 255 / 0.08);
+  --border: rgb(255 255 255 / 0.075);
+  --border-strong: rgb(255 255 255 / 0.13);
+  --fg: #ececf0;
+  --fg-2: #a7a7b2;
+  --fg-3: #727280;
+  --fg-4: #4b4b55;
+  --accent: #7468f0;
+  --accent-hover: #8378f4;
+  --accent-fg: #ffffff;
+  --accent-soft: rgb(124 111 242 / 0.16);
+  --accent-text: #aca3fb;
+  --ring: rgb(124 111 242 / 0.45);
+  --danger: #f87171;
+  --success: #4ade80;
+  --heat-0: rgb(255 255 255 / 0.06);
+  --heat-1: #2e2a5e;
+  --heat-2: #463d99;
+  --heat-3: #6457d6;
+  --heat-4: #9488fa;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-md: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -10px rgb(0 0 0 / 0.6);
+  --shadow-lg: 0 2px 8px rgb(0 0 0 / 0.35), 0 28px 70px -16px rgb(0 0 0 / 0.75);
+
+  --k-link: #6ea8ff;
+  --k-code: #a78bfa;
+  --k-text: #a1a1ad;
+  --k-contact: #34d399;
+  --k-color: #f472b6;
+  --k-file: #fbbf24;
+  --k-image: #22d3ee;
+  --k-sensitive: #f87171;
+
+  --syn-keyword: #c4a7ff;
+  --syn-string: #86efac;
+  --syn-number: #fdba74;
+  --syn-comment: #6b6b78;
+  --syn-func: #93c5fd;
+  --syn-type: #fcd34d;
+  --syn-attr: #67e8f9;
+  --syn-meta: #f9a8d4;
+
+  color-scheme: dark;
+}
+
+/* Native backdrop (Windows Mica / acrylic) shows through the chrome. */
+.vibrant {
+  --bg: transparent;
+  --panel: rgb(255 255 255 / 0.82);
+  --panel-2: rgb(255 255 255 / 0.6);
+}
+.vibrant.dark {
+  --panel: rgb(22 22 25 / 0.78);
+  --panel-2: rgb(30 30 34 / 0.55);
+}
+/* Acrylic blurs what's behind but busy content (terminals, code) still
+   shows through, so keep the picker surface mostly opaque. */
+.picker.vibrant {
+  --panel: rgb(250 250 252 / 0.86);
+}
+.picker.vibrant.dark {
+  --panel: rgb(22 22 26 / 0.84);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+  --color-elevated: var(--elevated);
+  --color-hover: var(--hover);
+  --color-active: var(--active);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-fg: var(--fg);
+  --color-fg-2: var(--fg-2);
+  --color-fg-3: var(--fg-3);
+  --color-fg-4: var(--fg-4);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-text: var(--accent-text);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  --shadow-soft: var(--shadow-sm);
+  --shadow-card: var(--shadow-md);
+  --shadow-pop: var(--shadow-lg);
+  --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, "Segoe UI Variable", "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  html {
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01", "ss03";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-size: 13px;
+    line-height: 1.45;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .picker body {
+    background: transparent;
+  }
+  ::selection {
+    background: var(--accent-soft);
+    color: inherit;
+  }
+  .selectable,
+  .selectable * {
+    user-select: text;
+    -webkit-user-select: text;
+  }
+  button {
+    cursor: default;
+  }
+  input::placeholder {
+    color: var(--fg-3);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
+  }
+  input:focus-visible {
+    outline: none;
+  }
+}
+
+/* Browser preview of the picker: a desktop-ish wallpaper behind it */
+.picker-wallpaper {
+  background:
+    radial-gradient(1100px 600px at 15% 10%, #c7d2fe, transparent),
+    radial-gradient(900px 520px at 90% 90%, #fbcfe8, transparent),
+    #eef0f6;
+}
+.dark .picker-wallpaper {
+  background:
+    radial-gradient(1100px 600px at 15% 10%, #2e2a6b, transparent),
+    radial-gradient(900px 520px at 90% 90%, #3b0a40, transparent),
+    #0b0b10;
+}
+
+/* Thin, quiet scrollbars */
+.scroll-y {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+.scroll-y::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.scroll-y::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+.scroll-y::-webkit-scrollbar-track {
+  background: transparent;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Fade long previews out instead of hard-cutting them */
+.fade-out-b {
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
+}
+.fade-out-r {
+  mask-image: linear-gradient(to right, #000 85%, transparent);
+}
+
+/* Kind tint helpers: set --k then use these */
+.k-link { --k: var(--k-link); }
+.k-code { --k: var(--k-code); }
+.k-text { --k: var(--k-text); }
+.k-contact { --k: var(--k-contact); }
+.k-color { --k: var(--k-color); }
+.k-file { --k: var(--k-file); }
+.k-image { --k: var(--k-image); }
+.k-sensitive { --k: var(--k-sensitive); }
+.k-tile {
+  color: var(--k);
+  background: color-mix(in oklab, var(--k) 12%, transparent);
+}
+.k-fg {
+  color: var(--k);
+}
+
+/* Checkerboard behind images / swatches with alpha */
+.checker {
+  background-color: var(--panel-2);
+  background-image:
+    linear-gradient(45deg, var(--hover) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--hover) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--hover) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--hover) 75%);
+  background-size: 14px 14px;
+  background-position: 0 0, 0 7px, 7px -7px, -7px 0;
+}
+
+/* Syntax highlighting (highlight.js classes) on our own palette */
+.code {
+  font-family: var(--font-mono);
+  font-variant-ligatures: none;
+  tab-size: 4;
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-built_in,
+.hljs-doctag {
+  color: var(--syn-keyword);
+}
+.hljs-string,
+.hljs-regexp,
+.hljs-addition,
+.hljs-template-tag,
+.hljs-symbol,
+.hljs-bullet {
+  color: var(--syn-string);
+}
+.hljs-number,
+.hljs-literal {
+  color: var(--syn-number);
+}
+.hljs-comment,
+.hljs-quote {
+  color: var(--syn-comment);
+  font-style: italic;
+}
+.hljs-title,
+.hljs-section,
+.hljs-title.function_ {
+  color: var(--syn-func);
+}
+.hljs-type,
+.hljs-title.class_,
+.hljs-selector-class,
+.hljs-selector-id {
+  color: var(--syn-type);
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-property,
+.hljs-variable.language_,
+.hljs-name {
+  color: var(--syn-attr);
+}
+.hljs-meta,
+.hljs-tag,
+.hljs-subst,
+.hljs-deletion {
+  color: var(--syn-meta);
+}
+
+/* Motion */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(4px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes drop-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.99); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes shimmer {
+  from { background-position: -200px 0; }
+  to { background-position: 200px 0; }
+}
+.anim-fade { animation: fade-in 160ms ease-out both; }
+.anim-pop { animation: pop-in 180ms var(--ease-out-soft) both; }
+.anim-slide-up { animation: slide-up 220ms var(--ease-out-soft) both; }
+.anim-drop { animation: drop-in 180ms var(--ease-out-soft) both; }
+.anim-toast { animation: toast-in 200ms var(--ease-out-soft) both; }
+.skeleton {
+  background: linear-gradient(90deg, var(--hover) 0, var(--active) 40px, var(--hover) 80px);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}
