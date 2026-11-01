@@ -1,0 +1,12 @@
+[package]
+name = "clipd-capture"
+description = "ClipTrail desktop platform glue: clipboard watcher, clipboard write-back, paste-back"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+clipd-core.workspace = true
+anyhow.workspace = true
+tracing.workspace = true

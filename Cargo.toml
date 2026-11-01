@@ -1,0 +1,26 @@
+[workspace]
+resolver = "3"
+members = ["crates/clipd-core", "crates/clipd-capture", "crates/clipd-cli"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/abhijitdalal26/cliptrail"
+
+[workspace.dependencies]
+clipd-core = { path = "crates/clipd-core" }
+clipd-capture = { path = "crates/clipd-capture" }
+anyhow = "1"
+thiserror = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rusqlite = { version = "0.41", features = ["bundled"] }
+ulid = "3"
+sha2 = "0.11"
+regex = "1"
+image = { version = "0.25", default-features = false, features = ["png"] }
+dirs = "7"
+clap = { version = "4", features = ["derive"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

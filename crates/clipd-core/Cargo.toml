@@ -1,0 +1,20 @@
+[package]
+name = "clipd-core"
+description = "ClipTrail core: clip model, storage, search, classifier, capture pipeline"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+rusqlite.workspace = true
+ulid.workspace = true
+sha2.workspace = true
+regex.workspace = true
+image.workspace = true
+dirs.workspace = true
+tracing.workspace = true
