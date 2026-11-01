@@ -27,6 +27,8 @@ interface Props {
   selectedId: string | null;
   dayCounts: Map<string, number> | null;
   top: ReactNode;
+  /** Phone layout: touch wording in the empty state. */
+  mobile?: boolean;
   onLoadMore: () => void;
   onSelect: (id: string) => void;
   onCopy: (id: string) => void;
@@ -112,7 +114,7 @@ export const Timeline = forwardRef<TimelineHandle, Props>(function Timeline(p, r
               {r.type === "top" && (
                 <>
                   {p.top}
-                  {empty && <Empty filtered={p.filtered} shortcut={p.shortcut} />}
+                  {empty && <Empty filtered={p.filtered} shortcut={p.shortcut} mobile={p.mobile} />}
                   {p.loading && p.items.length === 0 && <Skeleton />}
                 </>
               )}
@@ -163,7 +165,7 @@ function Skeleton() {
   );
 }
 
-function Empty({ filtered, shortcut }: { filtered: boolean; shortcut: string }) {
+function Empty({ filtered, shortcut, mobile }: { filtered: boolean; shortcut: string; mobile?: boolean }) {
   if (filtered) {
     return (
       <div className="anim-fade flex flex-col items-center px-8 pt-16 pb-10 text-center">
@@ -190,12 +192,19 @@ function Empty({ filtered, shortcut }: { filtered: boolean; shortcut: string }) 
       <div className="mt-1.5 max-w-[340px] text-[12.5px] leading-[1.55] text-fg-3">
         Links, code, text, colors, files and screenshots are saved as you copy, grouped by day and searchable.
       </div>
+      {mobile ? (
+        <div className="mt-4 max-w-[320px] text-[12.5px] leading-[1.55] text-fg-3">
+          Copy in any app, or use <span className="font-medium text-fg-2">Share › Save to ClipTrail</span> and the{" "}
+          <span className="font-medium text-fg-2">Save clipboard</span> tile in Quick Settings.
+        </div>
+      ) : (
       <div className="mt-4 flex items-center gap-1.5 text-[12px] text-fg-3">
         Paste from history anywhere with
         {shortcut.split("+").map((k) => (
           <Kbd key={k}>{k === "Ctrl" ? MOD : k}</Kbd>
         ))}
       </div>
+      )}
     </div>
   );
 }

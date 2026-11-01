@@ -130,7 +130,7 @@ export function assetUrl(path: string | null | undefined): string | undefined {
   if (convert) return convert(path);
   // Before the dynamic import settles; build the URL the way Tauri does.
   const enc = encodeURIComponent(path);
-  return navigator.userAgent.includes("Windows")
+  return /Windows|Android/.test(navigator.userAgent)
     ? `http://asset.localhost/${enc}`
     : `asset://localhost/${enc}`;
 }

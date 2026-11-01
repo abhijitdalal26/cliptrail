@@ -307,7 +307,20 @@ async fn hub_and_clients_sync_everything() {
     tokio::time::sleep(Duration::from_millis(500)).await;
     assert!(find(&bp, "after revoke").is_none());
 
+    // A leaves on its own (the phone's "Unpair"): the hub revokes it, A's
+    // sync state and keys are gone, its clips stay.
     a.shutdown().await;
+    let a_id = ap.config().device_id.clone();
+    assert!(client::unpair(&a_dir.0, a_ks.clone()).await.unwrap());
+    let st = clipd_sync::status(&hub_dir.0, &*hub_ks).unwrap();
+    let a_row = st.devices.iter().find(|d| d.id == a_id).unwrap();
+    assert!(a_row.revoked_at.is_some());
+    assert!(!clipd_sync::status(&a_dir.0, &*a_ks).unwrap().configured);
+    assert!(a_ks.get(MASTER_KEY).unwrap().is_none());
+    assert!(find(&ap, "after revoke").is_some());
+    // Unpairing an unpaired data dir is a no-op.
+    assert!(!client::unpair(&a_dir.0, a_ks.clone()).await.unwrap());
+
     b.shutdown().await;
     hub.shutdown().await;
 }

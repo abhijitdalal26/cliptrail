@@ -613,7 +613,7 @@ const mockSettings: SettingsView = {
   data_dir: "C:\\Users\\you\\AppData\\Roaming\\ClipTrail",
   version: "0.1.0",
   capture: { paused: false, until: null },
-  platform: "windows",
+  platform: new URLSearchParams(location.search).get("platform") === "android" ? "android" : "windows",
 };
 function captureState(): CaptureState {
   const c = mockSettings.capture;

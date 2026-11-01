@@ -371,6 +371,22 @@
   animation: shimmer 1.4s linear infinite;
 }
 
+/* Touch screens: no hover toolbars, no tap highlight; text follows the phone. */
+@media (hover: none) {
+  .hover-tools {
+    display: none !important;
+  }
+}
+.mobile body {
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+@keyframes sheet-in {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.anim-sheet { animation: sheet-in 220ms var(--ease-out-soft) both; }
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

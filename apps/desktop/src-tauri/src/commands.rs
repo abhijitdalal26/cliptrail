@@ -1,25 +1,34 @@
 //! Tauri commands called by the UI (see apps/desktop/src/lib/api.ts).
 //! Errors are plain strings and never contain clip content.
+//!
+//! Commands marked `#[cfg(desktop)]` touch the desktop clipboard, windows,
+//! tray or login item; Android has its own versions in `mobile::commands`.
 
 use std::sync::Arc;
 
+#[cfg(desktop)]
 use clipd_capture::WriteContent;
 use clipd_core::{
     Clip, ClipSummary, DayCount, Kind, ListQuery, Millis, Pipeline, Stats, Transform,
 };
 use serde::Serialize;
-use tauri::{AppHandle, Emitter, Manager, Window};
+#[cfg(desktop)]
+use tauri::Window;
+use tauri::{AppHandle, Emitter, Manager};
+#[cfg(desktop)]
 use tauri_plugin_autostart::ManagerExt as _;
 use tauri_plugin_opener::OpenerExt;
 
 use crate::settings::Settings;
 use crate::state::{AppState, CaptureState, Pause, guard, lock};
-use crate::{shortcuts, tray, windows};
+use crate::tray;
+#[cfg(desktop)]
+use crate::{shortcuts, windows};
 
 type CmdResult<T> = Result<T, String>;
 
 /// Run blocking store / OS work off the main thread.
-async fn blocking<T: Send + 'static>(
+pub(crate) async fn blocking<T: Send + 'static>(
     f: impl FnOnce() -> CmdResult<T> + Send + 'static,
 ) -> CmdResult<T> {
     tauri::async_runtime::spawn_blocking(f)
@@ -27,7 +36,7 @@ async fn blocking<T: Send + 'static>(
         .map_err(|_| "internal error".to_string())?
 }
 
-fn pipeline(app: &AppHandle) -> CmdResult<Arc<Pipeline>> {
+pub(crate) fn pipeline(app: &AppHandle) -> CmdResult<Arc<Pipeline>> {
     app.state::<AppState>().pipeline()
 }
 
@@ -84,6 +93,7 @@ pub async fn delete_clip(app: AppHandle, id: String) -> CmdResult<()> {
 }
 
 /// Put a stored clip back on the OS clipboard.
+#[cfg(desktop)]
 pub fn write_back(p: &Pipeline, id: &str, plain: bool) -> CmdResult<Kind> {
     let clip = guard("reading clip", || p.store().get(id))?
         .ok_or_else(|| "That clip no longer exists".to_string())?;
@@ -115,7 +125,7 @@ pub fn write_back(p: &Pipeline, id: &str, plain: bool) -> CmdResult<Kind> {
 
 /// A text clip run through a transform. Sensitive (masked) and non-text
 /// clips are refused: transforms are for things you meant to paste as text.
-fn transformed_text(p: &Pipeline, id: &str, t: Transform) -> CmdResult<String> {
+pub(crate) fn transformed_text(p: &Pipeline, id: &str, t: Transform) -> CmdResult<String> {
     let clip = guard("reading clip", || p.store().get(id))?
         .ok_or_else(|| "That clip no longer exists".to_string())?;
     if clip.summary.masked || clip.summary.kind == Kind::Sensitive {
@@ -130,6 +140,7 @@ fn transformed_text(p: &Pipeline, id: &str, t: Transform) -> CmdResult<String> {
 
 /// Write a clip to the clipboard; with a transform, the transformed text
 /// goes out as plain text (no HTML flavor).
+#[cfg(desktop)]
 fn write_back_with(
     p: &Pipeline,
     id: &str,
@@ -176,6 +187,7 @@ pub async fn clip_actions(app: AppHandle, id: String) -> CmdResult<Vec<Transform
     .await
 }
 
+#[cfg(desktop)]
 #[tauri::command]
 pub async fn copy_clip(
     app: AppHandle,
@@ -190,6 +202,7 @@ pub async fn copy_clip(
 /// Write the clip, hide the picker and paste into the window that was
 /// focused before it opened. Errors when paste-back isn't possible (no
 /// target, e.g. Wayland); the clip is on the clipboard in that case.
+#[cfg(desktop)]
 #[tauri::command]
 pub async fn paste_clip(
     app: AppHandle,
@@ -209,11 +222,13 @@ pub async fn paste_clip(
         .map_err(|e| format!("paste-unavailable: {e}"))
 }
 
+#[cfg(desktop)]
 #[tauri::command]
 pub fn hide_picker(app: AppHandle) {
     windows::hide_picker(&app);
 }
 
+#[cfg(desktop)]
 #[tauri::command]
 pub fn show_dashboard(app: AppHandle) {
     windows::hide_picker(&app);
@@ -234,6 +249,7 @@ pub fn open_url(app: AppHandle, url: String) -> CmdResult<()> {
         .map_err(|_| "Couldn't open the link".to_string())
 }
 
+#[cfg(desktop)]
 #[tauri::command]
 pub fn reveal_path(app: AppHandle, path: String) -> CmdResult<()> {
     app.opener()
@@ -241,6 +257,7 @@ pub fn reveal_path(app: AppHandle, path: String) -> CmdResult<()> {
         .map_err(|_| "Couldn't show that file".to_string())
 }
 
+#[cfg(desktop)]
 #[tauri::command]
 pub fn open_data_dir(app: AppHandle) -> CmdResult<()> {
     let dir = app.state::<AppState>().data_dir.clone();
@@ -249,11 +266,13 @@ pub fn open_data_dir(app: AppHandle) -> CmdResult<()> {
         .map_err(|_| "Couldn't open the data folder".to_string())
 }
 
+#[cfg(desktop)]
 #[tauri::command]
 pub fn get_autostart(app: AppHandle) -> bool {
     app.autolaunch().is_enabled().unwrap_or(false)
 }
 
+#[cfg(desktop)]
 #[tauri::command]
 pub fn set_autostart(app: AppHandle, enabled: bool) -> CmdResult<()> {
     let al = app.autolaunch();
@@ -292,11 +311,13 @@ pub fn resume_capture(app: AppHandle) {
     pause(&app, Pause::Off);
 }
 
+#[cfg(desktop)]
 #[tauri::command]
 pub fn window_effects(window: Window, app: AppHandle) -> bool {
     app.state::<AppState>().effect(window.label())
 }
 
+#[cfg(desktop)]
 #[tauri::command]
 pub fn set_window_theme(app: AppHandle, dark: bool) {
     windows::set_theme(&app, dark);
@@ -312,7 +333,7 @@ pub struct SettingsView {
     settings: Settings,
     default_excluded_apps: Vec<String>,
     autostart: bool,
-    data_dir: String,
+    pub(crate) data_dir: String,
     version: String,
     capture: CaptureState,
     platform: &'static str,
@@ -323,7 +344,10 @@ fn settings_view(app: &AppHandle) -> SettingsView {
     SettingsView {
         settings: state.settings(),
         default_excluded_apps: lock(&state.default_excluded).clone(),
+        #[cfg(desktop)]
         autostart: app.autolaunch().is_enabled().unwrap_or(false),
+        #[cfg(mobile)]
+        autostart: false,
         data_dir: state.data_dir.display().to_string(),
         version: app.package_info().version.to_string(),
         capture: state.capture_state(),
@@ -345,11 +369,14 @@ pub async fn update_settings(app: AppHandle, settings: Settings) -> CmdResult<Se
         return Ok(settings_view(&app));
     }
 
-    let hotkeys_changed = new.picker_shortcut != old.picker_shortcut
-        || new.dashboard_shortcut != old.dashboard_shortcut;
-    if hotkeys_changed && let Err(e) = shortcuts::apply(&app, &new) {
-        let _ = shortcuts::apply(&app, &old);
-        return Err(e);
+    #[cfg(desktop)]
+    {
+        let hotkeys_changed = new.picker_shortcut != old.picker_shortcut
+            || new.dashboard_shortcut != old.dashboard_shortcut;
+        if hotkeys_changed && let Err(e) = shortcuts::apply(&app, &new) {
+            let _ = shortcuts::apply(&app, &old);
+            return Err(e);
+        }
     }
 
     *lock(&state.settings) = new.clone();

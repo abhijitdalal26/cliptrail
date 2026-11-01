@@ -1,25 +1,51 @@
-//! ClipTrail desktop app: clipboard watcher → clipd-core pipeline, plus the
+//! ClipTrail app. Desktop: clipboard watcher → clipd-core pipeline, plus the
 //! dashboard window, the quick picker, the tray icon and global hotkeys.
+//! Android (`mobile`): the same UI and core in one window; capture comes
+//! from Kotlin services through JNI into this same library.
 //!
 //! Rule: never log clip content. Log ids, kinds, sizes.
 
 mod commands;
 mod maintenance;
+#[cfg(mobile)]
+mod mobile;
 mod settings;
+#[cfg(desktop)]
 mod shortcuts;
 mod state;
+#[cfg(desktop)]
 mod sync;
+#[cfg(desktop)]
 mod tray;
+#[cfg(desktop)]
 mod windows;
 
-use clipd_core::{IngestOutcome, RawClip, RawContent};
+/// No tray on mobile.
+#[cfg(mobile)]
+mod tray {
+    pub fn refresh(_app: &tauri::AppHandle) {}
+}
+
+#[cfg(desktop)]
+use clipd_core::IngestOutcome;
+use clipd_core::{RawClip, RawContent};
+#[cfg(desktop)]
 use tauri::{AppHandle, Emitter, Manager};
 
+#[cfg(desktop)]
 use state::{AppState, guard, lock};
 
 /// Passed by the login item so the app starts in the tray.
+#[cfg(desktop)]
 const HIDDEN_ARG: &str = "--hidden";
 
+#[cfg(mobile)]
+#[tauri::mobile_entry_point]
+pub fn run() {
+    mobile::run();
+}
+
+#[cfg(desktop)]
 pub fn run() {
     tracing_subscriber::fmt()
         .with_env_filter(
@@ -107,6 +133,7 @@ pub fn run() {
         .expect("error while running ClipTrail");
 }
 
+#[cfg(desktop)]
 fn start_watcher(app: &AppHandle) {
     let app2 = app.clone();
     match guard("clipboard watcher", || {
@@ -120,7 +147,7 @@ fn start_watcher(app: &AppHandle) {
 /// "Clean tracking parameters from links": rewrite a copied bare link before
 /// it is stored (the clip keeps the cleaned URL; the HTML flavor would still
 /// carry the old one, so it is dropped when the text changed).
-fn clean_copied_link(raw: &mut RawClip) {
+pub(crate) fn clean_copied_link(raw: &mut RawClip) {
     let RawContent::Text { text, html } = &mut raw.content else {
         return;
     };
@@ -135,6 +162,7 @@ fn clean_copied_link(raw: &mut RawClip) {
     }
 }
 
+#[cfg(desktop)]
 fn on_raw_clip(app: &AppHandle, raw: RawClip) {
     let state = app.state::<AppState>();
     if state.is_paused() {

@@ -1,14 +1,24 @@
 //! Shared app state: the pipeline, settings, capture pause, paste target.
+//!
+//! [`Core`] (pipeline, settings, pause) is what every platform needs. On
+//! Android it is process-wide (see `mobile::core`), because the Kotlin
+//! capture services ingest through it while no UI is running.
+//! [`AppState`] wraps it for Tauri and adds desktop-only window state.
 
+use std::ops::Deref;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::PathBuf;
+#[cfg(desktop)]
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex, MutexGuard, RwLock};
+use std::sync::{Arc, Mutex, MutexGuard, Once, RwLock};
+#[cfg(desktop)]
 use std::time::Instant;
 
+#[cfg(desktop)]
 use clipd_capture::{ForeignWindow, WatcherHandle};
 use clipd_core::{Millis, Pipeline, PipelineConfig};
 use serde::Serialize;
+#[cfg(desktop)]
 use tauri_plugin_global_shortcut::Shortcut;
 
 use crate::settings::Settings;
@@ -27,13 +37,15 @@ pub struct CaptureState {
     pub until: Option<Millis>,
 }
 
+#[cfg(desktop)]
 #[derive(Default)]
 pub struct Hotkeys {
     pub picker: Option<Shortcut>,
     pub dashboard: Option<Shortcut>,
 }
 
-pub struct AppState {
+/// Pipeline + settings + capture pause: everything capture and the UI share.
+pub struct Core {
     pub data_dir: PathBuf,
     pipeline: RwLock<Option<Arc<Pipeline>>>,
     init_error: Mutex<Option<String>>,
@@ -41,17 +53,36 @@ pub struct AppState {
     /// Excluded apps the core ships by default (shown in Settings).
     pub default_excluded: Mutex<Vec<String>>,
     pause: Mutex<Pause>,
+    init_once: Once,
+}
+
+pub struct AppState {
+    core: Arc<Core>,
     /// Window to paste into when the picker confirms.
+    #[cfg(desktop)]
     pub paste_target: Mutex<Option<ForeignWindow>>,
     /// Foreground window seen while hovering the tray icon (clicking the tray
     /// focuses the taskbar, so we capture the real target before that).
+    #[cfg(desktop)]
     pub hover_target: Mutex<Option<(ForeignWindow, Instant)>>,
     /// When the picker was last hidden (to make tray clicks toggle cleanly).
+    #[cfg(desktop)]
     pub picker_hidden_at: Mutex<Option<Instant>>,
+    #[cfg(desktop)]
     pub main_effect: AtomicBool,
+    #[cfg(desktop)]
     pub picker_effect: AtomicBool,
+    #[cfg(desktop)]
     pub watcher: Mutex<Option<WatcherHandle>>,
+    #[cfg(desktop)]
     pub hotkeys: Mutex<Hotkeys>,
+}
+
+impl Deref for AppState {
+    type Target = Core;
+    fn deref(&self) -> &Core {
+        &self.core
+    }
 }
 
 /// Lock a mutex, recovering from poisoning (a panicked holder never leaves
@@ -71,26 +102,62 @@ pub fn guard<T>(what: &str, f: impl FnOnce() -> anyhow::Result<T>) -> Result<T, 
 }
 
 impl AppState {
+    #[cfg(desktop)]
     pub fn new(data_dir: PathBuf) -> AppState {
+        AppState::with_core(Arc::new(Core::new(data_dir)))
+    }
+
+    pub fn with_core(core: Arc<Core>) -> AppState {
         AppState {
+            core,
+            #[cfg(desktop)]
+            paste_target: Mutex::new(None),
+            #[cfg(desktop)]
+            hover_target: Mutex::new(None),
+            #[cfg(desktop)]
+            picker_hidden_at: Mutex::new(None),
+            #[cfg(desktop)]
+            main_effect: AtomicBool::new(false),
+            #[cfg(desktop)]
+            picker_effect: AtomicBool::new(false),
+            #[cfg(desktop)]
+            watcher: Mutex::new(None),
+            #[cfg(desktop)]
+            hotkeys: Mutex::new(Hotkeys::default()),
+        }
+    }
+
+    #[cfg(desktop)]
+    pub fn effect(&self, label: &str) -> bool {
+        match label {
+            "main" => self.main_effect.load(Ordering::Relaxed),
+            "picker" => self.picker_effect.load(Ordering::Relaxed),
+            _ => false,
+        }
+    }
+}
+
+impl Core {
+    pub fn new(data_dir: PathBuf) -> Core {
+        Core {
             data_dir,
             pipeline: RwLock::new(None),
             init_error: Mutex::new(None),
             settings: Mutex::new(Settings::default()),
             default_excluded: Mutex::new(Vec::new()),
             pause: Mutex::new(Pause::Off),
-            paste_target: Mutex::new(None),
-            hover_target: Mutex::new(None),
-            picker_hidden_at: Mutex::new(None),
-            main_effect: AtomicBool::new(false),
-            picker_effect: AtomicBool::new(false),
-            watcher: Mutex::new(None),
-            hotkeys: Mutex::new(Hotkeys::default()),
+            init_once: Once::new(),
         }
     }
 
     /// Load settings (creating them on first run) and open the pipeline.
+    /// Runs once; later calls are no-ops (Android initializes the core from
+    /// whichever component the OS starts first).
     pub fn init(&self) {
+        self.init_once.call_once(|| self.load());
+    }
+
+    fn load(&self) {
         let loaded = Settings::load(&self.data_dir);
         let settings = match loaded {
             Ok(s) => s,
@@ -203,13 +270,5 @@ impl AppState {
 
     pub fn set_pause(&self, p: Pause) {
         *lock(&self.pause) = p;
-    }
-
-    pub fn effect(&self, label: &str) -> bool {
-        match label {
-            "main" => self.main_effect.load(Ordering::Relaxed),
-            "picker" => self.picker_effect.load(Ordering::Relaxed),
-            _ => false,
-        }
     }
 }

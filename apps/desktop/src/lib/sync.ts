@@ -6,6 +6,7 @@
 import { useSyncExternalStore } from "react";
 import { Laptop, Monitor, Smartphone, type LucideIcon } from "lucide-react";
 import { isTauri, listen } from "./api";
+import { isAndroid } from "./platform";
 import type { Millis } from "./types";
 
 export interface DeviceView {
@@ -59,6 +60,17 @@ export interface OfferView {
   svg: string;
 }
 
+/** Phone side of pairing (clipd_sync::PairOutcome). */
+export interface PairOutcome {
+  space_id: string;
+  hub_name: string;
+  hub_device_id: string;
+  /** Same 4 digits the computer shows. */
+  check_code: string;
+  host: string;
+  backfilled: number;
+}
+
 export interface PairedNotice {
   type: "paired";
   device_id: string;
@@ -83,6 +95,12 @@ export const syncApi = {
   createOffer: () => call<OfferView>("sync_create_offer"),
   cancelOffer: () => call<void>("sync_cancel_offer"),
   revoke: (deviceId: string) => call<void>("sync_revoke", { deviceId }),
+  /** Phone: pair with the computer in a cliptrail://pair link. */
+  pair: (uri: string) => call<PairOutcome>("sync_pair", { uri }),
+  /** Phone: leave the computer's sync (clips stay). True when it confirmed. */
+  unpair: () => call<boolean>("sync_unpair"),
+  /** Phone: download a synced image's full size. */
+  fetchImage: (id: string) => call<boolean>("sync_fetch_image", { id }),
 };
 
 // ---- shared store ----
@@ -217,8 +235,60 @@ function mockQr(seed: number): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${n + 4} ${n + 4}"><rect width="100%" height="100%" fill="#fff"/><g fill="#000">${rects}</g></svg>`;
 }
 
+// The phone preview starts unpaired, as a fresh install does.
+if (isAndroid) {
+  const self = mock.view.status.devices[1];
+  mock.view.status = {
+    ...mock.view.status,
+    configured: false,
+    role: null,
+    space_id: null,
+    device_id: self.id,
+    device_name: null,
+    hub_name: null,
+    connected: false,
+    port: null,
+    hosts: [],
+    devices: [],
+    keystore: "file (no-backup storage)",
+  };
+}
+
 async function mockCall(cmd: string, a: Record<string, unknown>): Promise<unknown> {
   switch (cmd) {
+    case "sync_pair": {
+      await new Promise((r) => setTimeout(r, 700));
+      if (!String(a.uri).startsWith("cliptrail://pair")) throw "That isn't a ClipTrail pairing link";
+      const st = mock.view.status;
+      const now = Date.now();
+      mock.view.status = {
+        ...st,
+        configured: true,
+        role: "client",
+        space_id: "01MOCKSPACE",
+        device_name: "Galaxy S23 FE",
+        hub_name: "DESKTOP-MOCK",
+        connected: true,
+        hosts: ["192.168.1.23:47821"],
+        devices: [
+          { id: MOCK_SELF, name: "DESKTOP-MOCK", platform: "windows", paired_at: now - 86_400_000 * 9, last_seen: now, revoked_at: null, is_self: false, online: true },
+          { id: st.device_id, name: "Galaxy S23 FE", platform: "android", paired_at: now, last_seen: now, revoked_at: null, is_self: true, online: true },
+        ],
+      };
+      return {
+        space_id: "01MOCKSPACE",
+        hub_name: "DESKTOP-MOCK",
+        hub_device_id: MOCK_SELF,
+        check_code: "4821",
+        host: "192.168.1.23:47821",
+        backfilled: 12,
+      } satisfies PairOutcome;
+    }
+    case "sync_unpair":
+      mock.view.status = { ...mock.view.status, configured: false, role: null, hub_name: null, connected: false, devices: [], hosts: [] };
+      return true;
+    case "sync_fetch_image":
+      return false;
     case "sync_status":
     case "sync_restart":
       return mockView();

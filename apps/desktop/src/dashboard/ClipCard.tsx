@@ -39,7 +39,7 @@ export const ClipCard = memo(function ClipCard({ clip, selected, onSelect, onCop
       </div>
       <div
         className={cx(
-          "absolute top-2 right-2 flex items-center gap-0.5 rounded-lg border border-line bg-elevated p-0.5 shadow-card",
+          "hover-tools absolute top-2 right-2 flex items-center gap-0.5 rounded-lg border border-line bg-elevated p-0.5 shadow-card",
           "pointer-events-none opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100",
         )}
       >

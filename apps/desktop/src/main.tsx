@@ -4,8 +4,7 @@ import "@fontsource-variable/inter";
 import "@fontsource-variable/jetbrains-mono";
 import "./index.css";
 import { initTheme } from "./lib/theme";
-import { Dashboard } from "./dashboard/Dashboard";
-import { Picker } from "./picker/Picker";
+import { Root } from "./Root";
 
 initTheme();
 
@@ -19,5 +18,7 @@ window.addEventListener("contextmenu", (e) => {
 });
 
 createRoot(document.getElementById("root")!).render(
-  <StrictMode>{isPicker ? <Picker /> : <Dashboard />}</StrictMode>,
+  <StrictMode>
+    <Root picker={isPicker} />
+  </StrictMode>,
 );

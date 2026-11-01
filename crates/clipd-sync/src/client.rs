@@ -192,6 +192,62 @@ pub async fn pair(
     })
 }
 
+/// Leave the space from a client: tell the hub (`DELETE /v1/devices/me`,
+/// best effort: the hub may be off) and forget the local sync state and
+/// keys. Clips stay. Stop the client loop first. Returns true when the hub
+/// confirmed; false when it couldn't be reached (it can still revoke this
+/// device from its own device list).
+pub async fn unpair(data_dir: &Path, keystore: Arc<dyn KeyStore>) -> Result<bool> {
+    let dd = data_dir.to_path_buf();
+    let ks = keystore.clone();
+    let found = blocking(move || {
+        let db = open_db(&dd)?;
+        let Some(space) = db.space()? else {
+            return Ok(None);
+        };
+        if space.role != Role::Client {
+            bail!("this device is the sync hub; turn sync off instead");
+        }
+        let token = ks.get(DEVICE_TOKEN)?;
+        Ok(Some((space, token)))
+    })
+    .await?;
+    let Some((space, token)) = found else {
+        return Ok(false);
+    };
+    let mut confirmed = false;
+    if let Some(token) = token {
+        let http = http()?;
+        let path = "/v1/devices/me";
+        for host in &space.hub_hosts {
+            let sig = auth::sign(&space.device_id, &token, "DELETE", path, now_millis(), b"");
+            let res = http
+                .delete(format!("http://{host}{path}"))
+                .header("authorization", sig)
+                .timeout(Duration::from_secs(4))
+                .send()
+                .await;
+            match res {
+                Ok(r) if r.status().is_success() => {
+                    confirmed = true;
+                    break;
+                }
+                // Reached the hub, which no longer knows us: same outcome.
+                Ok(r) if r.status() == reqwest::StatusCode::UNAUTHORIZED => {
+                    confirmed = true;
+                    break;
+                }
+                Ok(r) => tracing::debug!(%host, status = %r.status(), "unpair refused"),
+                Err(e) => tracing::debug!(%host, "unpair attempt failed: {e}"),
+            }
+        }
+    }
+    let dd = data_dir.to_path_buf();
+    blocking(move || crate::reset(&dd, &*keystore)).await?;
+    tracing::info!(confirmed, "left the sync space");
+    Ok(confirmed)
+}
+
 #[derive(Default)]
 struct LiveState {
     connected: bool,

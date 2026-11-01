@@ -211,7 +211,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+export function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section>
       <h3 className="mb-2 px-1 text-[11px] font-semibold tracking-[0.05em] text-fg-3 uppercase">{title}</h3>
@@ -222,7 +222,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function Row({
+export function Row({
   title,
   desc,
   error,
@@ -247,7 +247,7 @@ function Row({
   );
 }
 
-function Select({
+export function Select({
   value,
   onChange,
   options,

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="a11y_label">ClipTrail automatic capture</string>
+    <string name="a11y_description">Notices when you copy something (taps on Copy, \"Copied\" messages) and briefly takes focus to save the clipboard to your ClipTrail history on this phone. It does not read the screen. Clips stay on this phone unless you pair it with your own computer.</string>
+    <string name="share_label">Save to ClipTrail</string>
+    <string name="process_text_label">Save to ClipTrail</string>
+    <string name="save_clipboard">Save clipboard</string>
+    <string name="channel_name">Capture status</string>
+    <string name="notif_title">ClipTrail is saving your copies</string>
+    <string name="notif_text">Tap to open · Save clipboard grabs what you just copied</string>
+    <string name="msg_saved">Saved to ClipTrail</string>
+    <string name="msg_already_saved">Already in ClipTrail</string>
+    <string name="msg_not_saved">Not saved (capture paused or app excluded)</string>
+    <string name="msg_failed">ClipTrail couldn\'t save that</string>
+    <string name="msg_nothing">Nothing to save</string>
+    <string name="msg_sensitive">Not saved: marked sensitive by the app</string>
+    <string name="msg_unsupported">ClipTrail can\'t save this kind of clip yet</string>
+</resources>

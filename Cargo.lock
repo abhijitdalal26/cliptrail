@@ -796,6 +796,8 @@ dependencies = [
  "clipd-capture",
  "clipd-core",
  "clipd-sync",
+ "image",
+ "jni",
  "serde",
  "serde_json",
  "tauri",
