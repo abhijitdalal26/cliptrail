@@ -62,6 +62,7 @@ Existing tools split into two camps: **great history, one machine** (Ditto, Macc
 crates/clipd-core      clip model · SQLite + FTS5 trigram search · classifier · transforms · capture pipeline
 crates/clipd-capture   OS clipboard watcher, write-back and paste-back (Windows; Linux X11/Wayland)
 crates/clipd-cli       the `clipd` command-line tool
+crates/clipd-mcp       MCP server: lets AI agents search your clipboard history
 apps/desktop           Tauri 2 app: dashboard, quick picker, tray (Windows, Linux; macOS experimental)
 apps/android-spike     Android capture experiment (accessibility trigger, no custom keyboard)
 site/                  the project website (GitHub Pages)

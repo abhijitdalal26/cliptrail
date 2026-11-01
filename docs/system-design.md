@@ -47,6 +47,7 @@ flowchart LR
         CORE["clipd-core<br/>model · store · crypto · classify · rules · sync"]
         RELAY["clipd-relay<br/>axum · ws · rest · pairing"]
         CLI["clipd-cli<br/>search · import · export"]
+        MCP["clipd-mcp<br/>MCP server for AI agents"]
         UFFI["clipd-uniffi<br/>Kotlin/Swift bindings"]
     end
     subgraph Shells["platform shells"]
@@ -59,12 +60,14 @@ flowchart LR
     CORE --> UFFI --> IOS
     CORE --> DESK
     CORE --> CLI
+    CORE --> MCP
     RELAY -.->|"reuse: event model, crypto envelopes"| CORE
 ```
 
 - `clipd-core` — pure Rust, no UI deps. The only place that knows the clip model, SQLite schema, crypto, classifier, rules engine, and the sync event format.
 - `clipd-relay` — axum server. Persists opaque event envelopes + pairing/device registry. Could embed in the desktop app ("bundled mode", per clipper) for LAN-only users.
 - `clipd-cli` — debug/import/export tool; also the migration path (Ditto/CopyQ importers).
+- `clipd-mcp` — stdio MCP server over `Store`: `search_clips`, `recent_clips`, `get_clip`, `clip_stats`, `list_source_apps`, `day_counts`, `pin_clip`. Read-mostly; masked clips never expose bodies. Local trust boundary — plaintext only to a local agent, never to a remote connector.
 - `clipd-uniffi` — generated Kotlin/Swift bindings over a stable FFI surface (capture-notify, append-clip, search, list, paste).
 
 ## 3. Capture pipeline (per device)

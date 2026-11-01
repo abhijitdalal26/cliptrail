@@ -755,6 +755,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "clipd-mcp"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "clap",
+ "clipd-core",
+ "serde",
+ "serde_json",
+ "tracing",
+ "tracing-subscriber",
+ "ulid",
+]
+
+[[package]]
 name = "clipd-relay"
 version = "0.1.0"
 dependencies = [

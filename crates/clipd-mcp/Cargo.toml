@@ -1,0 +1,24 @@
+[package]
+name = "clipd-mcp"
+description = "ClipTrail MCP server: lets AI agents search your clipboard history"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "clipd-mcp"
+path = "src/main.rs"
+
+[dependencies]
+clipd-core.workspace = true
+anyhow.workspace = true
+clap = { workspace = true, features = ["env"] }
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+chrono.workspace = true
+
+[dev-dependencies]
+ulid.workspace = true
