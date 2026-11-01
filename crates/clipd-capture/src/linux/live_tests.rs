@@ -224,6 +224,12 @@ fn files_round_trip() {
 #[test]
 #[ignore = "touches the real clipboard"]
 fn excluded_targets_are_skipped() {
+    // Password-manager hint atoms are an X11 convention; x11::write needs an
+    // X server. On a Wayland session with XWayland the compositor bridges the
+    // write into the Wayland clipboard, which is what this exercises there.
+    if std::env::var_os("DISPLAY").is_none() {
+        return;
+    }
     let _restore = Restore::capture();
     let (_w, rx) = watch();
     for hint in [
