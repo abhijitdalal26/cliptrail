@@ -349,6 +349,28 @@ impl HubHandle {
 
     /// Stop the server and close every stream.
     pub async fn shutdown(self) {
+        // Flush local changes into the log, then the log tail to the
+        // relay: clips copied right before sleep must reach devices that
+        // sync only through the relay. Bounded — a dead relay must never
+        // block shutdown.
+        pump_local(&self.hub).await;
+        self.relays.wake();
+        let deadline = std::time::Instant::now() + Duration::from_secs(10);
+        loop {
+            let head = self.hub.engine.db.head_seq().unwrap_or(0);
+            let behind = self
+                .hub
+                .engine
+                .db
+                .relays()
+                .map(|rows| rows.iter().any(|r| r.enrolled && r.push_seq < head))
+                .unwrap_or(false);
+            if !behind || std::time::Instant::now() >= deadline {
+                break;
+            }
+            self.relays.wake();
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
         self.relays.shutdown().await;
         let _ = self.stop.send(true);
         for t in self.tasks {
