@@ -27,6 +27,7 @@ Existing tools split into two camps: **great history, one machine** (Ditto, Macc
 | [docs/market-research.md](docs/market-research.md) | What users say about every existing tool + the feature asks that keep recurring |
 | [docs/technical-blueprint.md](docs/technical-blueprint.md) | Tech stack, codebase study notes, feature priorities, UI design, technical landmines |
 | [docs/build-plan.md](docs/build-plan.md) | The 3-day MVP plan and this repo's structure |
+| [docs/reference-codebases.md](docs/reference-codebases.md) | External repos to study — what each teaches, license, reuse vs read-only |
 
 ## Planned architecture
 
