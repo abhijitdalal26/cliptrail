@@ -24,6 +24,8 @@ import { MOD } from "../lib/hooks";
 import { KIND_META, subkindLabel } from "../lib/kinds";
 import type { Clip, ClipSummary } from "../lib/types";
 import { AppAvatar, Button, IconButton, KindBadge, KindTile } from "../components/ui";
+import { DeviceMetaRow } from "../components/DeviceBadge";
+import { Actions } from "./Actions";
 
 interface Props {
   summary: ClipSummary | null;
@@ -89,6 +91,8 @@ export function Preview({ summary, onCopy, onTogglePin, onDelete, toast }: Props
         )}
       </div>
 
+      <Actions summary={s} original={clip?.text ?? null} />
+
       <div className="mx-5 h-px bg-line" />
 
       {/* Body */}
@@ -105,6 +109,7 @@ export function Preview({ summary, onCopy, onTogglePin, onDelete, toast }: Props
               {appName(s.source_app)}
             </span>
           </Meta>
+          <DeviceMetaRow deviceId={s.device_id} />
           <Meta label="Copied">{s.copy_count === 1 ? "Once" : `${s.copy_count} times`}</Meta>
           <Meta label="First copied">{fullDate(s.created_at)}</Meta>
           {s.copy_count > 1 && <Meta label="Last copied">{fullDate(s.last_seen_at)}</Meta>}

@@ -9,6 +9,7 @@ import { setThemePref } from "../lib/theme";
 import type { Settings, SettingsView, ThemePref } from "../lib/types";
 import { Modal } from "../components/Modal";
 import { Button, Kbd, Segmented, Switch } from "../components/ui";
+import { DevicesSection } from "./DevicesSection";
 
 export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const [view, setView] = useState<SettingsView | null>(null);
@@ -91,6 +92,8 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
           </Row>
         </Section>
 
+        <DevicesSection />
+
         <Section title="Shortcuts">
           <Row title="Quick picker" desc="Search and paste from anywhere." error={errors.picker}>
             <HotkeyInput
@@ -135,6 +138,17 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
         </Section>
 
         <Section title="Privacy">
+          <Row
+            title="Clean links automatically"
+            desc="Remove tracking parameters (utm_*, fbclid, gclid, …) from links when you copy them."
+            error={errors.cleanLinks}
+          >
+            <Switch
+              label="Clean tracking parameters from links"
+              checked={s.clean_links}
+              onChange={(v) => void save({ clean_links: v }, "cleanLinks")}
+            />
+          </Row>
           <Row
             title="Sensitive clips"
             desc="One-time codes, API keys and card numbers are masked and deleted after:"
@@ -187,7 +201,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
             <div className="text-[13px] font-semibold text-fg">ClipTrail {view.version}</div>
             <div className="flex items-center gap-1.5 text-[12px] text-fg-3">
               <ShieldCheck size={12.5} className="text-success" />
-              Local-first. Your clips never leave this device. No telemetry.
+              Local-first. Clips only go to devices you pair, end-to-end encrypted. No telemetry.
             </div>
           </div>
           <span className="text-[11.5px] text-fg-3">MIT / Apache-2.0</span>

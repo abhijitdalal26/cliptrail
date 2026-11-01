@@ -3,6 +3,8 @@
 //! Only `show` prints a clip body in full. Everything else prints ids,
 //! kinds and a one-line preview; `watch` never prints clip content at all.
 
+mod sync;
+
 use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::sync::mpsc::{self, RecvTimeoutError};
@@ -86,6 +88,17 @@ enum Command {
         /// Pretend the copy came from this app (e.g. to test exclusions).
         #[arg(long, value_name = "EXE")]
         app: Option<String>,
+    },
+    /// Store an image clip from a PNG file without touching the clipboard.
+    IngestImage {
+        path: PathBuf,
+        #[arg(long, value_name = "EXE")]
+        app: Option<String>,
+    },
+    /// Sync with your other devices (hub, pairing, devices).
+    Sync {
+        #[command(subcommand)]
+        command: sync::SyncCommand,
     },
 }
 
@@ -196,6 +209,27 @@ fn run(cli: Cli) -> Result<()> {
                 captured_at: now_millis(),
             })?;
             print_outcome(&pipeline, &outcome);
+        }
+        Command::IngestImage { path, app } => {
+            let img = image::open(&path)
+                .with_context(|| format!("read image {}", path.display()))?
+                .to_rgba8();
+            let (width, height) = img.dimensions();
+            let outcome = pipeline.ingest(RawClip {
+                content: RawContent::Image {
+                    width,
+                    height,
+                    rgba: img.into_raw(),
+                },
+                source_app: app,
+                captured_at: now_millis(),
+            })?;
+            print_outcome(&pipeline, &outcome);
+        }
+        Command::Sync { command } => {
+            let data_dir = pipeline.config().data_dir.clone();
+            drop(pipeline);
+            sync::run(data_dir, command)?;
         }
     }
     Ok(())

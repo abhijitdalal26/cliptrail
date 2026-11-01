@@ -7,6 +7,7 @@ import { KIND_META } from "../lib/kinds";
 import { ALL_KINDS, type CaptureState, type Stats } from "../lib/types";
 import { sameView, type View } from "../lib/view";
 import { AppAvatar, IconButton } from "../components/ui";
+import { SyncStatusPill } from "./SyncStatusPill";
 
 interface Props {
   view: View;
@@ -95,6 +96,9 @@ export function Sidebar(p: Props) {
         )}
       </div>
 
+      <div className="px-2.5 pt-1">
+        <SyncStatusPill onOpen={p.onSettings} />
+      </div>
       <div className="flex items-center gap-1 px-2.5 pt-1 pb-3">
         <button
           onClick={p.onToggleCapture}

@@ -32,6 +32,12 @@ pub struct Settings {
     pub sensitive_ttl_minutes: u32,
     /// Lowercased executable / process names whose copies are never stored.
     pub excluded_apps: Vec<String>,
+    /// Strip tracking parameters from copied links before they are stored.
+    pub clean_links: bool,
+    /// Run the LAN sync hub so paired devices share history.
+    pub sync_enabled: bool,
+    /// TCP port of the sync hub.
+    pub sync_port: u16,
 }
 
 impl Default for Settings {
@@ -43,6 +49,9 @@ impl Default for Settings {
             retention_days: None,
             sensitive_ttl_minutes: 60 * 24,
             excluded_apps: Vec::new(),
+            clean_links: false,
+            sync_enabled: true,
+            sync_port: clipd_sync::DEFAULT_PORT,
         }
     }
 }
@@ -86,6 +95,9 @@ impl Settings {
         self.excluded_apps = apps;
         self.sensitive_ttl_minutes = self.sensitive_ttl_minutes.clamp(1, 60 * 24 * 30);
         self.retention_days = self.retention_days.filter(|d| *d > 0);
+        if self.sync_port < 1024 {
+            self.sync_port = clipd_sync::DEFAULT_PORT;
+        }
         self.picker_shortcut = self.picker_shortcut.trim().to_string();
         self.dashboard_shortcut = self
             .dashboard_shortcut

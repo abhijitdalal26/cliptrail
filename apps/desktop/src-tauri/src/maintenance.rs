@@ -85,7 +85,8 @@ pub fn apply_retention(app: &AppHandle) {
             }
         };
         for c in rows.iter().filter(|c| !c.pinned) {
-            if guard("retention delete", || p.delete(&c.id)).is_ok() {
+            // Retention is per device: don't delete the clip on synced devices.
+            if guard("retention delete", || p.delete_local(&c.id)).is_ok() {
                 removed += 1;
             }
         }

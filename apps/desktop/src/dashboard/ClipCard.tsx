@@ -8,6 +8,7 @@ import { useHighlighted } from "../lib/highlight";
 import { subkindLabel } from "../lib/kinds";
 import type { ClipSummary } from "../lib/types";
 import { AppAvatar, KindBadge, KindTile } from "../components/ui";
+import { DeviceBadge } from "../components/DeviceBadge";
 
 interface Props {
   clip: ClipSummary;
@@ -190,6 +191,7 @@ function Meta({ clip }: { clip: ClipSummary }) {
       {clip.kind === "sensitive" && <KindBadge kind="sensitive" />}
       <AppAvatar app={clip.source_app} size={14} />
       <span className="truncate">{appName(clip.source_app)}</span>
+      <DeviceBadge deviceId={clip.device_id} />
       <span className="text-fg-4">·</span>
       <span className="shrink-0 tabular-nums">{shortTime(clip.last_seen_at)}</span>
       {clip.copy_count > 1 && (

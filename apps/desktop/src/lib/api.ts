@@ -12,6 +12,7 @@ import type {
   Settings,
   SettingsView,
   Stats,
+  Transform,
 } from "./types";
 
 export const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -40,11 +41,18 @@ export const api = {
   sourceApps: () => call<string[]>("source_apps"),
   setPinned: (id: string, pinned: boolean) => call<void>("set_pinned", { id, pinned }),
   deleteClip: (id: string) => call<void>("delete_clip", { id }),
-  copyClip: (id: string, plain: boolean) => call<void>("copy_clip", { id, plain }),
+  /** With `transform`, the transformed text is written as plain text. */
+  copyClip: (id: string, plain: boolean, transform?: Transform) =>
+    call<void>("copy_clip", { id, plain, transform: transform ?? null }),
   /** Writes the clip, hides the picker and pastes into the previous app.
    *  Rejects with "paste-unavailable: ..." when paste-back isn't possible
    *  (e.g. Wayland); the clip is already on the clipboard then. */
-  pasteClip: (id: string, plain: boolean) => call<void>("paste_clip", { id, plain }),
+  pasteClip: (id: string, plain: boolean, transform?: Transform) =>
+    call<void>("paste_clip", { id, plain, transform: transform ?? null }),
+  /** The clip's text run through a transform (for previews). */
+  transformClip: (id: string, transform: Transform) => call<string>("transform_clip", { id, transform }),
+  /** Transforms that make sense for this clip and would change it. */
+  clipActions: (id: string) => call<Transform[]>("clip_actions", { id }),
   hidePicker: () => call<void>("hide_picker"),
   showDashboard: () => call<void>("show_dashboard"),
   openUrl: (url: string) => call<void>("open_url", { url }),

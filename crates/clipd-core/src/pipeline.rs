@@ -55,8 +55,8 @@ pub const DEFAULT_EXCLUDED_APPS: &[&str] = &[
 
 const DEVICE_ID_FILE: &str = "device_id";
 const DB_FILE: &str = "clips.db";
-const IMAGES_DIR: &str = "images";
-const THUMBS_DIR: &str = "thumbs";
+pub(crate) const IMAGES_DIR: &str = "images";
+pub(crate) const THUMBS_DIR: &str = "thumbs";
 
 #[derive(Debug, Clone)]
 pub struct PipelineConfig {
@@ -379,8 +379,13 @@ impl Pipeline {
 
     /// Remove expired clips and their files. Returns how many were removed.
     pub fn prune(&self) -> Result<usize> {
-        let (count, files) = self.store.prune_expired_counted(now_millis())?;
+        let now = now_millis();
+        let (count, files) = self.store.prune_expired_counted(now)?;
         remove_files(&files);
+        // The sync journal only needs to bridge short gaps (sync engine not
+        // running); a month is plenty.
+        self.store
+            .trim_journal(now - crate::synced::JOURNAL_KEEP_MS)?;
         if count > 0 {
             tracing::debug!(count, "pruned expired clips");
         }
@@ -388,7 +393,7 @@ impl Pipeline {
     }
 }
 
-fn skipped(reason: impl Into<String>) -> IngestOutcome {
+pub(crate) fn skipped(reason: impl Into<String>) -> IngestOutcome {
     IngestOutcome::Skipped {
         reason: reason.into(),
     }
@@ -411,7 +416,7 @@ fn hash_parts(domain: &[u8], parts: &[&[u8]]) -> Vec<u8> {
     h.finalize().to_vec()
 }
 
-fn thumbnail(img: &RgbaImage) -> RgbaImage {
+pub(crate) fn thumbnail(img: &RgbaImage) -> RgbaImage {
     let (w, h) = img.dimensions();
     let (tw, th) = thumb_size(w, h);
     if (tw, th) == (w, h) {
@@ -432,7 +437,7 @@ fn thumb_size(w: u32, h: u32) -> (u32, u32) {
 
 /// Encode to `<path>.tmp`, then rename into place so readers never see a
 /// half-written PNG.
-fn write_png(img: &RgbaImage, path: &Path) -> Result<()> {
+pub(crate) fn write_png(img: &RgbaImage, path: &Path) -> Result<()> {
     let mut tmp = path.as_os_str().to_owned();
     tmp.push(".tmp");
     let tmp = PathBuf::from(tmp);
@@ -446,7 +451,7 @@ fn write_png(img: &RgbaImage, path: &Path) -> Result<()> {
     written.with_context(|| format!("write {}", path.display()))
 }
 
-fn remove_files<P: AsRef<Path>>(paths: impl IntoIterator<Item = P>) {
+pub(crate) fn remove_files<P: AsRef<Path>>(paths: impl IntoIterator<Item = P>) {
     for p in paths {
         let p = p.as_ref();
         if let Err(e) = fs::remove_file(p)

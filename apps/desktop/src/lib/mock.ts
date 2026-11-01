@@ -1,7 +1,8 @@
 // In-memory backend used when the UI runs outside Tauri (`pnpm dev` in a
 // browser). Serves ~150 realistic clips of every kind over ~60 days.
 
-import type { CaptureState, Clip, DayCount, Kind, ListQuery, Settings, SettingsView, Stats } from "./types";
+import { applyMock, availableMock } from "./mockTransforms";
+import type { CaptureState, Clip, DayCount, Kind, ListQuery, Settings, SettingsView, Stats, Transform } from "./types";
 
 // ---------- deterministic randomness ----------
 let seed = 20261101;
@@ -20,16 +21,16 @@ const LINKS: [string, string][] = [
   ["https://news.ycombinator.com/item?id=41837265", "firefox.exe"],
   ["https://developer.mozilla.org/en-US/docs/Web/CSS/backdrop-filter", "msedge.exe"],
   ["https://tailwindcss.com/docs/theme#using-css-variables", "chrome.exe"],
-  ["https://www.youtube.com/watch?v=Mf2EbJZgBvY", "chrome.exe"],
+  ["https://www.youtube.com/watch?v=Mf2EbJZgBvY&si=Zk3Lw9QpXa2_Tq1B", "chrome.exe"],
   ["https://en.wikipedia.org/wiki/Bloom_filter", "firefox.exe"],
   ["https://stackoverflow.com/questions/63451478/how-to-use-sqlite-fts5-trigram-tokenizer", "chrome.exe"],
   ["https://www.sqlite.org/fts5.html#the_trigram_tokenizer", "chrome.exe"],
   ["https://maps.google.com/?q=Blue+Tokai+Coffee+Bandra", "chrome.exe"],
-  ["https://vercel.com/blog/how-we-made-the-dashboard-twice-as-fast", "msedge.exe"],
+  ["https://vercel.com/blog/how-we-made-the-dashboard-twice-as-fast?utm_source=newsletter&utm_medium=email&utm_campaign=oct&ref=home#benchmarks", "msedge.exe"],
   ["https://www.notion.so/cliptrail/Launch-checklist-9a7c51e0d2b04f7e", "Notion.exe"],
   ["https://crates.io/crates/window-vibrancy", "firefox.exe"],
   ["https://arxiv.org/abs/2310.06825", "chrome.exe"],
-  ["https://open.spotify.com/playlist/37i9dQZF1DX8Uebhn9wzrS", "Spotify.exe"],
+  ["https://open.spotify.com/playlist/37i9dQZF1DX8Uebhn9wzrS?si=a1b2c3d4e5f60718", "Spotify.exe"],
   ["https://react.dev/reference/react/useDeferredValue", "chrome.exe"],
   ["https://tanstack.com/virtual/latest/docs/api/virtualizer", "chrome.exe"],
   ["https://www.rust-lang.org/learn", "firefox.exe"],
@@ -605,6 +606,7 @@ const mockSettings: SettingsView = {
     retention_days: null,
     sensitive_ttl_minutes: 60 * 24,
     excluded_apps: [...DEFAULT_EXCLUDED],
+    clean_links: false,
   },
   default_excluded_apps: DEFAULT_EXCLUDED,
   autostart: true,
@@ -617,6 +619,15 @@ function captureState(): CaptureState {
   const c = mockSettings.capture;
   if (c.paused && c.until != null && Date.now() >= c.until) mockSettings.capture = { paused: false, until: null };
   return mockSettings.capture;
+}
+
+function transformText(c: Clip, t: Transform): string {
+  if (c.masked || !c.text) throw "Sensitive clips can't be transformed";
+  try {
+    return applyMock(t, c.text, c.subkind);
+  } catch {
+    throw "That action doesn't apply to this clip";
+  }
 }
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -654,11 +665,21 @@ export async function handle(cmd: string, a: Record<string, unknown>): Promise<u
     }
     case "copy_clip": {
       const c = db.find((x) => x.id === a.id);
-      if (c?.text) await navigator.clipboard?.writeText(c.text).catch(() => undefined);
+      const text = c?.text && a.transform ? transformText(c, a.transform as Transform) : c?.text;
+      if (text) await navigator.clipboard?.writeText(text).catch(() => undefined);
       return null;
     }
     case "paste_clip":
       throw "Paste-back isn't available in the browser preview";
+    case "transform_clip": {
+      const c = db.find((x) => x.id === a.id);
+      if (!c) throw "That clip no longer exists";
+      return transformText(c, a.transform as Transform);
+    }
+    case "clip_actions": {
+      const c = db.find((x) => x.id === a.id);
+      return c && !c.masked && c.text ? availableMock(c.kind, c.subkind, c.text) : [];
+    }
     case "open_url":
       window.open(a.url as string, "_blank", "noopener");
       return null;

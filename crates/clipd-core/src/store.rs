@@ -48,7 +48,7 @@ pub const DEFAULT_LIST_LIMIT: u32 = 100;
 pub const MAX_LIST_LIMIT: u32 = 1000;
 
 /// Ordered schema migrations; entry `i` upgrades `user_version` i → i+1.
-const MIGRATIONS: &[&str] = &[SCHEMA_V1];
+const MIGRATIONS: &[&str] = &[SCHEMA_V1, SCHEMA_V2];
 
 const SCHEMA_V1: &str = r#"
 CREATE TABLE clips (
@@ -103,14 +103,52 @@ CREATE TRIGGER clips_fts_au AFTER UPDATE OF text, files, source_app, masked ON c
 END;
 "#;
 
+/// v2: local change journal for sync. Triggers record every local insert,
+/// repeat copy, pin change and delete of an unmasked clip, so a sync engine
+/// can turn them into events even when they happened while it wasn't
+/// running (CLI, retention aside). Changes applied *from* sync are written
+/// through the quiet helpers in `crate::synced`, which drop their own
+/// journal rows in the same transaction (no echo). Masked clips are never
+/// journaled, so they never leave the device.
+const SCHEMA_V2: &str = r#"
+CREATE TABLE clip_journal (
+    seq          INTEGER PRIMARY KEY AUTOINCREMENT,
+    op           TEXT    NOT NULL,
+    clip_id      TEXT    NOT NULL,
+    content_hash BLOB    NOT NULL,
+    at           INTEGER NOT NULL
+);
+CREATE INDEX clip_journal_at ON clip_journal(at);
+
+CREATE TRIGGER clip_journal_ai AFTER INSERT ON clips WHEN new.masked = 0 BEGIN
+    INSERT INTO clip_journal(op, clip_id, content_hash, at)
+    VALUES ('upsert', new.id, new.content_hash, new.last_seen_at);
+END;
+CREATE TRIGGER clip_journal_au_seen AFTER UPDATE OF last_seen_at, copy_count ON clips
+WHEN new.masked = 0
+     AND (new.last_seen_at <> old.last_seen_at OR new.copy_count <> old.copy_count) BEGIN
+    INSERT INTO clip_journal(op, clip_id, content_hash, at)
+    VALUES ('upsert', new.id, new.content_hash, new.last_seen_at);
+END;
+CREATE TRIGGER clip_journal_au_pin AFTER UPDATE OF pinned ON clips
+WHEN new.masked = 0 AND new.pinned <> old.pinned BEGIN
+    INSERT INTO clip_journal(op, clip_id, content_hash, at)
+    VALUES ('pin', new.id, new.content_hash, CAST(unixepoch('subsec') * 1000 AS INTEGER));
+END;
+CREATE TRIGGER clip_journal_ad AFTER DELETE ON clips WHEN old.masked = 0 BEGIN
+    INSERT INTO clip_journal(op, clip_id, content_hash, at)
+    VALUES ('delete', old.id, old.content_hash, CAST(unixepoch('subsec') * 1000 AS INTEGER));
+END;
+"#;
+
 /// Columns read into a [`ClipSummary`] (see [`summary_from_row`]). Masked
 /// rows never have their text read for lists.
-const SUMMARY_COLS: &str = "c.id, c.kind, c.subkind, \
+pub(crate) const SUMMARY_COLS: &str = "c.id, c.kind, c.subkind, \
      CASE WHEN c.masked THEN NULL ELSE substr(c.text, 1, 401) END, \
      c.char_count, c.line_count, c.files, c.thumb_path, c.width, c.height, \
      c.source_app, c.device_id, c.created_at, c.last_seen_at, c.copy_count, \
      c.pinned, c.masked, c.expires_at";
-const SUMMARY_COL_COUNT: usize = 18;
+pub(crate) const SUMMARY_COL_COUNT: usize = 18;
 
 /// What a repeat copy updates on the existing row.
 const BUMP_SET: &str = "last_seen_at = ?2, \
@@ -153,7 +191,7 @@ impl Store {
         })
     }
 
-    fn conn(&self) -> MutexGuard<'_, Connection> {
+    pub(crate) fn conn(&self) -> MutexGuard<'_, Connection> {
         // A panic while holding the lock can't leave SQLite half-written
         // (statements are atomic), so a poisoned lock is safe to reuse.
         self.conn.lock().unwrap_or_else(|e| e.into_inner())
@@ -456,7 +494,7 @@ fn migrate(conn: &Connection) -> Result<()> {
     Ok(())
 }
 
-fn summary_from_row(r: &Row<'_>) -> rusqlite::Result<ClipSummary> {
+pub(crate) fn summary_from_row(r: &Row<'_>) -> rusqlite::Result<ClipSummary> {
     let masked: bool = r.get(16)?;
     let (preview, truncated) = if masked {
         (MASKED_PREVIEW.to_owned(), false)

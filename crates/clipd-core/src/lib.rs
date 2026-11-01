@@ -10,11 +10,18 @@ pub mod classify;
 pub mod model;
 pub mod pipeline;
 pub mod store;
+pub mod synced;
+pub mod transform;
 
 pub use classify::classify_text;
 pub use model::*;
 pub use pipeline::{Pipeline, PipelineConfig};
 pub use store::Store;
+pub use synced::{ClipWithHash, JournalEntry, JournalOp, SyncedClip, SyncedImage};
+pub use transform::{
+    Transform, apply as apply_transform, apply_for as apply_transform_for,
+    available as available_transforms,
+};
 
 use std::path::PathBuf;
 

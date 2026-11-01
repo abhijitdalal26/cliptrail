@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/clipd-core", "crates/clipd-capture", "crates/clipd-cli", "apps/desktop/src-tauri"]
+members = ["crates/clipd-core", "crates/clipd-capture", "crates/clipd-sync", "crates/clipd-cli", "apps/desktop/src-tauri"]
 
 [workspace.package]
 version = "0.1.0"
@@ -11,6 +11,7 @@ repository = "https://github.com/abhijitdalal26/cliptrail"
 [workspace.dependencies]
 clipd-core = { path = "crates/clipd-core" }
 clipd-capture = { path = "crates/clipd-capture" }
+clipd-sync = { path = "crates/clipd-sync", default-features = false }
 anyhow = "1"
 thiserror = "2"
 serde = { version = "1", features = ["derive"] }

@@ -97,6 +97,12 @@ export interface Settings {
   retention_days: number | null;
   sensitive_ttl_minutes: number;
   excluded_apps: string[];
+  /** Strip tracking parameters from copied links before they are stored. */
+  clean_links: boolean;
+  /** Run the LAN sync hub (changed through syncApi.setEnabled). */
+  sync_enabled?: boolean;
+  /** Sync hub port (changed through syncApi.setPort). */
+  sync_port?: number;
 }
 
 export interface CaptureState {
@@ -114,3 +120,25 @@ export interface SettingsView {
   capture: CaptureState;
   platform: string;
 }
+
+// ---- type-aware actions (mirror of clipd_core::transform::Transform) ----
+
+export type Transform =
+  | "plain-text"
+  | "trim"
+  | "upper-case"
+  | "lower-case"
+  | "title-case"
+  | "single-line"
+  | "clean-url"
+  | "markdown-link"
+  | "url-decode"
+  | "color-hex"
+  | "color-rgb"
+  | "color-hsl"
+  | "json-pretty"
+  | "json-minify"
+  | "markdown-code-block"
+  | "dedent"
+  | "phone-digits"
+  | "mailto-link";

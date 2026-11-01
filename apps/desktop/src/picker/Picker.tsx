@@ -1,17 +1,27 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ClipboardCheck, Layers, LayoutDashboard, Pin, Search } from "lucide-react";
+import { ClipboardCheck, CornerDownLeft, Layers, LayoutDashboard, Pin, Search } from "lucide-react";
 import { api, assetUrl, errorMessage, isTauri, listen, onClipsChanged } from "../lib/api";
+import { ACTION_META } from "../lib/actions";
 import { appName } from "../lib/apps";
 import { cx } from "../lib/cx";
 import { parseColor, parseUrl, shortTime, splitPath } from "../lib/format";
 import { isMac, MOD, useDebounced, useEvent, useTick } from "../lib/hooks";
 import { KIND_META, subkindLabel } from "../lib/kinds";
 import { toast } from "../lib/toast";
-import type { ClipSummary, Kind, ListQuery } from "../lib/types";
+import type { ClipSummary, Kind, ListQuery, Transform } from "../lib/types";
 import { useClips } from "../lib/useClips";
 import { Kbd, KindTile } from "../components/ui";
 import { Toasts } from "../components/Toasts";
+
+/** The action list opened with Ctrl+Enter / right arrow on the selected clip. */
+interface ActionMenuState {
+  id: string;
+  actions: Transform[];
+  /** Transformed text per action, filled in as it arrives. */
+  previews: Partial<Record<Transform, string>>;
+  sel: number;
+}
 
 type Tab = { id: string; label: string; kind?: Kind; pinned?: boolean };
 
@@ -39,6 +49,7 @@ export function Picker() {
   const [mode, setMode] = useState<"center" | "flyout">("center");
   const [openCount, setOpenCount] = useState(0);
   const [hint, setHint] = useState<string | null>(null);
+  const [menuState, setMenu] = useState<ActionMenuState | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
@@ -52,6 +63,7 @@ export function Picker() {
   const items = clips.items;
   const selIndex = Math.min(sel, Math.max(0, items.length - 1));
   const selected = items[selIndex] ?? null;
+  const menu = menuState && selected?.id === menuState.id ? menuState : null;
 
   useEffect(() => {
     if (isTauri) {
@@ -69,6 +81,7 @@ export function Picker() {
     setTab(0);
     setSel(0);
     setHint(null);
+    setMenu(null);
     setOpenCount((n) => n + 1);
     void clips.refresh();
     requestAnimationFrame(() => inputRef.current?.focus());
@@ -95,6 +108,7 @@ export function Picker() {
   });
 
   const go = (i: number) => {
+    setMenu(null);
     const n = Math.max(0, Math.min(items.length - 1, i));
     setSel(n);
     v.scrollToIndex(n, { align: "auto" });
@@ -105,20 +119,22 @@ export function Picker() {
     const n = (i + TABS.length) % TABS.length;
     setTab(n);
     setSel(0);
+    setMenu(null);
     v.scrollToOffset(0);
     tabsRef.current?.children[n]?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
   };
 
-  const paste = useEvent(async (c: ClipSummary | null, plain: boolean) => {
+  const paste = useEvent(async (c: ClipSummary | null, plain: boolean, transform?: Transform) => {
     if (!c) return;
+    setMenu(null);
     try {
-      await api.pasteClip(c.id, plain);
+      await api.pasteClip(c.id, plain, transform);
     } catch {
       // Paste-back unavailable (e.g. Wayland, no previous window): fall back
       // to copying and tell the user to paste themselves.
       try {
-        await api.copyClip(c.id, plain);
-        setHint(`Copied — press ${MOD}+V to paste`);
+        await api.copyClip(c.id, plain, transform);
+        setHint(`${transform ? ACTION_META[transform].done : "Copied"} — press ${MOD}+V to paste`);
         setTimeout(() => void api.hidePicker(), 1300);
       } catch (e) {
         toast({ message: errorMessage(e), tone: "error" });
@@ -126,9 +142,51 @@ export function Picker() {
     }
   });
 
+  const openMenu = useEvent(async () => {
+    const c = selected;
+    if (!c) return;
+    const none = () => toast("No actions for this clip");
+    if (c.masked || c.kind === "sensitive" || c.kind === "image" || c.kind === "file") return none();
+    try {
+      const actions = await api.clipActions(c.id);
+      if (actions.length === 0) return none();
+      setMenu({ id: c.id, actions, previews: {}, sel: 0 });
+      for (const t of actions) {
+        void api
+          .transformClip(c.id, t)
+          .then((text) => setMenu((m) => (m && m.id === c.id ? { ...m, previews: { ...m.previews, [t]: text } } : m)))
+          .catch(() => undefined);
+      }
+    } catch (e) {
+      toast({ message: errorMessage(e), tone: "error" });
+    }
+  });
+
   const onKey = (e: React.KeyboardEvent) => {
     const mod = e.ctrlKey || e.metaKey;
-    if (e.key === "ArrowDown") {
+    if (menu) {
+      const n = menu.actions.length;
+      const move = (d: number) => setMenu({ ...menu, sel: (menu.sel + d + n) % n });
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        return move(1);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        return move(-1);
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        return void paste(selected, false, menu.actions[menu.sel]);
+      } else if (e.key === "Escape" || e.key === "ArrowLeft") {
+        e.preventDefault();
+        return setMenu(null);
+      }
+    }
+    const input = inputRef.current;
+    const caretAtEnd = !!input && input.selectionStart === input.value.length && input.selectionEnd === input.value.length;
+    if ((mod && e.key === "Enter") || (e.key === "ArrowRight" && !e.shiftKey && !mod && caretAtEnd)) {
+      e.preventDefault();
+      void openMenu();
+    } else if (e.key === "ArrowDown") {
       e.preventDefault();
       go(selIndex + 1);
     } else if (e.key === "ArrowUp") {
@@ -183,6 +241,7 @@ export function Picker() {
           onChange={(e) => {
             setSearch(e.target.value);
             setSel(0);
+            setMenu(null);
           }}
           autoFocus
           spellCheck={false}
@@ -273,6 +332,7 @@ export function Picker() {
           <>
             <Hint keys={["↵"]} label="Paste" />
             <Hint keys={["⇧", "↵"]} label="Plain text" />
+            <Hint keys={[isMac ? "⌘" : "Ctrl", "↵"]} label="Actions" />
             <Hint keys={[isMac ? "⌘" : "Ctrl", "1–9"]} label="Quick paste" />
             <Hint keys={["Tab"]} label="Kind" />
             <span className="flex-1" />
@@ -280,6 +340,14 @@ export function Picker() {
           </>
         )}
       </div>
+      {menu && selected && (
+        <ActionMenu
+          menu={menu}
+          clip={selected}
+          onHover={(i) => setMenu({ ...menu, sel: i })}
+          onPick={(t) => void paste(selected, false, t)}
+        />
+      )}
       <Toasts compact />
     </div>
   );
@@ -289,6 +357,57 @@ export function Picker() {
   return (
     <div className="picker-wallpaper grid h-full place-items-center">
       <div className="h-[460px] w-[640px]">{body}</div>
+    </div>
+  );
+}
+
+function ActionMenu({
+  menu,
+  clip,
+  onHover,
+  onPick,
+}: {
+  menu: ActionMenuState;
+  clip: ClipSummary;
+  onHover: (i: number) => void;
+  onPick: (t: Transform) => void;
+}) {
+  return (
+    <div
+      role="menu"
+      aria-label="Paste as"
+      onMouseDown={(e) => e.preventDefault()}
+      className="anim-pop absolute right-3 bottom-[44px] z-20 w-[360px] overflow-hidden rounded-xl border border-line bg-elevated p-1 shadow-pop"
+    >
+      <div className="flex items-center justify-between px-2.5 pt-1.5 pb-1 text-[11px] font-semibold tracking-[0.05em] text-fg-3 uppercase">
+        <span>Paste {KIND_META[clip.kind].label.toLowerCase()} as</span>
+        <span className="flex items-center gap-1 font-normal tracking-normal normal-case">
+          <Kbd>←</Kbd> back
+        </span>
+      </div>
+      {menu.actions.map((t, i) => {
+        const m = ACTION_META[t];
+        const Icon = m.icon;
+        const on = i === menu.sel;
+        const preview = menu.previews[t];
+        return (
+          <div
+            key={t}
+            role="menuitem"
+            aria-selected={on}
+            onMouseMove={() => !on && onHover(i)}
+            onClick={() => onPick(t)}
+            className={cx("flex h-[34px] items-center gap-2.5 rounded-lg px-2.5", on && "bg-accent-soft")}
+          >
+            <Icon size={14} strokeWidth={2} className={cx("shrink-0", on ? "text-accent-text" : "text-fg-3")} />
+            <span className="shrink-0 text-[12.5px] font-medium text-fg">{m.label}</span>
+            <span className="code min-w-0 flex-1 truncate text-right text-[11px] text-fg-3">
+              {preview === undefined ? "" : preview.replace(/\s+/g, " ").trim()}
+            </span>
+            {on && <CornerDownLeft size={12} className="shrink-0 text-accent-text" />}
+          </div>
+        );
+      })}
     </div>
   );
 }

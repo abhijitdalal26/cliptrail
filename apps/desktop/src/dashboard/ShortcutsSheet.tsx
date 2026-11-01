@@ -40,6 +40,9 @@ export function ShortcutsSheet({ onClose }: { onClose: () => void }) {
   const picker_: Entry[] = [
     ["Paste into the previous app", [["Enter"]]],
     ["Paste as plain text", [["Shift", "Enter"]]],
+    ["Actions: clean link, color as RGB, …", [k("Ctrl+Enter"), ["→"]]],
+    ["In the action list: paste the result", [["↑"], ["↓"], ["Enter"]]],
+    ["Close the action list", [["←"], ["Esc"]]],
     ["Quick-paste item 1–9", [k("Ctrl+1"), ["…"], k("Ctrl+9")]],
     ["Next / previous kind", [["Tab"], ["Shift", "Tab"]]],
     ["Move selection", [["↑"], ["↓"]]],

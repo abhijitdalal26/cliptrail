@@ -4,7 +4,9 @@
 use std::sync::Arc;
 
 use clipd_capture::WriteContent;
-use clipd_core::{Clip, ClipSummary, DayCount, Kind, ListQuery, Millis, Pipeline, Stats};
+use clipd_core::{
+    Clip, ClipSummary, DayCount, Kind, ListQuery, Millis, Pipeline, Stats, Transform,
+};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, Window};
 use tauri_plugin_autostart::ManagerExt as _;
@@ -111,20 +113,93 @@ pub fn write_back(p: &Pipeline, id: &str, plain: bool) -> CmdResult<Kind> {
     Ok(kind)
 }
 
+/// A text clip run through a transform. Sensitive (masked) and non-text
+/// clips are refused: transforms are for things you meant to paste as text.
+fn transformed_text(p: &Pipeline, id: &str, t: Transform) -> CmdResult<String> {
+    let clip = guard("reading clip", || p.store().get(id))?
+        .ok_or_else(|| "That clip no longer exists".to_string())?;
+    if clip.summary.masked || clip.summary.kind == Kind::Sensitive {
+        return Err("Sensitive clips can't be transformed".into());
+    }
+    let Some(text) = clip.text.as_deref() else {
+        return Err("This clip has no text to transform".into());
+    };
+    clipd_core::apply_transform_for(t, clip.summary.subkind.as_deref(), text)
+        .map_err(|e| format!("That action doesn't apply to this clip ({e})"))
+}
+
+/// Write a clip to the clipboard; with a transform, the transformed text
+/// goes out as plain text (no HTML flavor).
+fn write_back_with(
+    p: &Pipeline,
+    id: &str,
+    plain: bool,
+    transform: Option<Transform>,
+) -> CmdResult<()> {
+    let Some(t) = transform else {
+        return write_back(p, id, plain).map(|_| ());
+    };
+    let text = transformed_text(p, id, t)?;
+    guard("writing to clipboard", || {
+        clipd_capture::write_clip(WriteContent::Text {
+            text: &text,
+            html: None,
+        })
+    })?;
+    tracing::debug!(%id, transform = ?t, "wrote transformed clip to clipboard");
+    Ok(())
+}
+
+/// Preview of a transform: the text that copy/paste with it would write.
 #[tauri::command]
-pub async fn copy_clip(app: AppHandle, id: String, plain: bool) -> CmdResult<()> {
+pub async fn transform_clip(app: AppHandle, id: String, transform: Transform) -> CmdResult<String> {
     let p = pipeline(&app)?;
-    blocking(move || write_back(&p, &id, plain).map(|_| ())).await
+    blocking(move || transformed_text(&p, &id, transform)).await
+}
+
+/// Transforms that make sense for this clip and would change it.
+#[tauri::command]
+pub async fn clip_actions(app: AppHandle, id: String) -> CmdResult<Vec<Transform>> {
+    let p = pipeline(&app)?;
+    blocking(move || {
+        let clip = guard("reading clip", || p.store().get(&id))?
+            .ok_or_else(|| "That clip no longer exists".to_string())?;
+        if clip.summary.masked {
+            return Ok(Vec::new());
+        }
+        Ok(clipd_core::available_transforms(
+            clip.summary.kind,
+            clip.summary.subkind.as_deref(),
+            clip.text.as_deref().unwrap_or_default(),
+        ))
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn copy_clip(
+    app: AppHandle,
+    id: String,
+    plain: bool,
+    transform: Option<Transform>,
+) -> CmdResult<()> {
+    let p = pipeline(&app)?;
+    blocking(move || write_back_with(&p, &id, plain, transform)).await
 }
 
 /// Write the clip, hide the picker and paste into the window that was
 /// focused before it opened. Errors when paste-back isn't possible (no
 /// target, e.g. Wayland); the clip is on the clipboard in that case.
 #[tauri::command]
-pub async fn paste_clip(app: AppHandle, id: String, plain: bool) -> CmdResult<()> {
+pub async fn paste_clip(
+    app: AppHandle,
+    id: String,
+    plain: bool,
+    transform: Option<Transform>,
+) -> CmdResult<()> {
     let p = pipeline(&app)?;
     let target = *lock(&app.state::<AppState>().paste_target);
-    blocking(move || write_back(&p, &id, plain).map(|_| ())).await?;
+    blocking(move || write_back_with(&p, &id, plain, transform)).await?;
     let Some(target) = target else {
         return Err("paste-unavailable: no window to paste into".into());
     };

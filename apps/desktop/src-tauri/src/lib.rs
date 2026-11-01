@@ -8,10 +8,11 @@ mod maintenance;
 mod settings;
 mod shortcuts;
 mod state;
+mod sync;
 mod tray;
 mod windows;
 
-use clipd_core::{IngestOutcome, RawClip};
+use clipd_core::{IngestOutcome, RawClip, RawContent};
 use tauri::{AppHandle, Emitter, Manager};
 
 use state::{AppState, guard, lock};
@@ -41,6 +42,7 @@ pub fn run() {
         ))
         .plugin(shortcuts::plugin())
         .manage(AppState::new(clipd_core::default_data_dir()))
+        .manage(sync::SyncState::default())
         .setup(move |app| {
             let handle = app.handle().clone();
             let state = app.state::<AppState>();
@@ -63,6 +65,7 @@ pub fn run() {
 
             start_watcher(&handle);
             maintenance::spawn(handle.clone());
+            sync::start_if_enabled(&handle);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -75,6 +78,8 @@ pub fn run() {
             commands::delete_clip,
             commands::copy_clip,
             commands::paste_clip,
+            commands::transform_clip,
+            commands::clip_actions,
             commands::hide_picker,
             commands::show_dashboard,
             commands::open_url,
@@ -90,6 +95,13 @@ pub fn run() {
             commands::backend_status,
             commands::get_settings,
             commands::update_settings,
+            sync::sync_status,
+            sync::sync_set_enabled,
+            sync::sync_set_port,
+            sync::sync_restart,
+            sync::sync_create_offer,
+            sync::sync_cancel_offer,
+            sync::sync_revoke,
         ])
         .run(tauri::generate_context!())
         .expect("error while running ClipTrail");
@@ -105,6 +117,24 @@ fn start_watcher(app: &AppHandle) {
     }
 }
 
+/// "Clean tracking parameters from links": rewrite a copied bare link before
+/// it is stored (the clip keeps the cleaned URL; the HTML flavor would still
+/// carry the old one, so it is dropped when the text changed).
+fn clean_copied_link(raw: &mut RawClip) {
+    let RawContent::Text { text, html } = &mut raw.content else {
+        return;
+    };
+    if clipd_core::classify_text(text).kind != clipd_core::Kind::Link {
+        return;
+    }
+    if let Ok(clean) = clipd_core::apply_transform(clipd_core::Transform::CleanUrl, text)
+        && clean != text.trim()
+    {
+        *text = clean;
+        *html = None;
+    }
+}
+
 fn on_raw_clip(app: &AppHandle, raw: RawClip) {
     let state = app.state::<AppState>();
     if state.is_paused() {
@@ -112,6 +142,10 @@ fn on_raw_clip(app: &AppHandle, raw: RawClip) {
         return;
     }
     let Ok(p) = state.pipeline() else { return };
+    let mut raw = raw;
+    if state.settings().clean_links {
+        clean_copied_link(&mut raw);
+    }
     match guard("ingest", || p.ingest(raw)) {
         Ok(outcome @ (IngestOutcome::Stored { .. } | IngestOutcome::Bumped { .. })) => {
             if let IngestOutcome::Stored { id, kind } | IngestOutcome::Bumped { id, kind } =
@@ -121,6 +155,7 @@ fn on_raw_clip(app: &AppHandle, raw: RawClip) {
             }
             let _ = app.emit("clips-changed", &outcome);
             tray::refresh(app);
+            sync::local_change(app);
         }
         Ok(IngestOutcome::Skipped { reason }) => tracing::debug!(%reason, "clip skipped"),
         Err(e) => tracing::warn!("{e}"),

@@ -1,0 +1,56 @@
+[package]
+name = "clipd-sync"
+description = "ClipTrail sync: E2EE envelopes, QR pairing, LAN hub (axum) and client"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[features]
+default = ["hub", "os-keychain"]
+# The LAN hub server (desktop only). Clients (Android) build without it.
+hub = ["dep:axum", "dep:if-addrs", "dep:qrcode"]
+# Store keys in the OS keychain (Windows Credential Manager, macOS Keychain).
+# Elsewhere (Linux, Android) keys go to a 0600 file or a platform store
+# plugged in through the `KeyStore` trait.
+os-keychain = [
+    "dep:keyring-core",
+    "dep:windows-native-keyring-store",
+    "dep:apple-native-keyring-store",
+]
+
+[dependencies]
+clipd-core.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+rusqlite.workspace = true
+ulid.workspace = true
+sha2.workspace = true
+tracing.workspace = true
+chacha20poly1305 = { version = "0.11", default-features = false, features = ["alloc"] }
+x25519-dalek = { version = "3", features = ["static_secrets"] }
+hkdf = "0.13"
+hmac = "0.13"
+getrandom = "0.4"
+base64 = "0.23"
+zeroize = { version = "1", features = ["derive"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "net"] }
+futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
+reqwest = { version = "0.13", default-features = false }
+tokio-tungstenite = { version = "0.30", default-features = false, features = ["connect", "handshake"] }
+axum = { version = "0.8", optional = true, default-features = false, features = ["http1", "json", "query", "tokio", "ws"] }
+if-addrs = { version = "0.15", optional = true }
+qrcode = { version = "0.14", optional = true, default-features = false, features = ["svg"] }
+keyring-core = { version = "1", optional = true }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows-native-keyring-store = { version = "1", optional = true }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+apple-native-keyring-store = { version = "1", optional = true }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "net", "test-util"] }
+image.workspace = true
