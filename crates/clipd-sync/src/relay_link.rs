@@ -823,7 +823,9 @@ fn set_live(sh: &LinkShared, url: &str, state: &str, error: Option<String>) {
 async fn supervise(sh: Arc<LinkShared>) {
     let mut stop = sh.stop.clone();
     let mut sessions: HashMap<String, (watch::Sender<bool>, JoinHandle<()>)> = HashMap::new();
-    let mut last_prune = Instant::now() - Duration::from_secs(3600);
+    let mut last_prune = Instant::now()
+        .checked_sub(Duration::from_secs(3600))
+        .unwrap_or_else(Instant::now);
     loop {
         if *stop.borrow() {
             break;
