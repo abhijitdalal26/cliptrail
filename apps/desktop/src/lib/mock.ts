@@ -722,6 +722,10 @@ export async function handle(cmd: string, a: Record<string, unknown>): Promise<u
       publish("settings-changed", null);
       return { ...mockSettings, capture: captureState() };
     }
+    case "accessibility_state":
+      return true;
+    case "open_accessibility_settings":
+      return null;
     case "window_effects":
       return false;
     case "backend_status":

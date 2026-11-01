@@ -842,6 +842,8 @@ dependencies = [
  "clipd-sync",
  "image",
  "jni 0.21.1",
+ "objc2",
+ "objc2-app-kit",
  "serde",
  "serde_json",
  "tauri",

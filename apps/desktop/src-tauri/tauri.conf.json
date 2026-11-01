@@ -33,7 +33,7 @@
   "bundle": {
     "active": true,
     "createUpdaterArtifacts": true,
-    "targets": ["nsis", "msi", "deb", "appimage"],
+    "targets": ["nsis", "msi", "deb", "appimage", "dmg", "app"],
     "category": "Utility",
     "shortDescription": "Clipboard history that remembers everything you copy",
     "longDescription": "ClipTrail keeps a searchable, local-first history of everything you copy: links, code, text, images and files, grouped by day.",
@@ -48,6 +48,10 @@
     ],
     "windows": {
       "nsis": { "installMode": "currentUser" }
+    },
+    "macOS": {
+      "minimumSystemVersion": "12.0",
+      "dmg": { "windowPosition": { "x": 200, "y": 120 }, "appPosition": { "x": 160, "y": 170 }, "applicationFolderPosition": { "x": 480, "y": 170 } }
     },
     "linux": {
       "deb": { "depends": ["libxdo3"] }
