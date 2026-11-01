@@ -34,7 +34,7 @@ fn time_arg(args: &Value, key: &str) -> Result<Option<Millis>> {
 fn limit_arg(args: &Value, default: u32, max: u32) -> u32 {
     args.get("limit")
         .and_then(Value::as_u64)
-        .map(|n| (n as u32).clamp(1, max))
+        .map(|n| u32::try_from(n.clamp(1, u64::from(max))).unwrap_or(max))
         .unwrap_or(default)
 }
 
@@ -148,10 +148,23 @@ pub fn call(store: &Store, name: &str, args: &Value) -> Result<Value> {
             if clip.summary.masked {
                 bail!("refusing to copy a sensitive clip");
             }
+            if clip.summary.kind == Kind::Image && clip.image_path.is_none() {
+                bail!("image file not synced to this device yet");
+            }
+            let local_files: Vec<String> = clip
+                .summary
+                .files
+                .iter()
+                .filter(|f| std::path::Path::new(f).exists())
+                .cloned()
+                .collect();
             if let Some(path) = &clip.image_path {
                 clipd_capture::write_clip(WriteContent::ImagePng(path))?;
             } else if !clip.summary.files.is_empty() {
-                clipd_capture::write_clip(WriteContent::Files(&clip.summary.files))?;
+                if local_files.is_empty() {
+                    bail!("none of this clip's files exist on this device");
+                }
+                clipd_capture::write_clip(WriteContent::Files(&local_files))?;
             } else {
                 let text = clip.text.unwrap_or_default();
                 clipd_capture::write_clip(WriteContent::Text {
@@ -159,7 +172,16 @@ pub fn call(store: &Store, name: &str, args: &Value) -> Result<Value> {
                     html: clip.html.as_deref(),
                 })?;
             }
-            Ok(text_result(&json!({ "id": id, "copied": true })))
+            let mut out = json!({ "id": id, "copied": true });
+            if cfg!(target_os = "linux") {
+                // X11 selections are served by the owning process: once this
+                // session ends the paste only survives if a clipboard
+                // manager has taken ownership.
+                out["note"] = json!(
+                    "on X11 the copy survives this process only if a clipboard manager owns it"
+                );
+            }
+            Ok(text_result(&out))
         }
         _ => bail!("unknown tool: {name}"),
     }

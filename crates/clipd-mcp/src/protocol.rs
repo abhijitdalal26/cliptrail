@@ -42,6 +42,11 @@ pub fn handle(store: &Store, line: &str) -> Option<Value> {
 pub fn handle_value(store: &Store, msg: &Value) -> Option<Value> {
     // JSON-RPC batches: respond to each element; pure notifications → None.
     if let Some(items) = msg.as_array() {
+        // An empty batch is an invalid request: reply with an error so the
+        // client isn't left waiting for a response that never comes.
+        if items.is_empty() {
+            return Some(error_response(Value::Null, INVALID_REQUEST, "empty batch"));
+        }
         let responses: Vec<Value> = items
             .iter()
             .filter_map(|m| handle_value(store, m))

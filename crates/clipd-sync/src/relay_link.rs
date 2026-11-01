@@ -596,9 +596,7 @@ pub async fn relay_remove(
     };
     if purge {
         let conn = RelayConn::new(&base, &rsid, &device_id, key)?;
-        if let Err(e) = conn.delete_space().await {
-            tracing::warn!(relay = %base, "couldn't delete the space on the relay: {e:#}");
-        }
+        conn.delete_space().await?;
     }
     let dd = data_dir.to_path_buf();
     blocking(move || {
@@ -896,13 +894,19 @@ async fn hub_housekeeping(sh: &Arc<LinkShared>) -> Result<()> {
     .await?;
     let mut rotated = false;
     for (url, dev) in revoked {
-        let conn = conn_for(sh, &url).await?;
+        let Ok(conn) = conn_for(sh, &url).await else {
+            tracing::debug!(relay = %url, "relay unreachable during housekeeping; skipping");
+            continue;
+        };
         if let Err(err) = conn.revoke(&dev).await {
             tracing::debug!(relay = %url, "revoke on relay failed: {err:#}");
             continue;
         }
         let new_key = DeviceKey::generate();
-        conn.rotate_enroll(&new_key).await?;
+        if let Err(err) = conn.rotate_enroll(&new_key).await {
+            tracing::debug!(relay = %url, "key rotation failed: {err:#}");
+            continue;
+        }
         let (e, u, d) = (sh.engine.clone(), url.clone(), dev.clone());
         blocking(move || {
             e.db.upsert_relay(&u, &e.seal_enroll(&u, &new_key.seed())?, now_millis(), true)?;
@@ -1414,7 +1418,10 @@ async fn incoming(sh: &Arc<LinkShared>, conn: &RelayConn, envs: Vec<SeqEnvelope>
                     });
                     blobs.extend(applied.blob);
                 }
-                Err(err) => tracing::warn!(event = %id, "couldn't apply relay event: {err:#}"),
+                Err(err) => {
+                    tracing::warn!(event = %id, "couldn't apply relay event: {err:#}");
+                    break;
+                }
             }
             e.db.mark_seen(&[&id], &u, now_millis())?;
             e.db.set_relay_pull_seq(&u, last)?;

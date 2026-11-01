@@ -707,6 +707,8 @@ async fn post_events(
             .is_some_and(|b| !clipd_sync::engine::valid_blob_id(b))
         {
             Some("bad blob id".to_owned())
+        } else if it.env.device_id != a.device {
+            Some("device_id mismatch".to_owned())
         } else {
             None
         };
