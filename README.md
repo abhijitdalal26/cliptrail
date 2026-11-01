@@ -2,7 +2,29 @@
 
 **Your clipboard, everywhere, forever.** An open-source, end-to-end-encrypted clipboard history that captures everything you copy, organizes it automatically, and syncs it across Windows, macOS, Linux and Android — so the link from last Tuesday or the code you copied on your phone is always one hotkey away.
 
-> Status: planning / pre-alpha. See the roadmap below — contributions and feedback welcome early.
+> **Status: pre-alpha, v1 in active development.** Working today: the Rust core, Windows clipboard capture, the `clipd` CLI and the Windows desktop app (dashboard, quick picker, tray). In progress: encrypted laptop ↔ phone sync and the Android app. Linux capture is written and CI-checked but not yet tested on a real session. Website: <https://abhijitdalal26.github.io/cliptrail/>
+
+## Try it (from source)
+
+Installers will be attached to [Releases](https://github.com/abhijitdalal26/cliptrail/releases) from v0.1.0. Until then:
+
+```sh
+# Requirements: Rust (pinned via rust-toolchain.toml), Node 22 + pnpm, and on Windows the
+# MSVC build tools; on Linux the Tauri system packages (see .github/workflows/ci.yml).
+
+# Desktop app
+cd apps/desktop
+pnpm install
+pnpm tauri dev          # or: pnpm tauri build
+
+# Command-line tool
+cargo run -p clipd-cli -- watch           # capture everything you copy (Ctrl+C to stop)
+cargo run -p clipd-cli -- search "deploy" # substring search over your history
+cargo run -p clipd-cli -- list --kind link
+cargo run -p clipd-cli -- stats
+```
+
+Set `CLIPTRAIL_DATA_DIR` to keep a throwaway history while experimenting. The quick picker opens with **Ctrl+Shift+Space**; press **?** in the dashboard for every shortcut.
 
 ## Why another clipboard app?
 
@@ -30,18 +52,22 @@ Existing tools split into two camps: **great history, one machine** (Ditto, Macc
 | [docs/build-plan.md](docs/build-plan.md) | The 3-day MVP plan and this repo's structure |
 | [docs/reference-codebases.md](docs/reference-codebases.md) | External repos to study — what each teaches, license, reuse vs read-only |
 | [docs/feature-candidates.md](docs/feature-candidates.md) | Final sweep: missed products + every user ask, marked A/B/C for review |
+| [docs/android-plan.md](docs/android-plan.md) | Android v1: capture without a custom keyboard, architecture, LAN sync sketch, milestones |
 
-## Planned architecture
+## Architecture
 
 ![ClipTrail system overview](docs/images/architecture.png)
 
 ```
-crates/   clipd-core (model · SQLite+FTS5 · crypto · classifier · sync) · clipd-relay · clipd-cli · clipd-uniffi
-apps/     desktop (Tauri 2) · android (Kotlin + IME) · ios (later) · web (read-only dashboard)
-docker/   one-command self-hosted relay
+crates/clipd-core      clip model · SQLite + FTS5 trigram search · classifier · transforms · capture pipeline
+crates/clipd-capture   OS clipboard watcher, write-back and paste-back (Windows; Linux X11/Wayland)
+crates/clipd-cli       the `clipd` command-line tool
+apps/desktop           Tauri 2 app: dashboard, quick picker, tray (Windows, Linux; macOS experimental)
+apps/android-spike     Android capture experiment (accessibility trigger, no custom keyboard)
+site/                  the project website (GitHub Pages)
 ```
 
-Rust core shared by every client · Tauri 2 desktop · axum WebSocket relay (ciphertext only) · UniFFI mobile bindings · QR-code device pairing.
+One Rust core shared by every client · Tauri 2 + React desktop · encrypted sync with QR pairing (in progress) · no telemetry.
 
 ## License
 
