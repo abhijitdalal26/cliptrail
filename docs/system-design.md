@@ -4,6 +4,10 @@ The engineering document: components, data flow, storage, sync, crypto, and plat
 
 ## 1. Big picture
 
+![ClipTrail system overview](images/architecture.png)
+
+<details><summary>Mermaid source</summary>
+
 ```mermaid
 flowchart TB
     subgraph Devices["Your devices (one shared 'space' = one MasterKey)"]
@@ -26,6 +30,7 @@ flowchart TB
     D3 <-->|"send-in + read"| RLY
     WEB <-->|"WS/REST"| RLY
 ```
+</details>
 
 Design rules that everything else follows:
 
@@ -64,6 +69,10 @@ flowchart LR
 
 ## 3. Capture pipeline (per device)
 
+![Capture pipeline](images/pipeline.png)
+
+<details><summary>Mermaid source</summary>
+
 ```mermaid
 flowchart LR
     W["watcher<br/>(OS clipboard)"] --> N["normalize<br/>(formats → text/image/file)"]
@@ -77,6 +86,7 @@ flowchart LR
     R -- persist --> P["persist<br/>(SQLite + FTS5)"]
     P --> S["notify<br/>(UI refresh + sync emit)"]
 ```
+</details>
 
 - **Watcher** polls (250–500 ms) or hooks the OS clipboard and emits raw formats (text, html, rtf, png, file-list, uri).
 - **Normalize** reduces to `text | image | file-ref` + keeps the richest useful representation (e.g. HTML keeps its text + source URL).
@@ -121,6 +131,10 @@ Sync = **replicating an append-only event log** between devices; the relay just 
 
 Event types: `ClipAdded`, `ClipUpdated(pin/section/move)`, `ClipDeleted(tombstone)`, `DevicePaired`, `DeviceRevoked`, `SpaceRotated`.
 
+![Sync — sealed envelopes](images/sync.png)
+
+<details><summary>Mermaid source</summary>
+
 ```mermaid
 sequenceDiagram
     participant A as Laptop
@@ -137,6 +151,7 @@ sequenceDiagram
     end
     B->>B: decrypt → dedup(hash) → merge → FTS index locally
 ```
+</details>
 
 - **Envelope** = `{event_id, device_id, ts, nonce, ciphertext}`; the relay validates shape but can't read it.
 - **Echo suppression:** sender writes its own hash into a quiet window so its watcher doesn't re-capture the clip it just pasted/synced (decentpaste pattern).

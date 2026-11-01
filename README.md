@@ -32,6 +32,8 @@ Existing tools split into two camps: **great history, one machine** (Ditto, Macc
 
 ## Planned architecture
 
+![ClipTrail system overview](docs/images/architecture.png)
+
 ```
 crates/   clipd-core (model · SQLite+FTS5 · crypto · classifier · sync) · clipd-relay · clipd-cli · clipd-uniffi
 apps/     desktop (Tauri 2) · android (Kotlin + IME) · ios (later) · web (read-only dashboard)
