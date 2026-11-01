@@ -7,6 +7,9 @@ desc: Reference for clipd, the {{B}} command-line tool: watch, list, search, sho
 <h2 id="install">Install</h2>
 <pre><code>cargo install --locked --git https://github.com/abhijitdalal26/cliptrail clipd-cli</code></pre>
 <p>Needs Rust 1.96 or newer; on Linux also <code>libxcb1-dev</code> (Debian/Ubuntu). Prebuilt archives (<code>clipd-&lt;version&gt;-x86_64-pc-windows-msvc.zip</code>, <code>clipd-&lt;version&gt;-x86_64-unknown-linux-gnu.tar.gz</code>) are attached to each <a href="{{R}}download.html#cli">release</a>.</p>
+<p>On Linux, the quickest install is the script — it downloads the latest release archive, verifies the SHA-256 checksum and installs <code>clipd</code> to <code>~/.local/bin</code>:</p>
+<pre><code>curl -fsSL https://raw.githubusercontent.com/abhijitdalal26/cliptrail/main/install.sh | sh</code></pre>
+<p><code>sh -s -- --system</code> installs to <code>/usr/local/bin</code> instead; set <code>CLIPD_INSTALL_DIR</code> to pick another directory. Works on any distro with <code>curl</code>, <code>tar</code> and <code>sha256sum</code>.</p>
 
 <div class="callout">{{i:info}}<div><p><strong>Content stays private in your terminal too.</strong> Only <code>clipd show</code> prints a clip in full. Everything else prints ids, kinds and a one-line preview, and <code>watch</code> and the sync commands never print clip content at all.</p></div></div>
 

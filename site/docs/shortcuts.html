@@ -99,6 +99,7 @@
   <li>Under <strong>Shortcuts</strong>, click the current hotkey and press the new combination. <kbd>Esc</kbd> cancels.</li>
 </ol>
 <p>A global hotkey needs <kbd>Ctrl</kbd>, <kbd>Alt</kbd>, <kbd>Shift</kbd> or <kbd>Win</kbd> unless it's a function key (<kbd>F1</kbd>–<kbd>F24</kbd>), and <kbd>Shift</kbd> plus a letter alone isn't allowed because it would block typing. If another app already owns the combination, ClipTrail tells you; see <a href="troubleshooting.html#hotkey">hotkey conflicts</a>.</p>
+<p><strong>Linux on Wayland:</strong> global hotkeys registered by apps don't reach most Wayland compositors. Bind a desktop shortcut to <code>cliptrail --picker</code> instead — it opens the picker in the already-running app. The in-window shortcuts above are unaffected.</p>
 
   </article>
   <nav class="docs-pager" aria-label="Previous and next page"><a class="prev" href="picker.html"><span class="lbl">← Previous</span><span class="ttl">Quick picker & paste-back</span></a><a class="next" href="kinds.html"><span class="lbl">Next →</span><span class="ttl">Kinds & classification</span></a></nav>
