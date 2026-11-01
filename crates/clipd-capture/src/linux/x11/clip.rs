@@ -196,8 +196,10 @@ impl X11Clip {
         }
         let atoms: Vec<Atom> = f
             .data
-            .chunks_exact(4)
-            .map(|c| u32::from_ne_bytes([c[0], c[1], c[2], c[3]]))
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .map(|c| u32::from_ne_bytes(*c))
             .filter(|&a| a != x11rb::NONE)
             .collect();
         let unknown: Vec<Atom> = atoms

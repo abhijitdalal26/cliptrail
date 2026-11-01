@@ -32,8 +32,10 @@ mod tests {
         let off = u32::from_le_bytes(data[0..4].try_into().unwrap()) as usize;
         assert_eq!(i32::from_le_bytes(data[16..20].try_into().unwrap()), 1);
         let units: Vec<u16> = data[off..]
-            .chunks_exact(2)
-            .map(|c| u16::from_le_bytes([c[0], c[1]]))
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .map(|c| u16::from_le_bytes(*c))
             .collect();
         units
             .split(|&u| u == 0)

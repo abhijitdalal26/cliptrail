@@ -122,14 +122,19 @@ fn trim_nuls(data: &[u8]) -> &[u8] {
 }
 
 fn utf16(data: &[u8], conv: fn([u8; 2]) -> u16) -> String {
-    let units: Vec<u16> = data.chunks_exact(2).map(|c| conv([c[0], c[1]])).collect();
+    let units: Vec<u16> = data.as_chunks::<2>().0.iter().map(|c| conv(*c)).collect();
     String::from_utf16_lossy(&units)
 }
 
 /// ASCII-heavy UTF-16LE without BOM: every odd byte of the first bytes is 0.
 fn looks_utf16le(data: &[u8]) -> bool {
     let probe = &data[..data.len().min(32) & !1];
-    probe.len() >= 4 && probe.chunks_exact(2).all(|c| c[1] == 0 && c[0] != 0)
+    probe.len() >= 4
+        && probe
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .all(|c| c[1] == 0 && c[0] != 0)
 }
 
 /// Targets (name, bytes) to serve when we own the selection with text.

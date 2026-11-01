@@ -153,7 +153,7 @@ pub fn dib_to_rgba(data: &[u8]) -> Result<(u32, u32, Vec<u8>)> {
         }
     }
     if bpp == 32 && !any_alpha {
-        for px in out.chunks_exact_mut(4) {
+        for px in out.as_chunks_mut::<4>().0 {
             px[3] = 255;
         }
     }
@@ -179,7 +179,7 @@ pub fn rgba_to_dib32(width: u32, height: u32, rgba: &[u8]) -> Result<Vec<u8>> {
     out.extend_from_slice(&(rgba.len() as u32).to_le_bytes());
     out.extend_from_slice(&[0u8; 16]); // ppm x/y, clrUsed, clrImportant
     for row in rgba.chunks_exact(w * 4).rev() {
-        for px in row.chunks_exact(4) {
+        for px in row.as_chunks::<4>().0 {
             out.extend_from_slice(&[px[2], px[1], px[0], px[3]]);
         }
     }
