@@ -74,7 +74,7 @@ pub struct RawClip {
     pub captured_at: Millis,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RawContent {
     /// Plain text, plus the HTML flavor when the source offered one.
     Text { text: String, html: Option<String> },

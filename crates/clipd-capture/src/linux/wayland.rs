@@ -11,20 +11,16 @@ use std::io::Read;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::mpsc;
 use std::thread::JoinHandle;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use anyhow::{Context, Result, anyhow, bail};
-use clipd_core::RawClip;
+use clipd_core::{RawClip, RawContent};
 use wl_clipboard_rs::copy::{self, MimeSource, MimeType as CopyMime, Source};
 use wl_clipboard_rs::paste::{self, MimeType as PasteMime, Seat};
 use wl_clipboard_rs::watch::{CancelHandle, ClipboardEvent, ClipboardType, Watcher as WlWatcher};
 
 use super::common::{MAX_BYTES, now_ms, read_by_plan};
 
-/// The compositor replays the current selection right after we bind the
-/// data device; ignore events in this window so existing clipboard content
-/// is not captured at startup (the other backends do not either).
-const STARTUP_REPLAY: Duration = Duration::from_millis(250);
 /// A source that never closes its pipe must not hang the watcher forever.
 const READ_TIMEOUT: Duration = Duration::from_secs(3);
 
@@ -100,10 +96,20 @@ impl Drop for Watcher {
     }
 }
 
+/// Mirror of the X11 watcher's debounce window: several copies inside it
+/// collapse to the latest.
+const DEBOUNCE: Duration = Duration::from_millis(75);
+
 fn run<F>(on_clip: F, ready: mpsc::Sender<std::result::Result<CancelHandle, String>>)
 where
     F: Fn(RawClip) + Send + 'static,
 {
+    // The compositor replays the current selection right after we bind the
+    // data device. Snapshot it first and drop the first event whose content
+    // is identical — anything else is a genuine copy and must be reported,
+    // even if it lands microseconds after startup.
+    let baseline = read_current().ok().flatten().map(|c| c.content);
+    let mut pending_replay = baseline.is_some();
     let mut watcher = match WlWatcher::new(ClipboardType::Regular, Seat::Unspecified) {
         Ok(w) => w,
         Err(e) => {
@@ -112,22 +118,57 @@ where
         }
     };
     let _ = ready.send(Ok(watcher.cancel_handle()));
-    let started = Instant::now();
-    loop {
-        match watcher.next_event() {
-            Ok(None) => break, // cancelled
-            Ok(Some(ClipboardEvent::Changed {
-                mime_types,
-                mut offer,
-                ..
-            })) => {
-                if started.elapsed() < STARTUP_REPLAY {
-                    continue;
+
+    // Pump data-control events on an inner thread; this thread debounces.
+    let (tx, rx) = mpsc::channel::<RawContent>();
+    std::thread::Builder::new()
+        .name("clipd-wl-events".into())
+        .spawn(move || {
+            loop {
+                match watcher.next_event() {
+                    Ok(None) => break, // cancelled
+                    Ok(Some(ClipboardEvent::Changed {
+                        mime_types,
+                        mut offer,
+                        ..
+                    })) => {
+                        let content = read_by_plan(&mime_types, &mut |target| {
+                            offer.receive(target).ok().and_then(read_limited)
+                        });
+                        if pending_replay && content.as_ref() == baseline.as_ref() {
+                            pending_replay = false;
+                            continue;
+                        }
+                        pending_replay = false;
+                        if let Some(content) = content
+                            && tx.send(content).is_err()
+                        {
+                            break;
+                        }
+                    }
+                    Ok(Some(ClipboardEvent::Cleared { .. })) => {}
+                    Err(e) => {
+                        tracing::warn!(error = %e, "Wayland clipboard watcher stopped");
+                        break;
+                    }
                 }
-                let content = read_by_plan(&mime_types, &mut |target| {
-                    offer.receive(target).ok().and_then(read_limited)
-                });
-                if let Some(content) = content {
+            }
+        })
+        .ok();
+
+    // Debounce: report only the latest content after DEBOUNCE of quiet.
+    // `recv` delivers queued items even after the sender is gone, so a dead
+    // pump drains first and only then reports Disconnected.
+    let mut latest: Option<RawContent> = None;
+    loop {
+        let got = match latest {
+            None => rx.recv().ok(),
+            Some(_) => rx.recv_timeout(DEBOUNCE).ok(),
+        };
+        match got {
+            Some(content) => latest = Some(content),
+            None => match latest.take() {
+                Some(content) => {
                     let clip = RawClip {
                         content,
                         source_app: None,
@@ -137,12 +178,8 @@ where
                         tracing::warn!("on_clip callback panicked; watcher continues");
                     }
                 }
-            }
-            Ok(Some(ClipboardEvent::Cleared { .. })) => {}
-            Err(e) => {
-                tracing::warn!(error = %e, "Wayland clipboard watcher stopped");
-                break;
-            }
+                None => break, // channel closed and drained
+            },
         }
     }
 }
