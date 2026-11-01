@@ -14,7 +14,7 @@
 - **Product principle (user, 2026-11-01):** cross-platform AND cross-device. Each OS gets its own app (desktop Tauri for Windows/Linux/macOS, Android app, iOS later), all on the same Rust core. Any device ↔ any device: copy on Windows → paste on Android, image on Android → macOS, code on Linux → Windows. Sync is optional — every app must be fully useful alone on one device; pairing only adds devices when the user has them.
 - **Sync for v1:** `crates/clipd-sync`. A desktop app hosts the hub on the LAN; other devices (phone, or another desktop) pair by QR. Envelopes are storage-agnostic so a self-hostable/hosted relay can be added later for "laptop is off" and over-the-internet sync.
 
-- **Name on hold (user, 2026-11-01):** "ClipTrail" may change (another inactive ClipTrail exists; cliptrail.app is taken). Don't publish a public release, winget/scoop manifests, or anything that hard-codes the name externally until the user picks the final name. Keep the name in as few places as practical (product name, identifier, data dir).
+- **Name is final: ClipTrail (user, 2026-11-02).** Public releases and package-manager manifests are unblocked.
 - **Off-LAN sync (user, 2026-11-01):** build sync that works when devices are on different networks; whether it ships in v1 is decided later.
 
 ## Reference repos
