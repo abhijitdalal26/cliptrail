@@ -150,6 +150,9 @@ pub struct ListQuery {
     /// Keyset pagination: return clips strictly older than this
     /// last_seen_at (pass the last row's value to get the next page).
     pub before: Option<Millis>,
+    /// Tie-breaker for `before`: the last row's id. Pass both to page
+    /// exactly even when many clips share one timestamp.
+    pub before_id: Option<String>,
     /// Max rows, default 100.
     pub limit: Option<u32>,
 }

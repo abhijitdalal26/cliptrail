@@ -10,7 +10,7 @@
 - **Storage:** SQLite (rusqlite, bundled) + FTS5 trigram index for substring search. Images live as PNG files under the data dir (`images/`, `thumbs/`); the DB stores paths.
 - **Encryption:** the local DB is plaintext during the prototype. Before sync ships: SQLCipher for the DB, XChaCha20-Poly1305 for sync envelopes and image files. One cipher family everywhere.
 - **Categories** exist to tell the user what kind of data was copied and to drive how it's shown and pasted; they're not about splitting code from text for its own sake. Kinds: link, code, text, contact, color, file, image, sensitive.
-- **Android capture:** no custom keyboard (user decision). Use an Accessibility Service that detects copy events and briefly takes focus to read the clipboard, a foreground service to stay alive, and a Quick Settings tile + share target as guaranteed manual paths. Ship as a sideloaded APK first (Play reviews Accessibility closely).
+- **Android capture:** no custom keyboard (user decision). Use an Accessibility Service that detects copy events and briefly takes focus to read the clipboard, a foreground service to stay alive, and a Quick Settings tile + share target as guaranteed manual paths. Ship as a sideloaded APK first (Play reviews Accessibility closely). Test phone: Samsung Galaxy S23 FE (One UI, arm64) — target Samsung's copy signals first. Plan: `docs/android-plan.md`.
 - **Sync for v1:** the desktop app hosts the sync endpoint on the LAN; the phone pairs with a QR code. A hosted relay comes later.
 
 ## Reference repos
