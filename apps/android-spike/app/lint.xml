@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<lint>
+    <!-- English-only debug UI for a throwaway spike; strings are built in code on purpose. -->
+    <issue id="SetTextI18n" severity="ignore" />
+    <issue id="HardcodedText" severity="ignore" />
+    <!-- targetSdk/compileSdk 36 on purpose: 37 brings the local-network permission (docs/android-plan.md 4.8). -->
+    <issue id="OldTargetApi" severity="ignore" />
+    <issue id="GradleDependency" severity="ignore" />
+    <!-- AGP/Gradle pinned to the versions already cached on this machine (offline-friendly, low RAM). -->
+    <issue id="AndroidGradlePluginVersion" severity="ignore" />
+</lint>

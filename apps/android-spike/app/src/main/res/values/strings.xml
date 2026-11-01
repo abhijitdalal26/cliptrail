@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ClipTrail Spike</string>
+    <string name="a11y_label">ClipTrail Spike</string>
+    <string name="a11y_description">Notices when you copy something (taps on Copy, \"Copied\" messages) and briefly takes focus to save the clipboard to a test log on this phone. It does not read the screen. Nothing leaves the device.</string>
+    <string name="share_label">ClipTrail Spike</string>
+    <string name="process_text_label">ClipTrail</string>
+    <string name="save_clipboard">Save clipboard</string>
+    <string name="channel_name">Capture status</string>
+    <string name="notif_title">ClipTrail is capturing</string>
+    <string name="notif_text">Tap to open the spike · Save clipboard grabs what you copied</string>
+    <string name="toast_result">ClipTrail: %1$s</string>
+    <string name="toast_nothing">ClipTrail: nothing to save</string>
+</resources>
