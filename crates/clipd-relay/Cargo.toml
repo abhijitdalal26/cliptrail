@@ -1,0 +1,34 @@
+[package]
+name = "clipd-relay"
+description = "ClipTrail relay: a self-hostable, ciphertext-only mailbox for off-LAN sync"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "clipd-relay"
+path = "src/main.rs"
+
+[dependencies]
+# Protocol types and signature checks only (no hub, no keychain).
+clipd-sync = { workspace = true }
+clipd-core.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+rusqlite.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+clap = { workspace = true, features = ["env"] }
+axum = { version = "0.8", default-features = false, features = ["http1", "json", "query", "tokio", "ws"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "net", "signal"] }
+
+[dev-dependencies]
+clipd-sync = { workspace = true, features = ["hub"] }
+reqwest = { version = "0.13", default-features = false }
+ulid.workspace = true
+image.workspace = true

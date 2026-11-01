@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/clipd-core", "crates/clipd-capture", "crates/clipd-sync", "crates/clipd-cli", "apps/desktop/src-tauri"]
+members = ["crates/clipd-core", "crates/clipd-capture", "crates/clipd-sync", "crates/clipd-relay", "crates/clipd-cli", "apps/desktop/src-tauri"]
 
 [workspace.package]
 version = "0.1.0"

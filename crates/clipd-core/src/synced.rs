@@ -469,7 +469,7 @@ fn write_bytes_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{PipelineConfig, RawClip, RawContent, now_millis};
+    use crate::{ClearScope, PipelineConfig, RawClip, RawContent, now_millis};
 
     struct TempDir(PathBuf);
     impl TempDir {
@@ -572,6 +572,47 @@ mod tests {
         assert!(p.store().get(&kept).unwrap().is_none());
 
         assert_eq!(p.store().trim_journal(i64::MAX).unwrap(), 5);
+    }
+
+    #[test]
+    fn clear_history_journal_behaviour() {
+        let dir = TempDir::new();
+        let p = pipeline(&dir);
+        let keep = text(&p, "pinned stays");
+        let a = text(&p, "clear me a");
+        let b = text(&p, "clear me b");
+        p.store().set_pinned(&keep, true).unwrap();
+        // Masked clips are never journaled, so never tombstoned either.
+        text(&p, "ghp_A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8");
+
+        // Local-only: like retention, nothing reaches the journal.
+        let head = p.store().journal_head().unwrap();
+        assert_eq!(p.clear_history(true, ClearScope::LocalOnly).unwrap(), 3);
+        assert_eq!(p.store().journal_head().unwrap(), head);
+        assert!(p.store().get(&a).unwrap().is_none());
+        assert!(p.store().get(&b).unwrap().is_none());
+        assert!(p.store().get(&keep).unwrap().is_some());
+
+        // All devices: one delete tombstone per unmasked clip, none for the
+        // pinned one or the masked one.
+        let a2 = text(&p, "clear me a2");
+        let b2 = text(&p, "clear me b2");
+        text(&p, "ghp_Z9y8X7w6V5u4T3s2R1q0P9o8N7m6L5k4J3i2");
+        let head2 = p.store().journal_head().unwrap();
+        assert_eq!(p.clear_history(true, ClearScope::AllDevices).unwrap(), 3);
+        let tombs = p.store().journal_since(head2, 100).unwrap();
+        assert_eq!(tombs.len(), 2);
+        assert!(tombs.iter().all(|e| e.op == JournalOp::Delete));
+        let ids: Vec<_> = tombs.iter().map(|e| e.clip_id.clone()).collect();
+        assert!(ids.contains(&a2) && ids.contains(&b2));
+        assert!(p.store().get(&keep).unwrap().is_some());
+
+        // Not keeping pinned: the pinned clip gets a tombstone too.
+        let head3 = p.store().journal_head().unwrap();
+        assert_eq!(p.clear_history(false, ClearScope::AllDevices).unwrap(), 1);
+        let tombs = p.store().journal_since(head3, 10).unwrap();
+        assert_eq!(tombs.len(), 1);
+        assert_eq!(tombs[0].clip_id, keep);
     }
 
     #[test]

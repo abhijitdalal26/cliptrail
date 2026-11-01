@@ -14,7 +14,7 @@ path = "src/main.rs"
 clipd-core.workspace = true
 clipd-capture.workspace = true
 anyhow.workspace = true
-clap.workspace = true
+clap = { workspace = true, features = ["env"] }
 serde_json.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true

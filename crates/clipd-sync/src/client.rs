@@ -9,6 +9,10 @@
 //! `GET /v1/events?since=` → stream `/v1/stream` → apply live events, push
 //! local changes as they happen. Offline: local changes keep going to the
 //! persisted outbox; reconnect with backoff 1 s … 60 s.
+//!
+//! While the hub is out of reach (phone on mobile data, laptop asleep) the
+//! space's relays take over ([`crate::relay_link`]); once the hub answers
+//! again they go back to standby.
 
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -66,10 +70,9 @@ pub struct PairOutcome {
 }
 
 fn http() -> Result<reqwest::Client> {
-    reqwest::Client::builder()
+    crate::relay_link::http_builder()
         .connect_timeout(CONNECT_TIMEOUT)
         .timeout(REQUEST_TIMEOUT)
-        .no_proxy()
         .build()
         .context("build HTTP client")
 }
@@ -242,6 +245,7 @@ pub async fn unpair(data_dir: &Path, keystore: Arc<dyn KeyStore>) -> Result<bool
             }
         }
     }
+    crate::relay_link::leave_relays(data_dir, keystore.clone()).await;
     let dd = data_dir.to_path_buf();
     blocking(move || crate::reset(&dd, &*keystore)).await?;
     tracing::info!(confirmed, "left the sync space");
@@ -266,6 +270,10 @@ struct Shared {
     live: Mutex<LiveState>,
     fetch_images: bool,
     stop: watch::Receiver<bool>,
+    /// True while the hub session is connected (relays stand by).
+    hub_up: watch::Sender<bool>,
+    /// Serializes applying events from the hub and from relays.
+    apply_lock: Arc<Mutex<()>>,
 }
 
 fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -277,6 +285,7 @@ pub struct ClientHandle {
     shared: Arc<Shared>,
     stop: watch::Sender<bool>,
     task: JoinHandle<()>,
+    relays: crate::relay_link::LinkHandle,
 }
 
 /// Start syncing a paired data dir in the background.
@@ -292,6 +301,7 @@ pub fn start(cfg: ClientConfig) -> Result<ClientHandle> {
     let token = SecretKey::from_slice(&token).context("device token is corrupt")?;
     let (stop_tx, stop_rx) = watch::channel(false);
     let (notices, _) = broadcast::channel(256);
+    let (hub_up, hub_up_rx) = watch::channel(false);
     let shared = Arc::new(Shared {
         engine: Arc::new(engine),
         token,
@@ -301,12 +311,23 @@ pub fn start(cfg: ClientConfig) -> Result<ClientHandle> {
         live: Mutex::new(LiveState::default()),
         fetch_images: cfg.fetch_images,
         stop: stop_rx,
+        hub_up,
+        apply_lock: Arc::new(Mutex::new(())),
     });
     let task = tokio::spawn(run(shared.clone()));
+    let relays = crate::relay_link::start_client(
+        shared.engine.clone(),
+        cfg.keystore.clone(),
+        shared.notices.clone(),
+        hub_up_rx,
+        cfg.fetch_images,
+        shared.apply_lock.clone(),
+    );
     Ok(ClientHandle {
         shared,
         stop: stop_tx,
         task,
+        relays,
     })
 }
 
@@ -318,6 +339,13 @@ impl ClientHandle {
     /// Something was copied locally: push it now (else within ~1 s).
     pub fn notify_local_change(&self) {
         self.shared.local.notify_one();
+        self.relays.waker().wake();
+    }
+
+    /// The relay list changed (e.g. after [`crate::relay_add`]): apply it
+    /// now instead of within ~2 s.
+    pub fn relay_changed(&self) {
+        self.relays.wake();
     }
 
     pub fn status(&self) -> Result<SyncStatus> {
@@ -359,6 +387,7 @@ impl ClientHandle {
             head_seq: 0,
             last_error: live.last_error.clone(),
             keystore: String::new(),
+            relays: self.relays.views(),
         })
     }
 
@@ -382,15 +411,19 @@ impl ClientHandle {
         else {
             return Ok(false);
         };
-        let host = lock(&self.shared.live)
-            .host
-            .clone()
-            .context("not connected to the hub")?;
-        fetch_blob(&self.shared, &host, &blob_id, &hash).await
+        let host = {
+            let live = lock(&self.shared.live);
+            live.connected.then(|| live.host.clone()).flatten()
+        };
+        match host {
+            Some(host) => fetch_blob(&self.shared, &host, &blob_id, &hash).await,
+            None => self.relays.fetch_image(&blob_id, &hash).await,
+        }
     }
 
     /// Stop the loop (closes the stream; the outbox stays on disk).
     pub async fn shutdown(self) {
+        self.relays.shutdown().await;
         let _ = self.stop.send(true);
         let _ = tokio::time::timeout(Duration::from_secs(5), self.task).await;
     }
@@ -413,6 +446,11 @@ fn set_connected(sh: &Shared, connected: bool, host: Option<String>) {
         live.reached_stream = true;
     }
     drop(live);
+    sh.hub_up.send_if_modified(|up| {
+        let differs = *up != connected;
+        *up = connected;
+        differs
+    });
     if changed {
         notice(sh, SyncNotice::StatusChanged);
     }
@@ -756,7 +794,9 @@ async fn catch_up(sh: &Arc<Shared>, host: &str) -> Result<()> {
 /// Apply hub envelopes in seq order and advance the cursor.
 async fn apply(sh: &Arc<Shared>, envs: Vec<SeqEnvelope>, host: &str) -> Result<()> {
     let engine = sh.engine.clone();
+    let apply_lock = sh.apply_lock.clone();
     let (metas, changed, blobs) = blocking(move || {
+        let _guard = lock(&apply_lock);
         let mut last = engine.db.get_i64("last_seq")?;
         let mut metas = Vec::new();
         let mut changed = 0usize;
@@ -765,6 +805,17 @@ async fn apply(sh: &Arc<Shared>, envs: Vec<SeqEnvelope>, host: &str) -> Result<(
             if e.seq <= last {
                 continue;
             }
+            // Already applied from a relay.
+            if e.env.device_id != engine.space.device_id
+                && engine.db.seen_src(&e.env.event_id)?.is_some()
+            {
+                last = e.seq;
+                engine.db.set_i64("last_seq", last)?;
+                continue;
+            }
+            engine
+                .db
+                .mark_seen(&[e.env.event_id.as_str()], "hub", now_millis())?;
             match engine.apply_envelope(&e.env) {
                 Ok((kind, applied)) => {
                     if kind != "own" {

@@ -397,6 +397,25 @@ impl Store {
         collect_paths(rows)
     }
 
+    /// How many clips [`Store::clear`] would remove right now.
+    pub fn count_clearable(&self, keep_pinned: bool) -> Result<i64> {
+        let sql = if keep_pinned {
+            "SELECT count(*) FROM clips WHERE pinned = 0"
+        } else {
+            "SELECT count(*) FROM clips"
+        };
+        Ok(self.conn().query_row(sql, [], |r| r.get(0))?)
+    }
+
+    /// Delete every clip (except pinned ones when `keep_pinned`). Returns
+    /// paths of image/thumbnail files the caller should remove from disk.
+    /// The delete triggers journal a tombstone per unmasked clip, so a sync
+    /// engine will propagate them; use `Pipeline::clear_history` for the
+    /// local-only variant.
+    pub fn clear(&self, keep_pinned: bool) -> Result<Vec<String>> {
+        Ok(clear_rows(&self.conn(), keep_pinned)?.1)
+    }
+
     pub fn stats(&self) -> Result<Stats> {
         let conn = self.conn();
         let total = conn.query_row("SELECT count(*) FROM clips", [], |r| r.get(0))?;
@@ -538,6 +557,27 @@ fn make_preview(mut text: String) -> (String, bool) {
 
 fn kind_from_db(s: &str) -> Kind {
     Kind::parse(s).unwrap_or(Kind::Text)
+}
+
+/// Shared by [`Store::clear`] and the quiet (unjournaled) clear. Returns
+/// (rows removed, file paths to delete).
+pub(crate) fn clear_rows(conn: &Connection, keep_pinned: bool) -> Result<(usize, Vec<String>)> {
+    let sql = if keep_pinned {
+        "DELETE FROM clips WHERE pinned = 0 RETURNING image_path, thumb_path"
+    } else {
+        "DELETE FROM clips RETURNING image_path, thumb_path"
+    };
+    let mut stmt = conn.prepare(sql)?;
+    let pairs = stmt
+        .query_map([], file_pair)?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    let count = pairs.len();
+    let paths = pairs
+        .into_iter()
+        .flat_map(|(a, b)| [a, b])
+        .flatten()
+        .collect();
+    Ok((count, paths))
 }
 
 type FilePair = (Option<String>, Option<String>);

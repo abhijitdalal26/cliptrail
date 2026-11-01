@@ -8,6 +8,9 @@
 //! - [`engine`]: local journal → events, remote events → clip store.
 //! - [`hub`] (feature `hub`): the axum server (desktop).
 //! - [`client`]: the client loop (desktop/CLI and Android; no desktop deps).
+//! - [`relay`] / [`relay_link`]: off-LAN sync through a self-hostable,
+//!   ciphertext-only relay (`clipd-relay`); the hub forwards its log there
+//!   and clients use it whenever the hub is out of reach.
 //!
 //! Rule: never log clip content or keys, never put them in errors.
 
@@ -21,6 +24,8 @@ pub mod envelope;
 pub mod hub;
 pub mod keystore;
 pub mod pairing;
+pub mod relay;
+pub mod relay_link;
 pub mod wire;
 
 use std::path::Path;
@@ -35,6 +40,7 @@ pub use engine::SyncNotice;
 #[cfg(feature = "hub")]
 pub use hub::{HubConfig, HubHandle, OfferView};
 pub use keystore::{FileKeyStore, KeyStore, MemoryKeyStore, default_keystore};
+pub use relay_link::{RelayView, relay_add, relay_check, relay_remove};
 
 use crate::crypto::SecretKey;
 use crate::db::SpaceState;
@@ -100,6 +106,8 @@ pub struct SyncStatus {
     pub head_seq: i64,
     pub last_error: Option<String>,
     pub keystore: String,
+    /// Off-LAN relays of the space and their state on this device.
+    pub relays: Vec<RelayView>,
 }
 
 /// OS name as used in device lists.
@@ -156,6 +164,7 @@ pub fn status(data_dir: &Path, keystore: &dyn KeyStore) -> Result<SyncStatus> {
         .collect();
     st.outbox = db.outbox_len()?;
     st.pending_images = db.pending_blob_count()?;
+    st.relays = relay_link::relay_views(&db)?;
     match space.role {
         Role::Hub => {
             st.head_seq = db.head_seq()?;
@@ -267,6 +276,7 @@ pub fn reset(data_dir: &Path, keystore: &dyn KeyStore) -> Result<()> {
     db.wipe()?;
     keystore.delete(MASTER_KEY)?;
     keystore.delete(DEVICE_TOKEN)?;
+    keystore.delete(relay::RELAY_KEY)?;
     let _ = std::fs::remove_dir_all(data_dir.join(engine::BLOB_DIR));
     Ok(())
 }

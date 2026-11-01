@@ -67,6 +67,38 @@ pub enum SyncCommand {
     },
     /// Forget sync for this data dir (keys, cursors, device list). Clips stay.
     Reset,
+    /// Off-LAN sync through a self-hosted relay (clipd-relay).
+    Relay {
+        #[command(subcommand)]
+        cmd: RelayCommand,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum RelayCommand {
+    /// Register this space on a relay and share it with your other devices
+    /// (they pick it up the next time they sync with the hub).
+    Add {
+        /// e.g. https://relay.example.com (http:// only for localhost/LAN).
+        url: String,
+        /// The relay operator's invite code, if it asks for one.
+        #[arg(long, env = "CLIPTRAIL_RELAY_INVITE", hide_env_values = true)]
+        invite: Option<String>,
+    },
+    /// Stop syncing through a relay (on every device).
+    Remove {
+        url: String,
+        /// Also delete this space's data from the relay.
+        #[arg(long)]
+        purge: bool,
+    },
+    /// Relays of this space and their state.
+    Status {
+        #[arg(long)]
+        json: bool,
+    },
+    /// Check that a URL is a working ClipTrail relay (changes nothing).
+    Check { url: String },
 }
 
 fn keystore(data_dir: &Path) -> Result<Arc<dyn KeyStore>> {
@@ -136,6 +168,85 @@ pub fn run(data_dir: PathBuf, cmd: SyncCommand) -> Result<()> {
             println!("sync reset; clips were kept");
             Ok(())
         }
+        SyncCommand::Relay { cmd } => relay(data_dir, ks, cmd),
+    }
+}
+
+fn relay(data_dir: PathBuf, ks: Arc<dyn KeyStore>, cmd: RelayCommand) -> Result<()> {
+    match cmd {
+        RelayCommand::Add { url, invite } => runtime()?.block_on(async {
+            let v = clipd_sync::relay_add(&data_dir, ks, &url, invite.as_deref()).await?;
+            println!("relay added: {}", v.url);
+            println!(
+                "your other devices learn it the next time they sync with the hub; \
+                 a running `clipd sync host`/`run` picks it up within a few seconds"
+            );
+            Ok(())
+        }),
+        RelayCommand::Remove { url, purge } => runtime()?.block_on(async {
+            if clipd_sync::relay_remove(&data_dir, ks, &url, purge).await? {
+                println!(
+                    "relay removed{}",
+                    if purge { " (and its data deleted)" } else { "" }
+                );
+                Ok(())
+            } else {
+                bail!("{url} is not one of this space's relays")
+            }
+        }),
+        RelayCommand::Status { json } => {
+            let st = clipd_sync::status(&data_dir, &*ks)?;
+            if json {
+                println!("{}", serde_json::to_string_pretty(&st.relays)?);
+            } else {
+                print_relays(&st);
+            }
+            Ok(())
+        }
+        RelayCommand::Check { url } => runtime()?.block_on(async {
+            let h = clipd_sync::relay_check(&url).await?;
+            println!(
+                "ClipTrail relay v{} (protocol {}), registration {}",
+                h.version, h.proto, h.registration
+            );
+            let l = &h.limits;
+            println!(
+                "limits: {} MiB per space, images up to {} MiB, {} devices, keeps {} days",
+                l.max_space_bytes >> 20,
+                l.max_blob_bytes >> 20,
+                l.max_devices,
+                if l.retention_days == 0 {
+                    "forever".to_owned()
+                } else {
+                    l.retention_days.to_string()
+                }
+            );
+            Ok(())
+        }),
+    }
+}
+
+fn print_relays(st: &SyncStatus) {
+    if st.relays.is_empty() {
+        println!("no relays (sync works on the local network only)");
+        return;
+    }
+    println!("relays:");
+    for r in &st.relays {
+        let seen = r
+            .last_ok
+            .map(|t| format!("last ok {}", when(t)))
+            .unwrap_or_else(|| "never reached".into());
+        println!(
+            "  {:<40} {:<10} {}{}",
+            r.url,
+            r.state,
+            if r.enrolled { "" } else { "not enrolled yet, " },
+            seen
+        );
+        if let Some(e) = &r.last_error {
+            println!("      last problem: {e}");
+        }
     }
 }
 
@@ -178,6 +289,7 @@ fn print_status(st: &SyncStatus) {
         println!("problem:   {e}");
     }
     print_devices(st);
+    print_relays(st);
 }
 
 fn print_devices(st: &SyncStatus) {
@@ -197,6 +309,25 @@ fn print_devices(st: &SyncStatus) {
                 .unwrap_or_else(|| "never seen".into())
         };
         println!("  {}  {:<20} {:<8} {}", d.id, d.name, d.platform, state);
+    }
+}
+
+/// Print relay state changes (connected / standby / offline / denied).
+fn report_relays(st: &SyncStatus, seen: &mut HashMap<String, String>) {
+    for r in &st.relays {
+        if seen.get(&r.url) != Some(&r.state) {
+            let why = match (&r.state[..], &r.last_error) {
+                ("offline" | "denied", Some(e)) => format!("  ({e})"),
+                _ => String::new(),
+            };
+            println!(
+                "{}  relay    {} {}{why}",
+                clock(now_millis()),
+                r.url,
+                r.state
+            );
+            seen.insert(r.url.clone(), r.state.clone());
+        }
     }
 }
 
@@ -288,6 +419,7 @@ async fn host(
     let mut stdin = tokio::io::BufReader::new(tokio::io::stdin()).lines();
     let mut stdin_open = true;
     let mut last_online = st.connected;
+    let mut relay_states: HashMap<String, String> = HashMap::new();
     loop {
         tokio::select! {
             n = notices.recv() => match n {
@@ -302,6 +434,7 @@ async fn host(
                                 if online.is_empty() { "(none)".to_owned() } else { online.join(", ") });
                         }
                         last_online = s.connected;
+                        report_relays(&s, &mut relay_states);
                     }
                 }
                 Ok(n) => print_notice(&data_dir, &n),
@@ -330,6 +463,7 @@ async fn run_client(data_dir: PathBuf, ks: Arc<dyn KeyStore>, images: bool) -> R
     eprintln!("syncing {} (Ctrl+C to stop)", data_dir.display());
     let mut was_connected = false;
     let mut last_err: Option<String> = None;
+    let mut relay_states: HashMap<String, String> = HashMap::new();
     loop {
         tokio::select! {
             n = notices.recv() => match n {
@@ -349,8 +483,9 @@ async fn run_client(data_dir: PathBuf, ks: Arc<dyn KeyStore>, images: bool) -> R
                             if let Some(e) = &s.last_error {
                                 println!("{}  offline  {e}", clock(now_millis()));
                             }
-                            last_err = s.last_error;
+                            last_err = s.last_error.clone();
                         }
+                        report_relays(&s, &mut relay_states);
                     }
                 }
                 Ok(n) => print_notice(&data_dir, &n),

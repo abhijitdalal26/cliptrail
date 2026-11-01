@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::envelope::{Envelope, SeqEnvelope};
 
-const MIGRATIONS: &[&str] = &[SCHEMA_V1];
+const MIGRATIONS: &[&str] = &[SCHEMA_V1, SCHEMA_V2];
 
 const SCHEMA_V1: &str = r#"
 CREATE TABLE state (
@@ -76,6 +76,59 @@ CREATE TABLE pending_blobs (
     next_try     INTEGER NOT NULL DEFAULT 0
 );
 "#;
+
+/// v2: off-LAN relays.
+const SCHEMA_V2: &str = r#"
+-- Relays this space syncs through (from SpaceConfig). The enroll key is
+-- sealed under the space wrap key; cursors are per relay.
+CREATE TABLE relays (
+    url           TEXT PRIMARY KEY,
+    enroll_sealed BLOB    NOT NULL,
+    added_at      INTEGER NOT NULL,
+    enrolled      INTEGER NOT NULL DEFAULT 0,
+    pull_seq      INTEGER NOT NULL DEFAULT 0,
+    push_seq      INTEGER NOT NULL DEFAULT 0,
+    last_ok       INTEGER,
+    last_error    TEXT
+);
+-- Events already applied/forwarded (dedup across hub and relays).
+-- src: 'hub', 'out:<url>' (forwarded there) or the relay url it came from.
+CREATE TABLE seen_events (
+    event_id TEXT PRIMARY KEY,
+    src      TEXT    NOT NULL,
+    at       INTEGER NOT NULL
+);
+-- Hub: devices whose relay key was already deleted on a relay.
+CREATE TABLE relay_revoked (
+    url       TEXT NOT NULL,
+    device_id TEXT NOT NULL,
+    at        INTEGER NOT NULL,
+    PRIMARY KEY (url, device_id)
+);
+-- Hub: images to upload to a relay once their full file is here.
+CREATE TABLE relay_blobs (
+    url          TEXT NOT NULL,
+    blob_id      TEXT NOT NULL,
+    content_hash BLOB NOT NULL,
+    PRIMARY KEY (url, blob_id)
+);
+"#;
+
+/// A relay as stored locally.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RelayRow {
+    pub url: String,
+    pub enroll_sealed: Vec<u8>,
+    pub added_at: Millis,
+    /// This device's key is registered on the relay.
+    pub enrolled: bool,
+    /// Last relay seq applied here.
+    pub pull_seq: i64,
+    /// Hub: last hub-log seq forwarded to the relay.
+    pub push_seq: i64,
+    pub last_ok: Option<Millis>,
+    pub last_error: Option<String>,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -230,7 +283,8 @@ impl SyncDb {
         self.conn().execute_batch(
             "DELETE FROM state; DELETE FROM devices; DELETE FROM envelopes; \
              DELETE FROM blob_index; DELETE FROM clocks; DELETE FROM outbox; \
-             DELETE FROM pending_blobs;",
+             DELETE FROM pending_blobs; DELETE FROM relays; DELETE FROM seen_events; \
+             DELETE FROM relay_revoked; DELETE FROM relay_blobs;",
         )?;
         Ok(())
     }
@@ -392,6 +446,7 @@ impl SyncDb {
         let superseded = match ev_kind {
             "ClipAdded" => "('ClipAdded')",
             "ClipUpdated" => "('ClipUpdated')",
+            "SpaceConfig" => "('SpaceConfig')",
             _ => "('ClipAdded', 'ClipUpdated')",
         };
         tx.execute(
@@ -614,6 +669,172 @@ impl SyncDb {
             .conn()
             .query_row("SELECT count(*) FROM pending_blobs", [], |r| r.get(0))?)
     }
+
+    // ---- relays --------------------------------------------------------
+
+    pub fn relays(&self) -> Result<Vec<RelayRow>> {
+        let conn = self.conn();
+        let mut stmt = conn.prepare(
+            "SELECT url, enroll_sealed, added_at, enrolled, pull_seq, push_seq, last_ok, \
+                 last_error FROM relays ORDER BY added_at, url",
+        )?;
+        let rows = stmt.query_map([], |r| {
+            Ok(RelayRow {
+                url: r.get(0)?,
+                enroll_sealed: r.get(1)?,
+                added_at: r.get(2)?,
+                enrolled: r.get(3)?,
+                pull_seq: r.get(4)?,
+                push_seq: r.get(5)?,
+                last_ok: r.get(6)?,
+                last_error: r.get(7)?,
+            })
+        })?;
+        Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+    }
+
+    pub fn relay(&self, url: &str) -> Result<Option<RelayRow>> {
+        Ok(self.relays()?.into_iter().find(|r| r.url == url))
+    }
+
+    /// Add a relay or replace its enroll key; cursors and the enrolled flag
+    /// of an existing row are kept.
+    pub fn upsert_relay(
+        &self,
+        url: &str,
+        enroll_sealed: &[u8],
+        added_at: Millis,
+        enrolled: bool,
+    ) -> Result<()> {
+        self.conn().execute(
+            "INSERT INTO relays (url, enroll_sealed, added_at, enrolled) VALUES (?1, ?2, ?3, ?4) \
+             ON CONFLICT(url) DO UPDATE SET enroll_sealed = excluded.enroll_sealed, \
+                 enrolled = max(relays.enrolled, excluded.enrolled)",
+            params![url, enroll_sealed, added_at, enrolled],
+        )?;
+        Ok(())
+    }
+
+    pub fn remove_relay(&self, url: &str) -> Result<bool> {
+        let conn = self.conn();
+        conn.execute("DELETE FROM relay_blobs WHERE url = ?1", [url])?;
+        conn.execute("DELETE FROM relay_revoked WHERE url = ?1", [url])?;
+        Ok(conn.execute("DELETE FROM relays WHERE url = ?1", [url])? == 1)
+    }
+
+    pub fn set_relay_enrolled(&self, url: &str, enrolled: bool) -> Result<()> {
+        self.conn().execute(
+            "UPDATE relays SET enrolled = ?2 WHERE url = ?1",
+            params![url, enrolled],
+        )?;
+        Ok(())
+    }
+
+    pub fn set_relay_pull_seq(&self, url: &str, seq: i64) -> Result<()> {
+        self.conn().execute(
+            "UPDATE relays SET pull_seq = max(pull_seq, ?2) WHERE url = ?1",
+            params![url, seq],
+        )?;
+        Ok(())
+    }
+
+    pub fn set_relay_push_seq(&self, url: &str, seq: i64) -> Result<()> {
+        self.conn().execute(
+            "UPDATE relays SET push_seq = max(push_seq, ?2) WHERE url = ?1",
+            params![url, seq],
+        )?;
+        Ok(())
+    }
+
+    /// Record the outcome of talking to a relay (`error = None`: success).
+    pub fn set_relay_result(&self, url: &str, at: Millis, error: Option<&str>) -> Result<()> {
+        match error {
+            None => self.conn().execute(
+                "UPDATE relays SET last_ok = ?2, last_error = NULL WHERE url = ?1",
+                params![url, at],
+            )?,
+            Some(e) => self.conn().execute(
+                "UPDATE relays SET last_error = ?2 WHERE url = ?1",
+                params![url, e],
+            )?,
+        };
+        Ok(())
+    }
+
+    pub fn seen_src(&self, event_id: &str) -> Result<Option<String>> {
+        Ok(self
+            .conn()
+            .query_row(
+                "SELECT src FROM seen_events WHERE event_id = ?1",
+                [event_id],
+                |r| r.get(0),
+            )
+            .optional()?)
+    }
+
+    /// Remember event ids (first source wins).
+    pub fn mark_seen(&self, event_ids: &[&str], src: &str, at: Millis) -> Result<()> {
+        let mut conn = self.conn();
+        let tx = conn.transaction()?;
+        for id in event_ids {
+            tx.execute(
+                "INSERT OR IGNORE INTO seen_events (event_id, src, at) VALUES (?1, ?2, ?3)",
+                params![id, src, at],
+            )?;
+        }
+        tx.commit()?;
+        Ok(())
+    }
+
+    pub fn prune_seen(&self, before: Millis) -> Result<usize> {
+        Ok(self
+            .conn()
+            .execute("DELETE FROM seen_events WHERE at < ?1", [before])?)
+    }
+
+    pub fn relay_revoked(&self, url: &str, device_id: &str) -> Result<bool> {
+        Ok(self
+            .conn()
+            .query_row(
+                "SELECT 1 FROM relay_revoked WHERE url = ?1 AND device_id = ?2",
+                params![url, device_id],
+                |_| Ok(()),
+            )
+            .optional()?
+            .is_some())
+    }
+
+    pub fn mark_relay_revoked(&self, url: &str, device_id: &str, at: Millis) -> Result<()> {
+        self.conn().execute(
+            "INSERT OR IGNORE INTO relay_revoked (url, device_id, at) VALUES (?1, ?2, ?3)",
+            params![url, device_id, at],
+        )?;
+        Ok(())
+    }
+
+    pub fn add_relay_blob(&self, url: &str, blob_id: &str, hash: &[u8]) -> Result<()> {
+        self.conn().execute(
+            "INSERT OR IGNORE INTO relay_blobs (url, blob_id, content_hash) VALUES (?1, ?2, ?3)",
+            params![url, blob_id, hash],
+        )?;
+        Ok(())
+    }
+
+    pub fn relay_blobs(&self, url: &str, limit: u32) -> Result<Vec<(String, Vec<u8>)>> {
+        let conn = self.conn();
+        let mut stmt =
+            conn.prepare("SELECT blob_id, content_hash FROM relay_blobs WHERE url = ?1 LIMIT ?2")?;
+        let rows = stmt.query_map(params![url, limit], |r| Ok((r.get(0)?, r.get(1)?)))?;
+        Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+    }
+
+    pub fn remove_relay_blob(&self, url: &str, blob_id: &str) -> Result<()> {
+        self.conn().execute(
+            "DELETE FROM relay_blobs WHERE url = ?1 AND blob_id = ?2",
+            params![url, blob_id],
+        )?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -699,6 +920,45 @@ mod tests {
         assert!(db.is_revoked("P1").unwrap());
         assert!(db.is_revoked("nobody").unwrap());
         assert_eq!(db.devices().unwrap()[0].revoked_at, Some(5));
+    }
+
+    #[test]
+    fn relays_seen_and_migration() {
+        let db = SyncDb::open_in_memory().unwrap();
+        db.upsert_relay("https://r", b"sealed", 5, true).unwrap();
+        db.set_relay_pull_seq("https://r", 7).unwrap();
+        db.set_relay_pull_seq("https://r", 3).unwrap();
+        // A new enroll key keeps cursors and the enrolled flag.
+        db.upsert_relay("https://r", b"sealed2", 6, false).unwrap();
+        let r = db.relay("https://r").unwrap().unwrap();
+        assert_eq!(
+            (
+                r.enroll_sealed.as_slice(),
+                r.pull_seq,
+                r.enrolled,
+                r.added_at
+            ),
+            (&b"sealed2"[..], 7, true, 5)
+        );
+        db.set_relay_result("https://r", 9, Some("down")).unwrap();
+        db.set_relay_result("https://r", 10, None).unwrap();
+        let r = db.relay("https://r").unwrap().unwrap();
+        assert_eq!((r.last_ok, r.last_error), (Some(10), None));
+        db.mark_seen(&["E1"], "hub", 1).unwrap();
+        db.mark_seen(&["E1", "E2"], "https://r", 2).unwrap();
+        assert_eq!(db.seen_src("E1").unwrap().as_deref(), Some("hub"));
+        assert_eq!(db.prune_seen(2).unwrap(), 1);
+        db.add_relay_blob("https://r", "b1", b"h").unwrap();
+        db.mark_relay_revoked("https://r", "P1", 1).unwrap();
+        assert!(db.relay_revoked("https://r", "P1").unwrap());
+        assert!(db.remove_relay("https://r").unwrap());
+        assert!(db.relay_blobs("https://r", 10).unwrap().is_empty());
+        assert!(!db.relay_revoked("https://r", "P1").unwrap());
+        db.append_envelope(&env("C1"), "cfg", "SpaceConfig", 0)
+            .unwrap();
+        db.append_envelope(&env("C2"), "cfg", "SpaceConfig", 0)
+            .unwrap();
+        assert_eq!(db.envelope_count().unwrap(), 1, "newest config only");
     }
 
     #[test]

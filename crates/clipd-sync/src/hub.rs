@@ -14,6 +14,10 @@
 //! | GET | `/v1/devices` | `[DeviceView]` |
 //! | PUT/GET | `/v1/blobs/{blob_id}` | sealed full image (nonce ‖ ct) |
 //! | DELETE | `/v1/devices/me` | unpair the calling device |
+//!
+//! When the space has relays, the hub also runs a bridge
+//! ([`crate::relay_link`]) that forwards this log to them and pulls what
+//! off-LAN devices posted there into it.
 
 use std::collections::HashMap;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
@@ -124,6 +128,7 @@ pub struct HubHandle {
     stop: watch::Sender<bool>,
     tasks: Vec<JoinHandle<()>>,
     addr: SocketAddr,
+    relays: crate::relay_link::LinkHandle,
 }
 
 /// Start the hub (creating the space on first run). Must be called inside
@@ -207,12 +212,39 @@ pub async fn start(cfg: HubConfig) -> Result<HubHandle> {
         }
     });
 
+    // Relay bridge: forwards the log off-LAN, pulls relay events in.
+    let publish_tx = hub.tx.clone();
+    let relays = crate::relay_link::start_hub(
+        hub.engine.clone(),
+        keystore,
+        hub.notices.clone(),
+        Arc::new(move |env| {
+            let _ = publish_tx.send(HubMsg::Event(env));
+        }),
+    );
+    let waker = relays.waker();
+    let mut log_rx = hub.tx.subscribe();
+    let mut stop_fwd = hub.stop.clone();
+    let forward = tokio::spawn(async move {
+        loop {
+            tokio::select! {
+                m = log_rx.recv() => match m {
+                    Ok(HubMsg::Event(_)) | Err(broadcast::error::RecvError::Lagged(_)) => waker.wake(),
+                    Ok(HubMsg::Revoked(_)) => {}
+                    Err(broadcast::error::RecvError::Closed) => break,
+                },
+                _ = crate::engine::stopped(&mut stop_fwd) => break,
+            }
+        }
+    });
+
     tracing::info!(port = addr.port(), "sync hub listening");
     Ok(HubHandle {
         hub,
         stop: stop_tx,
-        tasks: vec![server, pump],
+        tasks: vec![server, pump, forward],
         addr,
+        relays,
     })
 }
 
@@ -255,6 +287,9 @@ impl HubHandle {
     pub fn revoke(&self, device_id: &str) -> Result<bool> {
         let ok = self.hub.engine.db.revoke_device(device_id, now_millis())?;
         if ok {
+            // The bridge also deletes its key on relays and rotates the
+            // space enroll key.
+            self.relays.wake();
             let _ = self.hub.tx.send(HubMsg::Revoked(device_id.to_owned()));
             let _ = self.hub.notices.send(SyncNotice::StatusChanged);
             tracing::info!(device = %device_id, "device revoked");
@@ -264,6 +299,12 @@ impl HubHandle {
 
     pub fn subscribe(&self) -> broadcast::Receiver<SyncNotice> {
         self.hub.notices.subscribe()
+    }
+
+    /// The relay list changed (e.g. after [`crate::relay_add`]): apply it
+    /// now instead of within ~2 s.
+    pub fn relay_changed(&self) {
+        self.relays.wake();
     }
 
     /// Something was copied locally: publish it now instead of on the next
@@ -302,11 +343,13 @@ impl HubHandle {
             head_seq: head,
             last_error: None,
             keystore: String::new(),
+            relays: self.relays.views(),
         })
     }
 
     /// Stop the server and close every stream.
     pub async fn shutdown(self) {
+        self.relays.shutdown().await;
         let _ = self.stop.send(true);
         for t in self.tasks {
             let _ = tokio::time::timeout(Duration::from_secs(5), t).await;

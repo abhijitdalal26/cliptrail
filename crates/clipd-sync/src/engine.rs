@@ -12,9 +12,9 @@ use clipd_core::{
 };
 use serde::Serialize;
 
-use crate::crypto::{SecretKey, SpaceKeys, b64, unb64};
+use crate::crypto::{SecretKey, SpaceKeys, aad, b64, unb64};
 use crate::db::{Role, SpaceState, SyncDb};
-use crate::envelope::{ClipAdded, Envelope, Event, ImageRef, blob_aad};
+use crate::envelope::{ClipAdded, Envelope, Event, ImageRef, RelayConfig, SpaceConfig, blob_aad};
 use crate::keystore::{KeyStore, MASTER_KEY};
 
 /// Thumbnails up to this size travel inline in `ClipAdded`.
@@ -365,7 +365,71 @@ impl Engine {
                     blob: None,
                 })
             }
+            Event::SpaceConfig(c) => self.apply_space_config(c),
         }
+    }
+
+    /// A newer space config replaces the local relay list (cursors of
+    /// relays that stay are kept). Older/equal configs are ignored.
+    pub fn apply_space_config(&self, c: &SpaceConfig) -> Result<Applied> {
+        if c.at <= self.db.get_i64("space_config_at")? {
+            return Ok(Applied::default());
+        }
+        let mut keep = Vec::new();
+        for r in &c.relays {
+            let Ok(url) = crate::relay::normalize_url(&r.url) else {
+                tracing::warn!("space config names an invalid relay URL; skipped");
+                continue;
+            };
+            let Some(seed) = unb64(&r.enroll_key).ok().filter(|s| s.len() == 32) else {
+                tracing::warn!("space config has a malformed relay key; skipped");
+                continue;
+            };
+            self.db
+                .upsert_relay(&url, &self.seal_enroll(&url, &seed)?, r.added_at, false)?;
+            keep.push(url);
+        }
+        for row in self.db.relays()? {
+            if !keep.contains(&row.url) {
+                self.db.remove_relay(&row.url)?;
+            }
+        }
+        self.db.set_i64("space_config_at", c.at)?;
+        self.db.set("space_config_dirty", "0")?;
+        tracing::info!(relays = keep.len(), "space config updated");
+        Ok(Applied::default())
+    }
+
+    /// Seal a relay enroll seed for `sync.db`.
+    pub fn seal_enroll(&self, url: &str, seed: &[u8]) -> Result<Vec<u8>> {
+        Ok(self.keys.wrap.seal_packed(&enroll_aad(url), seed)?)
+    }
+
+    pub fn open_enroll(&self, url: &str, sealed: &[u8]) -> Result<Vec<u8>> {
+        self.keys
+            .wrap
+            .open_packed(&enroll_aad(url), sealed)
+            .context("relay enroll key unreadable")
+    }
+
+    /// A `SpaceConfig` event with the current local relay list, stamped
+    /// newer than any config seen so far.
+    pub fn local_space_config(&self) -> Result<LocalEvent> {
+        let at = now_millis().max(self.db.get_i64("space_config_at")? + 1);
+        let mut relays = Vec::new();
+        for r in self.db.relays()? {
+            let seed = self.open_enroll(&r.url, &r.enroll_sealed)?;
+            relays.push(RelayConfig {
+                url: r.url,
+                enroll_key: b64(&seed),
+                added_at: r.added_at,
+            });
+        }
+        self.db.set_i64("space_config_at", at)?;
+        Ok(LocalEvent {
+            event: Event::SpaceConfig(SpaceConfig { at, relays }),
+            blob: None,
+        })
     }
 
     /// Seal the full image of the clip with this hash for upload/serving.
@@ -421,6 +485,10 @@ pub type SharedEngine = Arc<Engine>;
 /// it can sit in a `select!` of a `Send` future.
 pub(crate) async fn stopped(rx: &mut tokio::sync::watch::Receiver<bool>) {
     let _ = rx.wait_for(|s| *s).await;
+}
+
+fn enroll_aad(url: &str) -> Vec<u8> {
+    aad(&[b"cliptrail-relay-enroll-v1", url.as_bytes()])
 }
 
 /// Valid opaque blob id (22 base64url chars).

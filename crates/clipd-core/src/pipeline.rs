@@ -122,6 +122,15 @@ fn load_or_create_device_id(data_dir: &Path) -> Result<String> {
     Ok(id)
 }
 
+/// Which devices a history clear applies to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ClearScope {
+    /// This device only (like retention); synced devices keep their clips.
+    LocalOnly,
+    /// Also emit per-clip delete tombstones for the sync engine.
+    AllDevices,
+}
+
 pub struct Pipeline {
     config: PipelineConfig,
     store: Arc<Store>,
@@ -375,6 +384,35 @@ impl Pipeline {
         let files = self.store.delete(id)?;
         remove_files(&files);
         Ok(())
+    }
+
+    /// How many clips [`Pipeline::clear_history`] would remove.
+    pub fn count_clearable(&self, keep_pinned: bool) -> Result<i64> {
+        self.store.count_clearable(keep_pinned)
+    }
+
+    /// Clear the history and its image files; returns how many clips went.
+    ///
+    /// [`ClearScope::LocalOnly`] behaves like retention (see
+    /// `delete_local`): nothing is journaled, so other synced devices keep
+    /// their copies. [`ClearScope::AllDevices`] goes through the normal
+    /// delete path, so each unmasked clip leaves a delete tombstone in the
+    /// journal and the sync engine removes it on the other devices. Pinned
+    /// clips are untouched when `keep_pinned` (on every device). Masked
+    /// (sensitive) clips are never journaled, so they only ever clear here.
+    pub fn clear_history(&self, keep_pinned: bool, scope: ClearScope) -> Result<usize> {
+        let (count, files) = match scope {
+            ClearScope::AllDevices => {
+                let conn = self.store.conn();
+                crate::store::clear_rows(&conn, keep_pinned)?
+            }
+            ClearScope::LocalOnly => self
+                .store
+                .quiet(|conn| crate::store::clear_rows(conn, keep_pinned))?,
+        };
+        remove_files(&files);
+        tracing::debug!(count, ?scope, keep_pinned, "history cleared");
+        Ok(count)
     }
 
     /// Remove expired clips and their files. Returns how many were removed.
@@ -729,6 +767,41 @@ mod tests {
         assert!(!Path::new(&thumb).exists());
         assert!(p.store().get(&id).unwrap().is_none());
         p.delete(&id).unwrap();
+    }
+
+    #[test]
+    fn clear_history_keeps_pinned_and_removes_files() {
+        for scope in [ClearScope::LocalOnly, ClearScope::AllDevices] {
+            let dir = TempDir::new();
+            let p = pipeline(&dir);
+            let img = stored_id(p.ingest(image(40, 30, 1)).unwrap());
+            let keep = stored_id(p.ingest(text("keep me")).unwrap());
+            stored_id(p.ingest(text("drop me")).unwrap());
+            stored_id(
+                p.ingest(text("ghp_A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8"))
+                    .unwrap(),
+            );
+            p.store().set_pinned(&keep, true).unwrap();
+            let clip = p.store().get(&img).unwrap().unwrap();
+            let files = [
+                clip.image_path.clone().unwrap(),
+                clip.summary.thumb_path.clone().unwrap(),
+            ];
+            assert_eq!(p.count_clearable(true).unwrap(), 3);
+            assert_eq!(p.count_clearable(false).unwrap(), 4);
+
+            assert_eq!(p.clear_history(true, scope).unwrap(), 3);
+            assert!(files.iter().all(|f| !Path::new(f).exists()));
+            let left = p.store().list(&ListQuery::default()).unwrap();
+            assert_eq!(left.len(), 1);
+            assert_eq!(left[0].id, keep);
+            assert_eq!(p.clear_history(true, scope).unwrap(), 0);
+
+            assert_eq!(p.clear_history(false, scope).unwrap(), 1);
+            assert!(p.store().list(&ListQuery::default()).unwrap().is_empty());
+            assert_eq!(fs::read_dir(dir.0.join("images")).unwrap().count(), 0);
+            assert_eq!(fs::read_dir(dir.0.join("thumbs")).unwrap().count(), 0);
+        }
     }
 
     #[test]

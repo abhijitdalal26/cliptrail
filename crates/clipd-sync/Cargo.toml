@@ -38,8 +38,14 @@ base64 = "0.23"
 zeroize = { version = "1", features = ["derive"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "net"] }
 futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
-reqwest = { version = "0.13", default-features = false }
-tokio-tungstenite = { version = "0.30", default-features = false, features = ["connect", "handshake"] }
+# TLS for internet relays: rustls with the ring provider and Mozilla's roots
+# (webpki-roots) so the same code works on Android without JNI glue.
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider"] }
+tokio-tungstenite = { version = "0.30", default-features = false, features = ["connect", "handshake", "__rustls-tls"] }
+rustls = { version = "0.23", default-features = false, features = ["std", "tls12", "ring"] }
+webpki-roots = "1"
+# Relay request signing (per-device keys; the relay stores only public keys).
+ed25519-dalek = { version = "3", default-features = false, features = ["fast", "zeroize"] }
 axum = { version = "0.8", optional = true, default-features = false, features = ["http1", "json", "query", "tokio", "ws"] }
 if-addrs = { version = "0.15", optional = true }
 qrcode = { version = "0.14", optional = true, default-features = false, features = ["svg"] }

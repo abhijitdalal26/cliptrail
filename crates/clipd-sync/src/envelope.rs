@@ -52,6 +52,31 @@ pub enum Event {
     },
     /// Tombstone: receivers wipe the clip unless they copied it after `at`.
     ClipDeleted { hash: String, at: Millis },
+    /// Space-wide settings (full state, last writer wins by `at`): the
+    /// relays devices should sync through and their enroll keys. Only ever
+    /// travels sealed. Old builds skip it as an unknown event.
+    SpaceConfig(SpaceConfig),
+}
+
+/// Pseudo content hash of [`Event::SpaceConfig`] (base64url of
+/// SHA-256("cliptrail-space-config-v1")): gives config events one keyed
+/// compaction tag, so logs keep only the newest config.
+pub const CONFIG_HASH_B64: &str = "Kik7wJHCWr-8TS7R3GsZGhhAIDOCwvJ5oWd9PUGuxAA";
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SpaceConfig {
+    pub at: Millis,
+    #[serde(default)]
+    pub relays: Vec<RelayConfig>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RelayConfig {
+    /// Normalized base URL (`https://relay.example.com`).
+    pub url: String,
+    /// Ed25519 seed of the space enroll key on that relay, base64url.
+    pub enroll_key: String,
+    pub added_at: Millis,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -95,6 +120,7 @@ impl Event {
             Event::ClipAdded(_) => "ClipAdded",
             Event::ClipUpdated { .. } => "ClipUpdated",
             Event::ClipDeleted { .. } => "ClipDeleted",
+            Event::SpaceConfig(_) => "SpaceConfig",
         }
     }
 
@@ -103,6 +129,7 @@ impl Event {
         match self {
             Event::ClipAdded(c) => &c.hash,
             Event::ClipUpdated { hash, .. } | Event::ClipDeleted { hash, .. } => hash,
+            Event::SpaceConfig(_) => CONFIG_HASH_B64,
         }
     }
 
@@ -281,6 +308,32 @@ mod tests {
         let mut bad = env;
         bad.event_id = "../x".into();
         assert_eq!(bad.validate_shape(), Err(EnvelopeError::Shape("event_id")));
+    }
+
+    #[test]
+    fn space_config_event() {
+        assert_eq!(
+            CONFIG_HASH_B64,
+            b64(&crate::crypto::sha256(b"cliptrail-space-config-v1"))
+        );
+        let keys = SpaceKeys::new(SecretKey::generate());
+        let e = Event::SpaceConfig(SpaceConfig {
+            at: 9,
+            relays: vec![RelayConfig {
+                url: "https://relay.example.com".into(),
+                enroll_key: b64(&[5; 32]),
+                added_at: 1,
+            }],
+        });
+        assert_eq!(e.kind_name(), "SpaceConfig");
+        assert_eq!(e.hash().unwrap().len(), 32);
+        let env = Envelope::seal(&keys, "SPACE", "DEV1", 42, &e).unwrap();
+        assert!(
+            !serde_json::to_string(&env)
+                .unwrap()
+                .contains("relay.example")
+        );
+        assert_eq!(env.open(&keys, "SPACE").unwrap(), e);
     }
 
     #[test]
