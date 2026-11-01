@@ -166,6 +166,12 @@
         <p>Scan once and your devices share one history over your Wi-Fi, end-to-end encrypted. No account, no cloud.</p>
         <a class="more" href="#devices">Cross-device sync →</a>
       </div>
+      <div class="tile span-2">
+        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 17 6-6-6-6M12 19h8"/></svg></span>
+        <h3>Scriptable — and agent-ready</h3>
+        <p>The <code>clipd</code> CLI does everything the app does — capture, search, pin, sync — so scripts and AI agents can reach your history too. An MCP server that plugs ClipTrail straight into agent tooling is in development.</p>
+        <a class="more" href="docs/cli.html">clipd commands →</a>
+      </div>
     </div>
   </div>
 </section>
@@ -234,7 +240,7 @@
           <tr><th scope="row">Windows 10 / 11</th><td><span class="status-dot ok"></span>Supported</td><td>Automatic</td><td>Yes</td><td>Hub or client</td></tr>
           <tr><th scope="row">Linux</th><td><span class="status-dot beta"></span>Beta</td><td>X11; Wayland with data-control (KDE, Sway, Hyprland). GNOME is limited.</td><td>X11 only</td><td>Hub or client</td></tr>
           <tr><th scope="row">Android</th><td><span class="status-dot soon"></span>Coming in v0.1</td><td>Automatic via accessibility, plus tile and share menu</td><td>Tap to copy</td><td>Client</td></tr>
-          <tr><th scope="row">macOS</th><td><span class="status-dot exp"></span>Experimental</td><td>Not implemented yet</td><td>Not yet</td><td>Hub or client (untested)</td></tr>
+          <tr><th scope="row">macOS</th><td><span class="status-dot exp"></span>Experimental</td><td>Automatic (text, rich text, images, file URLs)</td><td>Yes — needs Accessibility permission</td><td>Hub or client (untested)</td></tr>
           <tr><th scope="row">iOS</th><td><span class="status-dot"></span>Later</td><td colspan="3" class="m">Share extension and shortcuts are on the roadmap.</td></tr>
         </tbody>
       </table>

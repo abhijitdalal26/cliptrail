@@ -139,6 +139,12 @@ INDEX = r"""
         <p>Scan once and your devices share one history over your Wi-Fi, end-to-end encrypted. No account, no cloud.</p>
         <a class="more" href="#devices">Cross-device sync →</a>
       </div>
+      <div class="tile span-2">
+        <span class="ico">{{i:terminal}}</span>
+        <h3>Scriptable — and agent-ready</h3>
+        <p>The <code>clipd</code> CLI does everything the app does — capture, search, pin, sync — so scripts and AI agents can reach your history too. An MCP server that plugs {{B}} straight into agent tooling is in development.</p>
+        <a class="more" href="{{R}}docs/cli.html">clipd commands →</a>
+      </div>
     </div>
   </div>
 </section>
@@ -207,7 +213,7 @@ INDEX = r"""
           <tr><th scope="row">Windows 10 / 11</th><td><span class="status-dot ok"></span>Supported</td><td>Automatic</td><td>Yes</td><td>Hub or client</td></tr>
           <tr><th scope="row">Linux</th><td><span class="status-dot beta"></span>Beta</td><td>X11; Wayland with data-control (KDE, Sway, Hyprland). GNOME is limited.</td><td>X11 only</td><td>Hub or client</td></tr>
           <tr><th scope="row">Android</th><td><span class="status-dot soon"></span>Coming in v0.1</td><td>Automatic via accessibility, plus tile and share menu</td><td>Tap to copy</td><td>Client</td></tr>
-          <tr><th scope="row">macOS</th><td><span class="status-dot exp"></span>Experimental</td><td>Not implemented yet</td><td>Not yet</td><td>Hub or client (untested)</td></tr>
+          <tr><th scope="row">macOS</th><td><span class="status-dot exp"></span>Experimental</td><td>Automatic (text, rich text, images, file URLs)</td><td>Yes — needs Accessibility permission</td><td>Hub or client (untested)</td></tr>
           <tr><th scope="row">iOS</th><td><span class="status-dot"></span>Later</td><td colspan="3" class="m">Share extension and shortcuts are on the roadmap.</td></tr>
         </tbody>
       </table>
@@ -339,7 +345,7 @@ DOWNLOAD = r"""
       <article class="os-card" data-os="macos" id="macos">
         <span class="chip chip-accent detected-tag">Your system</span>
         <div class="os-head"><span class="os-logo">{{i:apple}}</span><div><h2>macOS <span class="chip chip-warn">Experimental</span></h2><span class="os-sub">Universal (Apple silicon and Intel)</span></div></div>
-        <p>Built by CI but untested, and clipboard capture isn't implemented on macOS yet. Try it only if you want to help get it there.</p>
+        <p>Built by CI and lightly tested. A menu-bar app: capture and paste-back work once you allow it in <strong>Accessibility</strong>; <kbd>Cmd</kbd> <kbd>Shift</kbd> <kbd>Space</kbd> opens the picker.</p>
         <div class="assets">""" + slot("mac-dmg", "Disk image (.dmg)", soon="Arrives with v0.1.0 (experimental)") + r"""</div>
       </article>
       <article class="os-card" data-os="android" id="android">
@@ -422,7 +428,7 @@ DOWNLOAD = r"""
         <ol>
           <li>Open the <code>.dmg</code> and drag {{B}} to Applications.</li>
           <li>On first launch macOS blocks the unsigned app. Open <strong>System Settings → Privacy &amp; Security</strong> and click <strong>Open Anyway</strong>.</li>
-          <li>Paste-back will need <strong>Accessibility</strong> permission once it's implemented on macOS.</li>
+          <li>For paste-back, allow {{B}} under <strong>Privacy &amp; Security → Accessibility</strong> (Settings in the app links straight there).</li>
         </ol>
       </div>
       <div class="note-card">
@@ -438,7 +444,7 @@ DOWNLOAD = r"""
         <tbody>
           <tr><td>Windows</td><td>Windows 10 or 11, 64-bit (x64). Uses the Microsoft Edge WebView2 runtime, which Windows 11 includes; the installer fetches it on older systems.</td></tr>
           <tr><td>Linux</td><td>x86_64 with WebKitGTK 4.1 (Ubuntu 22.04 or newer, Debian 12, Fedora 38+). X11 for paste-back; Wayland capture needs a data-control compositor.</td></tr>
-          <tr><td>macOS</td><td>Experimental universal build. Capture and paste-back are not implemented yet.</td></tr>
+          <tr><td>macOS</td><td>macOS 12 or newer, universal (Apple silicon and Intel). Experimental: capture and paste-back work; paste-back needs Accessibility permission.</td></tr>
           <tr><td>Android</td><td>Android 10 or newer (arm64), coming with v0.1. Tested first on Samsung One UI.</td></tr>
           <tr><td>Sync</td><td>Devices on the same local network (Wi-Fi or LAN) that can reach the hub on TCP port 47821.</td></tr>
         </tbody>
