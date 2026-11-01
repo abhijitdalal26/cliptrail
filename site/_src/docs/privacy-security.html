@@ -7,7 +7,7 @@ desc: {{B}}'s threat model in plain words: what is encrypted where, how sync and
 <h2 id="principles">The short version</h2>
 <ul>
   <li><strong>Local-first.</strong> Your history lives in a folder on your device. Every app works offline and alone.</li>
-  <li><strong>No telemetry.</strong> No analytics, crash reports, update checks or accounts. The apps never contact a {{B}} server; there isn't one.</li>
+  <li><strong>No telemetry.</strong> No analytics, crash reports or accounts. The apps never contact a {{B}} server; there isn't one. The only optional exception is the desktop update check, which is off until you turn it on (see below).</li>
   <li><strong>End-to-end encrypted sync.</strong> Only devices you paired can read your clips. Sync stays on your local network.</li>
   <li><strong>Secrets handled carefully.</strong> Password managers are excluded; codes and keys are masked, unsearchable, never synced and short-lived.</li>
   <li><strong>Open source.</strong> Every line is on <a href="{{REPO}}">GitHub</a> under MIT / Apache-2.0.</li>
@@ -67,7 +67,9 @@ desc: {{B}}'s threat model in plain words: what is encrypted where, how sync and
 </ul>
 
 <h2 id="telemetry">No telemetry, no phone-home</h2>
-<p>{{B}} makes no network connections except the sync connections between your own paired devices. No analytics, no crash reporting, no update checks, no account. The project's rules forbid adding them.</p>
+<p>{{B}} makes no network connections except the sync connections between your own paired devices, and the optional update check below. No analytics, no crash reporting, no account. The project's rules forbid adding them.</p>
+<h3 id="updates">Update checks (optional)</h3>
+<p>The desktop app can check for a new version, but only after you opt in: the dashboard asks once, <em>Check for updates automatically</em> in Settings stays off until you switch it on, and <em>Check for updates</em> only runs when you click it. A check downloads one small file (<code>latest.json</code>) from this project's GitHub Releases, so GitHub can see your IP address like for any download. Nothing about you, your device or your clips is sent. If a newer version exists, {{B}} shows a banner and waits: it never installs silently, and it verifies the update's signature against a public key built into the app before running it. The Android app has no update check.</p>
 
 <h2 id="report">Found a problem?</h2>
 <p>Please report security issues privately. See the <a href="{{R}}security.html">security policy</a>.</p>

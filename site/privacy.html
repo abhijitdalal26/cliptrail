@@ -51,7 +51,8 @@
 
       <h2 id="app">The ClipTrail app</h2>
       <ul>
-        <li><strong>No data collection.</strong> The apps and the <code>clipd</code> CLI have no telemetry, analytics, crash reporting or update pings. They never contact a ClipTrail server, because there isn't one.</li>
+        <li><strong>No data collection.</strong> The apps and the <code>clipd</code> CLI have no telemetry, analytics or crash reporting, and they never contact a ClipTrail server, because there isn't one.</li>
+        <li><strong>Update checks are optional and off until you choose.</strong> On the desktop app, ClipTrail can look for a new version, but only if you turn on <em>Check for updates automatically</em> (it asks once, and you can say no) or click <em>Check for updates</em> in Settings. A check is a plain request for a small file on GitHub Releases (<code>github.com</code>), so GitHub sees your IP address like any download; no information about you, your device or your clips is sent. Updates are signed, verified before they run, and never installed without your confirmation. The Android app never checks.</li>
         <li><strong>Your history stays on your devices.</strong> Clips are stored in a data folder on each device (see <a href="docs/data.html">Data, backup &amp; uninstall</a>). You can delete any clip, or the whole folder, at any time.</li>
         <li><strong>Sync is between your own devices.</strong> If you pair devices, clips travel directly between them over your local network, encrypted end to end. Only devices you paired can read them.</li>
         <li><strong>No account.</strong> There is nothing to sign up for and no personal information to give.</li>

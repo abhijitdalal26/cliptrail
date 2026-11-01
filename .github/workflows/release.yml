@@ -53,6 +53,10 @@ jobs:
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Signs the update packages (tauri.conf.json createUpdaterArtifacts).
+          # The matching public key is in tauri.conf.json plugins.updater.pubkey.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: apps/desktop
           tagName: ${{ github.ref_name }}
@@ -62,6 +66,13 @@ jobs:
             Builds are not code-signed yet: Windows shows "Windows protected your PC" → More info → Run anyway.
           releaseDraft: true
           prerelease: true
+          # Uploads latest.json (+ .sig files) next to the installers; the app's
+          # update check reads releases/latest/download/latest.json. Note that
+          # "latest" skips drafts and pre-releases, so untick "pre-release"
+          # when publishing a version you want installed apps to be offered.
+          # (tauri-action v0 input; v1 calls it uploadUpdaterJson.)
+          includeUpdaterJson: true
+          updaterJsonPreferNsis: true
           args: ${{ matrix.args }}
 
   cli:

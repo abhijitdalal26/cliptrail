@@ -9,7 +9,7 @@ use std::sync::Arc;
 #[cfg(desktop)]
 use clipd_capture::WriteContent;
 use clipd_core::{
-    Clip, ClipSummary, DayCount, Kind, ListQuery, Millis, Pipeline, Stats, Transform,
+    ClearScope, Clip, ClipSummary, DayCount, Kind, ListQuery, Millis, Pipeline, Stats, Transform,
 };
 use serde::Serialize;
 #[cfg(desktop)]
@@ -90,6 +90,43 @@ pub async fn delete_clip(app: AppHandle, id: String) -> CmdResult<()> {
     blocking(move || guard("deleting", || p.delete(&id))).await?;
     notify_updated(&app);
     Ok(())
+}
+
+/// How many clips "Clear history" would remove (for the confirm dialog).
+#[tauri::command]
+pub async fn clear_count(app: AppHandle, keep_pinned: bool) -> CmdResult<i64> {
+    let p = pipeline(&app)?;
+    blocking(move || guard("counting clips", || p.count_clearable(keep_pinned))).await
+}
+
+/// Delete the whole history (optionally keeping pinned clips) and its image
+/// files. By default this device only, like retention: paired devices keep
+/// their copies. `everywhere` also emits delete tombstones so the sync
+/// engine clears the other devices. Returns how many clips were removed.
+#[tauri::command]
+pub async fn clear_history(
+    app: AppHandle,
+    keep_pinned: bool,
+    everywhere: bool,
+) -> CmdResult<usize> {
+    let p = pipeline(&app)?;
+    let scope = if everywhere {
+        ClearScope::AllDevices
+    } else {
+        ClearScope::LocalOnly
+    };
+    let removed =
+        blocking(move || guard("clearing history", || p.clear_history(keep_pinned, scope))).await?;
+    tracing::info!(removed, keep_pinned, everywhere, "history cleared");
+    notify_updated(&app);
+    if everywhere && removed > 0 {
+        // Publish the tombstones now instead of on the next poll.
+        #[cfg(desktop)]
+        crate::sync::local_change(&app);
+        #[cfg(mobile)]
+        crate::mobile::sync::notify_local();
+    }
+    Ok(removed)
 }
 
 /// Put a stored clip back on the OS clipboard.

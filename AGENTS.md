@@ -16,7 +16,7 @@ ClipTrail: an open-source, end-to-end-encrypted clipboard history that syncs acr
 ## Hard rules
 
 - **License discipline:** MIT/Apache/BSD dependencies only (`cargo deny` enforces). Reference repos marked 📖 (GPL/AGPL/PolyForm) are read-for-ideas — reimplement, never copy.
-- **No telemetry, no analytics, no phone-home.**
+- **No telemetry, no analytics, no phone-home.** The one exception is the desktop update check (GitHub Releases `latest.json`): it must stay opt-in (off until the user chooses), send nothing about the user, and never install without confirmation.
 - **Secrets handling:** clip content is toxic data — never log clip bodies, never send plaintext to the relay, encrypt before persisting. Password managers are excluded by default.
 - Commits on `main` stay releasable; new work on `devin/*` or feature branches with PRs.
 

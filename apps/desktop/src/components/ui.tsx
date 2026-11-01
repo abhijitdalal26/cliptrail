@@ -202,6 +202,36 @@ export function Switch({
   );
 }
 
+export function Checkbox({
+  checked,
+  onChange,
+  label,
+  hint,
+  disabled,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+  hint?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <label className={cx("flex cursor-pointer items-start gap-3 py-1.5", disabled && "pointer-events-none opacity-45")}>
+      <input
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.checked)}
+        className="mt-[3px] h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent)]"
+      />
+      <span className="min-w-0">
+        <span className="block text-[13px] font-medium text-fg">{label}</span>
+        {hint && <span className="mt-0.5 block text-[12px] leading-[1.45] text-fg-3">{hint}</span>}
+      </span>
+    </label>
+  );
+}
+
 export function Segmented<T extends string>({
   value,
   options,

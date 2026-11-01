@@ -14,6 +14,7 @@ import {
   QrCode,
   ShieldCheck,
   Sun,
+  Trash2,
   Unplug,
 } from "lucide-react";
 import { api, errorMessage, listen } from "../lib/api";
@@ -24,6 +25,7 @@ import { isAndroid } from "../lib/platform";
 import { otherDevices, platformIcon, refreshSync, setSyncView, syncApi, useSyncView, type PairOutcome } from "../lib/sync";
 import { setThemePref } from "../lib/theme";
 import type { Settings, SettingsView, ThemePref } from "../lib/types";
+import { ClearHistoryDialog } from "../components/ClearHistoryDialog";
 import { Button, Segmented, Switch } from "../components/ui";
 import { Row, Section, Select } from "../dashboard/SettingsDialog";
 
@@ -62,6 +64,7 @@ export function MobileSettings({
 }) {
   const [view, setView] = useState<SettingsView | null>(null);
   const [errors, setErrors] = useState<Record<string, string | null>>({});
+  const [clearing, setClearing] = useState(false);
 
   useEffect(() => {
     const load = () => void api.getSettings().then(setView).catch(() => undefined);
@@ -170,6 +173,14 @@ export function MobileSettings({
                   />
                 </Row>
               </Section>
+
+              <Section title="Danger zone">
+                <Row title="Clear history" desc="Permanently delete the clips saved on this phone.">
+                  <Button size="sm" variant="danger" icon={Trash2} onClick={() => setClearing(true)}>
+                    Clear history…
+                  </Button>
+                </Row>
+              </Section>
             </>
           )}
 
@@ -185,6 +196,7 @@ export function MobileSettings({
           </div>
         </div>
       </div>
+      {clearing && <ClearHistoryDialog onClose={() => setClearing(false)} />}
     </div>
   );
 }

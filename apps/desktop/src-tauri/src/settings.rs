@@ -38,6 +38,9 @@ pub struct Settings {
     pub sync_enabled: bool,
     /// TCP port of the sync hub.
     pub sync_port: u16,
+    /// Background update check (contacts GitHub). None = never asked yet,
+    /// the dashboard offers it once; Some(false) = declined.
+    pub auto_update_check: Option<bool>,
 }
 
 impl Default for Settings {
@@ -52,6 +55,7 @@ impl Default for Settings {
             clean_links: false,
             sync_enabled: true,
             sync_port: clipd_sync::DEFAULT_PORT,
+            auto_update_check: None,
         }
     }
 }

@@ -103,6 +103,8 @@ export interface Settings {
   sync_enabled?: boolean;
   /** Sync hub port (changed through syncApi.setPort). */
   sync_port?: number;
+  /** Check GitHub for new versions in the background (desktop). null = not asked yet. */
+  auto_update_check?: boolean | null;
 }
 
 export interface CaptureState {

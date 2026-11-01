@@ -42,6 +42,9 @@ tauri = { version = "2.12.5", features = ["tray-icon", "image-png", "protocol-as
 tauri-plugin-global-shortcut = "2.4"
 tauri-plugin-single-instance = "2.5"
 tauri-plugin-autostart = "2.7"
+# Optional, user-enabled update check against GitHub Releases (desktop only;
+# Android is updated as an APK). Relaunch uses tauri's own AppHandle::restart.
+tauri-plugin-updater = "2.14"
 
 # Mica / acrylic backdrop; Windows only (Linux falls back to opaque windows).
 [target.'cfg(target_os = "windows")'.dependencies]

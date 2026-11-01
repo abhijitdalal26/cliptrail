@@ -22,8 +22,17 @@
       }
     }
   },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDMzMDVFMDkwQkI3OTU5RTIKUldUaVdYbTdrT0FGTXhQU3ZoQWdxY00xNTFhOWkySEFnMWFKZWMrWXJTMmhXVFlvZnZaYVRVMk0K",
+      "endpoints": [
+        "https://github.com/abhijitdalal26/cliptrail/releases/latest/download/latest.json"
+      ]
+    }
+  },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "targets": ["nsis", "msi", "deb", "appimage"],
     "category": "Utility",
     "shortDescription": "Clipboard history that remembers everything you copy",

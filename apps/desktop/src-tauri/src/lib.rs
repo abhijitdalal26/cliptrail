@@ -18,6 +18,8 @@ mod sync;
 #[cfg(desktop)]
 mod tray;
 #[cfg(desktop)]
+mod updater;
+#[cfg(desktop)]
 mod windows;
 
 /// No tray on mobile.
@@ -67,8 +69,10 @@ pub fn run() {
             Some(vec![HIDDEN_ARG]),
         ))
         .plugin(shortcuts::plugin())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(AppState::new(clipd_core::default_data_dir()))
         .manage(sync::SyncState::default())
+        .manage(updater::UpdaterState::default())
         .setup(move |app| {
             let handle = app.handle().clone();
             let state = app.state::<AppState>();
@@ -92,6 +96,7 @@ pub fn run() {
             start_watcher(&handle);
             maintenance::spawn(handle.clone());
             sync::start_if_enabled(&handle);
+            updater::spawn(handle.clone());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -102,6 +107,8 @@ pub fn run() {
             commands::source_apps,
             commands::set_pinned,
             commands::delete_clip,
+            commands::clear_count,
+            commands::clear_history,
             commands::copy_clip,
             commands::paste_clip,
             commands::transform_clip,
@@ -128,6 +135,9 @@ pub fn run() {
             sync::sync_create_offer,
             sync::sync_cancel_offer,
             sync::sync_revoke,
+            updater::update_check,
+            updater::update_pending,
+            updater::update_install,
         ])
         .run(tauri::generate_context!())
         .expect("error while running ClipTrail");

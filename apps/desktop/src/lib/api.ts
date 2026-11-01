@@ -41,6 +41,12 @@ export const api = {
   sourceApps: () => call<string[]>("source_apps"),
   setPinned: (id: string, pinned: boolean) => call<void>("set_pinned", { id, pinned }),
   deleteClip: (id: string) => call<void>("delete_clip", { id }),
+  /** How many clips "Clear history" would delete. */
+  clearCount: (keepPinned: boolean) => call<number>("clear_count", { keepPinned }),
+  /** Delete the history (and image files). By default this device only;
+   *  `everywhere` also deletes the clips on paired devices. Returns the count. */
+  clearHistory: (keepPinned: boolean, everywhere: boolean) =>
+    call<number>("clear_history", { keepPinned, everywhere }),
   /** With `transform`, the transformed text is written as plain text. */
   copyClip: (id: string, plain: boolean, transform?: Transform) =>
     call<void>("copy_clip", { id, plain, transform: transform ?? null }),

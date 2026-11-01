@@ -607,6 +607,7 @@ const mockSettings: SettingsView = {
     sensitive_ttl_minutes: 60 * 24,
     excluded_apps: [...DEFAULT_EXCLUDED],
     clean_links: false,
+    auto_update_check: null,
   },
   default_excluded_apps: DEFAULT_EXCLUDED,
   autostart: true,
@@ -662,6 +663,14 @@ export async function handle(cmd: string, a: Record<string, unknown>): Promise<u
       const i = db.findIndex((x) => x.id === a.id);
       if (i >= 0) db.splice(i, 1);
       return null;
+    }
+    case "clear_count":
+      return db.filter((c) => !(a.keepPinned && c.pinned)).length;
+    case "clear_history": {
+      const before = db.length;
+      for (let i = db.length - 1; i >= 0; i--) if (!(a.keepPinned && db[i].pinned)) db.splice(i, 1);
+      publish("clips-updated", null);
+      return before - db.length;
     }
     case "copy_clip": {
       const c = db.find((x) => x.id === a.id);

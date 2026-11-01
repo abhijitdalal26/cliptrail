@@ -19,6 +19,7 @@ import { SettingsDialog } from "./SettingsDialog";
 import { ShortcutsSheet } from "./ShortcutsSheet";
 import { Sidebar } from "./Sidebar";
 import { Timeline, type TimelineHandle } from "./Timeline";
+import { UpdateNotices } from "./Updates";
 import { TitleBar } from "./TitleBar";
 
 type Range = "any" | "today" | "7d" | "30d";
@@ -398,6 +399,7 @@ export function Dashboard() {
                 </span>
               </div>
             )}
+            <UpdateNotices />
             <div className="min-h-0 flex-1 px-3">
               <Timeline
                 ref={timeline}

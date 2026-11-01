@@ -1,12 +1,14 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { ChevronDown, FolderOpen, Monitor, Moon, Plus, RotateCcw, ShieldCheck, Sun, X } from "lucide-react";
+import { ChevronDown, FolderOpen, Monitor, Moon, Plus, RefreshCw, RotateCcw, ShieldCheck, Sun, Trash2, X } from "lucide-react";
 import { api, errorMessage, listen } from "../lib/api";
 import { cx } from "../lib/cx";
 import { useEvent } from "../lib/hooks";
 import { untilLabel } from "../lib/format";
 import { accelFromEvent, prettyKeys, validAccel } from "../lib/shortcut";
 import { setThemePref } from "../lib/theme";
+import { checkForUpdates, useUpdates } from "../lib/updates";
 import type { Settings, SettingsView, ThemePref } from "../lib/types";
+import { ClearHistoryDialog } from "../components/ClearHistoryDialog";
 import { Modal } from "../components/Modal";
 import { Button, Kbd, Segmented, Switch } from "../components/ui";
 import { DevicesSection } from "./DevicesSection";
@@ -14,6 +16,7 @@ import { DevicesSection } from "./DevicesSection";
 export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const [view, setView] = useState<SettingsView | null>(null);
   const [errors, setErrors] = useState<Record<string, string | null>>({});
+  const [clearing, setClearing] = useState(false);
 
   useEffect(() => {
     const load = () => void api.getSettings().then(setView).catch(() => undefined);
@@ -43,7 +46,8 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <Modal title="Settings" subtitle="Saved automatically" onClose={onClose} width={680}>
+    <>
+    <Modal title="Settings" subtitle="Saved automatically" onClose={() => !clearing && onClose()} width={680}>
       <div className="space-y-7 px-6 py-5">
         <Section title="General">
           <Row
@@ -195,6 +199,25 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
           </Row>
         </Section>
 
+        {view.platform !== "android" && (
+          <Section title="About & updates">
+            <UpdateRows
+              version={view.version}
+              auto={s.auto_update_check === true}
+              onAuto={(on) => void save({ auto_update_check: on }, "autoUpdate")}
+              error={errors.autoUpdate}
+            />
+          </Section>
+        )}
+
+        <Section title="Danger zone">
+          <Row title="Clear history" desc="Permanently delete the clips saved on this device. You choose what to keep.">
+            <Button size="sm" variant="danger" icon={Trash2} onClick={() => setClearing(true)}>
+              Clear history…
+            </Button>
+          </Row>
+        </Section>
+
         <div className="flex items-center gap-3.5 rounded-xl border border-line bg-panel-2 px-4 py-3.5">
           <img src="/logo.svg" alt="" className="h-9 w-9" />
           <div className="min-w-0 flex-1">
@@ -208,6 +231,8 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
         </div>
       </div>
     </Modal>
+    {clearing && <ClearHistoryDialog onClose={() => setClearing(false)} />}
+    </>
   );
 }
 
@@ -425,5 +450,68 @@ function ExcludedApps({
       </div>
       {error && <div className="mt-2 text-[12px] font-medium text-danger">{error}</div>}
     </div>
+  );
+}
+
+/** Settings rows: automatic-check switch + "Check for updates" with the
+ *  current version. Desktop only (the caller hides it on Android). */
+function UpdateRows({
+  version,
+  auto,
+  onAuto,
+  error,
+}: {
+  version: string;
+  auto: boolean;
+  onAuto: (on: boolean) => void;
+  error?: string | null;
+}) {
+  const u = useUpdates();
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<{ text: string; bad?: boolean } | null>(null);
+
+  const check = async () => {
+    setBusy(true);
+    setNote(null);
+    try {
+      const r = await checkForUpdates();
+      if (r.status === "available") setNote(null);
+      else if (r.status === "upToDate") setNote({ text: "You're up to date." });
+      else setNote({ text: r.message ?? "Couldn't check for updates.", bad: true });
+    } catch (e) {
+      setNote({ text: errorMessage(e), bad: true });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <Row
+        title="Check for updates automatically"
+        desc="Off by default. When on, ClipTrail asks GitHub for the latest version a few seconds after launch and once a day. Nothing about you or your clips is sent, and updates are never installed without asking."
+        error={error}
+      >
+        <Switch label="Check for updates automatically" checked={auto} onChange={onAuto} />
+      </Row>
+      <Row
+        title={`ClipTrail ${version}`}
+        desc={
+          u.pending ? (
+            <span className="font-medium text-accent-text">
+              Version {u.pending.version} is available. Install it from the banner on the dashboard.
+            </span>
+          ) : note ? (
+            <span className={note.bad ? "font-medium text-danger" : undefined}>{note.text}</span>
+          ) : (
+            "Checking contacts GitHub only when you click."
+          )
+        }
+      >
+        <Button size="sm" icon={RefreshCw} disabled={busy} onClick={() => void check()}>
+          {busy ? "Checking…" : "Check for updates"}
+        </Button>
+      </Row>
+    </>
   );
 }

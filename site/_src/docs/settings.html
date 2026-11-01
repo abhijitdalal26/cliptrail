@@ -63,5 +63,23 @@ desc: Every {{B}} desktop setting: start at login, pausing capture, devices and 
   </tbody>
 </table></div>
 
+<h2 id="updates">About &amp; updates</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Setting</th><th scope="col">What it does</th><th scope="col">Default</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Check for updates automatically</strong></td><td>Asks GitHub Releases for the latest version about 30 seconds after launch and then once a day. {{B}} asks once, in a small card on the dashboard. Nothing about you or your clips is sent, and an update is never installed without your confirmation: you get a banner with <em>Release notes</em>, <em>Install &amp; restart</em> and <em>Later</em>.</td><td>Off until you choose</td></tr>
+    <tr><td><strong>Check for updates</strong></td><td>Checks right now, whatever the setting above, and shows your current version. Desktop only.</td><td>—</td></tr>
+  </tbody>
+</table></div>
+<p>See <a href="privacy-security.html#updates">Privacy &amp; security</a> for exactly what an update check contacts.</p>
+
+<h2 id="danger">Clear history</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">Setting</th><th scope="col">What it does</th><th scope="col">Default</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Clear history…</strong></td><td>Deletes every clip on this device (and the saved images), after a confirmation that shows how many will go. <strong>Keep pinned clips</strong> is ticked by default. <strong>Also clear on my other devices</strong> appears when you have paired devices; it is unticked by default, so clearing your laptop doesn't wipe your phone. Also in the Android app's Settings.</td><td>—</td></tr>
+  </tbody>
+</table></div>
+
 <h2 id="file">Where settings are stored</h2>
 <p>Desktop settings are saved as <code>settings.json</code> in the <a href="data.html#location">data folder</a>. Settings are per device and aren't synced.</p>

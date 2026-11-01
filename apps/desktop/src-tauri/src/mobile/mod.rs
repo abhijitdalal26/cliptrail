@@ -157,6 +157,8 @@ pub fn run() {
             cmd::source_apps,
             cmd::set_pinned,
             cmd::delete_clip,
+            cmd::clear_count,
+            cmd::clear_history,
             cmd::transform_clip,
             cmd::clip_actions,
             cmd::open_url,
