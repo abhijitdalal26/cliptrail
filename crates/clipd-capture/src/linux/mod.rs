@@ -18,6 +18,9 @@ mod common;
 mod wayland;
 mod x11;
 
+#[cfg(test)]
+mod live_tests;
+
 use std::sync::OnceLock;
 
 use anyhow::{Result, bail};
