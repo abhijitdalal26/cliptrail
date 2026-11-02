@@ -62,6 +62,8 @@ pub fn create_windows(app: &AppHandle, start_hidden: bool) -> tauri::Result<()> 
     #[cfg(target_os = "windows")]
     let picker = picker.transparent(true);
     let picker = picker.build()?;
+    #[cfg(target_os = "macos")]
+    macos::prepare_picker(&picker);
 
     let state = app.state::<AppState>();
     let dark = is_dark(app);
@@ -228,8 +230,60 @@ pub fn toggle_picker(app: &AppHandle, mode: PickerMode, anchor: Option<Rect>) {
         let _ = w.center();
     }
     let _ = app.emit_to(PICKER, "picker-shown", PickerShown { mode });
+    show_picker(&w);
+}
+
+/// Show the picker and give it keyboard focus. On macOS it must NOT
+/// activate the app — the app the user was in stays frontmost so
+/// `paste_into` can target it (this is how Spotlight-style launchers work).
+#[cfg(not(target_os = "macos"))]
+fn show_picker(w: &WebviewWindow) {
     let _ = w.show();
     let _ = w.set_focus();
+}
+
+#[cfg(target_os = "macos")]
+fn show_picker(w: &WebviewWindow) {
+    macos::show_picker(w);
+}
+
+/// macOS-only picker plumbing: the picker is a plain NSWindow with the
+/// `NonactivatingPanel` style-mask bit — it shows and becomes key without
+/// activating our (LSUIElement/accessory) app, so the previous app keeps
+/// focus and `remember_foreground`/`paste_into` still see it.
+#[cfg(target_os = "macos")]
+mod macos {
+    use objc2_app_kit::{NSFloatingWindowLevel, NSWindow, NSWindowLevel, NSWindowStyleMask};
+    use tauri::WebviewWindow;
+
+    fn ns_window(w: &WebviewWindow) -> Option<&'static NSWindow> {
+        let ptr = w.ns_window().ok()?;
+        // SAFETY: the pointer is the live NSWindow backing the webview.
+        Some(unsafe { &*(ptr.cast::<NSWindow>()) })
+    }
+
+    /// Called once after the window is built.
+    pub fn prepare_picker(w: &WebviewWindow) {
+        let Some(win) = ns_window(w) else {
+            tracing::warn!("picker: no NSWindow handle");
+            return;
+        };
+        win.setStyleMask(win.styleMask() | NSWindowStyleMask::NonactivatingPanel);
+        win.setLevel(NSFloatingWindowLevel as NSWindowLevel);
+        win.setHidesOnDeactivate(false);
+    }
+
+    /// Order in front and take key status WITHOUT activating the app.
+    /// (Tauri's `set_focus` also calls `NSApp.activate`, which would steal
+    /// focus from the app we want to paste into.)
+    pub fn show_picker(w: &WebviewWindow) {
+        let Some(win) = ns_window(w) else {
+            let _ = w.show();
+            return;
+        };
+        win.orderFrontRegardless();
+        win.makeKeyWindow();
+    }
 }
 
 fn placement(

@@ -57,7 +57,7 @@ keyring-core = { version = "1", optional = true }
 windows-native-keyring-store = { version = "1", optional = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-apple-native-keyring-store = { version = "1", optional = true }
+apple-native-keyring-store = { version = "1", optional = true, features = ["keychain"] }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "net", "test-util"] }

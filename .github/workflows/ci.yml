@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -38,6 +38,12 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test --workspace
+      # Live NSPasteboard tests (#[ignore]d locally): write -> watcher fires
+      # -> read back, plus concealed/transient-type skips. Serial: one
+      # pasteboard shared by every test.
+      - name: macOS live pasteboard tests
+        if: runner.os == 'macOS'
+        run: cargo test -p clipd-capture -- --ignored --test-threads=1
 
   linux-live-clipboard:
     name: Linux live clipboard tests (X11 + Wayland)

@@ -6,8 +6,16 @@ use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
 /// Default global hotkey for the quick picker. Change here to change the default.
+/// macOS uses Cmd (Win/Linux Ctrl): Spotlight is Cmd+Space, so Cmd+Shift+Space
+/// is the classic clipboard-picker slot.
+#[cfg(target_os = "macos")]
+pub const DEFAULT_PICKER_SHORTCUT: &str = "Cmd+Shift+Space";
+#[cfg(not(target_os = "macos"))]
 pub const DEFAULT_PICKER_SHORTCUT: &str = "Ctrl+Shift+Space";
 /// Default global hotkey for the dashboard (rarely bound by other apps).
+#[cfg(target_os = "macos")]
+pub const DEFAULT_DASHBOARD_SHORTCUT: &str = "Cmd+Alt+H";
+#[cfg(not(target_os = "macos"))]
 pub const DEFAULT_DASHBOARD_SHORTCUT: &str = "Ctrl+Alt+H";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]

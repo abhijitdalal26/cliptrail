@@ -88,6 +88,11 @@ pub fn run() {
         .manage(sync::SyncState::default())
         .manage(updater::UpdaterState::default())
         .setup(move |app| {
+            // Menu-bar app on macOS: no Dock icon / Cmd+Tab entry (LSUIElement
+            // in Info.plist covers cold start; the runtime call covers dev).
+            #[cfg(target_os = "macos")]
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+
             let handle = app.handle().clone();
             let state = app.state::<AppState>();
             state.init();
@@ -141,6 +146,8 @@ pub fn run() {
             commands::capture_state,
             commands::pause_capture,
             commands::resume_capture,
+            commands::accessibility_state,
+            commands::open_accessibility_settings,
             commands::window_effects,
             commands::set_window_theme,
             commands::backend_status,

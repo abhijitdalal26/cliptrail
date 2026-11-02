@@ -70,6 +70,10 @@ export const api = {
   /** minutes = null: until resumed. */
   pauseCapture: (minutes: number | null) => call<void>("pause_capture", { minutes }),
   resumeCapture: () => call<void>("resume_capture"),
+  /** macOS: whether paste-back may post synthetic input (Accessibility). */
+  accessibilityState: () => call<boolean>("accessibility_state"),
+  /** macOS: deep-link to System Settings → Privacy & Security → Accessibility. */
+  openAccessibilitySettings: () => call<void>("open_accessibility_settings"),
   /** True when a native backdrop (Mica/acrylic) is applied to this window. */
   windowEffects: () => call<boolean>("window_effects"),
   /** `panel` (Android): the bars sit over a panel-coloured screen (the clip view). Ignored on desktop. */

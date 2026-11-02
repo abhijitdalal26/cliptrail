@@ -50,6 +50,12 @@ tauri-plugin-updater = "2.14"
 [target.'cfg(target_os = "windows")'.dependencies]
 window-vibrancy = "0.8"
 
+# macOS picker: NonactivatingPanel style mask + orderFrontRegardless so the
+# picker shows without activating the app (target app keeps focus).
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+objc2-app-kit = { version = "0.3", features = ["NSRunningApplication"] }
+
 # Android: JNI entry points for the Kotlin capture services (same .so).
 [target.'cfg(target_os = "android")'.dependencies]
 jni = "0.21"

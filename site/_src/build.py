@@ -347,7 +347,7 @@ p{{font-size:25px;color:#9aa0ad;margin:0;line-height:1.45}}
 <div class="copy"><div class="brand">{LOGO.replace('var(--accent)', '#8b7dff')}{BRAND}</div>
 <h1>Your clipboard,<br><span class="g">everywhere, forever.</span></h1>
 <p>Open-source clipboard history that syncs end-to-end encrypted between your devices.</p></div>
-<div class="pills"><span class="pill">Windows</span><span class="pill">Linux</span><span class="pill">Android · v0.1</span><span class="pill">Open source</span></div>
+<div class="pills"><span class="pill">Windows</span><span class="pill">Linux</span><span class="pill">macOS</span><span class="pill">Android · v0.1</span><span class="pill">Open source</span></div>
 <div class="shot"><img src="../assets/screens/picker-dark.webp"></div>
 </body></html>'''
     with open(os.path.join(HERE, "og.html"), "w", encoding="utf-8", newline="\n") as f:

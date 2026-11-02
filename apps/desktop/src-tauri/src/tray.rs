@@ -25,14 +25,20 @@ const AUTOSTART_LABEL: &str = "Start at login";
 
 pub fn create(app: &AppHandle) -> tauri::Result<()> {
     let menu = build_menu(app)?;
-    TrayIconBuilder::with_id(TRAY_ID)
+    #[allow(unused_mut)]
+    let mut builder = TrayIconBuilder::with_id(TRAY_ID)
         .icon(Image::from_bytes(ICON)?)
         .tooltip("ClipTrail")
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(on_menu)
-        .on_tray_icon_event(on_tray)
-        .build(app)?;
+        .on_tray_icon_event(on_tray);
+    // Template icon: macOS tints it to fit light and dark menu bars.
+    #[cfg(target_os = "macos")]
+    {
+        builder = builder.icon_as_template(true);
+    }
+    builder.build(app)?;
     refresh(app);
     Ok(())
 }
