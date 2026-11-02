@@ -35,6 +35,8 @@ atom_manager! {
         _NET_WM_PID,
         _NET_ACTIVE_WINDOW,
         WM_CLIENT_LEADER,
+        WM_CLASS,
+        UTF8_STRING,
         CLIPD_SEL,
         CLIPD_STOP,
     }

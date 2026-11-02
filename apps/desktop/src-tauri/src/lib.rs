@@ -41,6 +41,13 @@ use state::{AppState, guard, lock};
 #[cfg(desktop)]
 const HIDDEN_ARG: &str = "--hidden";
 
+/// Show the quick picker (centre mode). Wayland compositors have no global
+/// shortcut API an app can register itself; the desktop file and docs
+/// suggest binding a DE-level shortcut to `cliptrail --picker`, which
+/// reaches the running instance through single_instance.
+#[cfg(desktop)]
+const PICKER_ARG: &str = "--picker";
+
 #[cfg(mobile)]
 #[tauri::mobile_entry_point]
 pub fn run() {
@@ -56,12 +63,19 @@ pub fn run() {
         )
         .init();
 
-    let start_hidden = std::env::args().any(|a| a == HIDDEN_ARG);
+    let args: Vec<String> = std::env::args().collect();
+    let start_hidden = args.iter().any(|a| a == HIDDEN_ARG);
+    let want_picker = args.iter().any(|a| a == PICKER_ARG);
 
     tauri::Builder::default()
-        // Must be first: a second launch just shows the running dashboard.
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            windows::show_dashboard(app);
+        // Must be first: a second launch reaches the running instance here
+        // (`cliptrail --picker` opens the picker, anything else the dashboard).
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+            if args.iter().any(|a| a == PICKER_ARG) {
+                windows::toggle_picker(app, windows::PickerMode::Center, None);
+            } else {
+                windows::show_dashboard(app);
+            }
         }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_autostart::init(
@@ -86,8 +100,12 @@ pub fn run() {
                 tracing::warn!("asset scope: {e}");
             }
 
-            windows::create_windows(&handle, start_hidden)?;
+            windows::create_windows(&handle, start_hidden && !want_picker)?;
             tray::create(&handle)?;
+
+            if want_picker {
+                windows::toggle_picker(&handle, windows::PickerMode::Center, None);
+            }
 
             if let Err(e) = shortcuts::apply(&handle, &state.settings()) {
                 tracing::warn!("global shortcut not registered: {e}");

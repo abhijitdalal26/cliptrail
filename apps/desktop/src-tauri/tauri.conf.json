@@ -50,7 +50,7 @@
       "nsis": { "installMode": "currentUser" }
     },
     "linux": {
-      "deb": { "depends": ["libxdo3"] }
+      "deb": { "depends": [] }
     }
   }
 }
