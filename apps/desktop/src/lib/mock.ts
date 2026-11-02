@@ -604,6 +604,7 @@ const mockSettings: SettingsView = {
     dashboard_shortcut: "Ctrl+Alt+H",
     theme: "system",
     retention_days: null,
+    max_image_mb: 8,
     sensitive_ttl_minutes: 60 * 24,
     excluded_apps: [...DEFAULT_EXCLUDED],
     clean_links: false,

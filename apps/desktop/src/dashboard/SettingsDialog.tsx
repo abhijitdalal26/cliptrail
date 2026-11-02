@@ -192,6 +192,24 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
               ]}
             />
           </Row>
+          <Row
+            title="Full-size image cap"
+            desc="Copied images bigger than this keep only a thumbnail in your trail — searchable and tiny, but not pasteable at full size."
+            error={errors.imgCap}
+          >
+            <Select
+              value={String(s.max_image_mb)}
+              onChange={(v) => void save({ max_image_mb: Number(v) }, "imgCap")}
+              options={[
+                ["4", "4 MB"],
+                ["8", "8 MB"],
+                ["16", "16 MB"],
+                ["32", "32 MB"],
+                ["64", "64 MB"],
+                ["0", "No limit"],
+              ]}
+            />
+          </Row>
           <Row title="Data folder" desc={<span className="code text-[11.5px] break-all">{view.data_dir}</span>}>
             <Button size="sm" icon={FolderOpen} onClick={() => void api.openDataDir().catch(() => undefined)}>
               Open folder

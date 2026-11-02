@@ -95,6 +95,8 @@ export interface Settings {
   dashboard_shortcut: string | null;
   theme: ThemePref;
   retention_days: number | null;
+  /** Images bigger than this (MB) keep only a thumbnail. 0 = no limit. */
+  max_image_mb: number;
   sensitive_ttl_minutes: number;
   excluded_apps: string[];
   /** Strip tracking parameters from copied links before they are stored. */

@@ -209,6 +209,11 @@ impl Core {
             let mut cfg = PipelineConfig::with_defaults(self.data_dir.clone())?;
             cfg.excluded_apps = s.excluded_apps.clone();
             cfg.sensitive_ttl_ms = s.sensitive_ttl_minutes as Millis * 60_000;
+            cfg.max_image_bytes = if s.max_image_mb == 0 {
+                usize::MAX
+            } else {
+                s.max_image_mb as usize * 1024 * 1024
+            };
             Ok(Arc::new(Pipeline::open(cfg)?))
         })
     }
