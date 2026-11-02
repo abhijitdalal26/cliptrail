@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="branding/cliptrail-logo.png" alt="ClipTrail" width="420">
+</p>
+
 # ClipTrail
 
 **Your clipboard, everywhere, forever.** An open-source, end-to-end-encrypted clipboard history that captures everything you copy, organizes it automatically, and syncs it across Windows, macOS, Linux and Android — so the link from last Tuesday or the code you copied on your phone is always one hotkey away.
