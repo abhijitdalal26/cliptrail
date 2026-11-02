@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use anyhow::{Context, Result};
 use image::{ImageFormat, RgbaImage, imageops};
+use rusqlite::params;
 use sha2::{Digest, Sha256};
 use ulid::Ulid;
 
@@ -312,7 +313,9 @@ impl Pipeline {
             b"image",
             &[&width.to_le_bytes(), &height.to_le_bytes(), &rgba],
         );
-        // Cheap path for repeats: skip PNG encoding entirely.
+        // Cheap path for repeats: skip PNG encoding entirely — unless the
+        // stored clip was kept thumbnail-only under a lower cap and now
+        // fits, in which case we restore the full copy.
         if let Some(id) = self.store.bump_existing(
             &content_hash,
             at,
@@ -320,6 +323,31 @@ impl Pipeline {
             &self.config.device_id,
             None,
         )? {
+            if let Some(clip) = self.store.get(&id)?
+                && clip.image_path.is_none()
+            {
+                let img = RgbaImage::from_raw(width, height, rgba).context("image buffer size")?;
+                let png = encode_png(&img)?;
+                if png.len() <= self.config.max_image_bytes {
+                    let path = self
+                        .config
+                        .data_dir
+                        .join(IMAGES_DIR)
+                        .join(format!("{id}.png"));
+                    write_bytes_atomic(&path, &png)?;
+                    let path_str = path.to_string_lossy().into_owned();
+                    let updated = self.store.quiet(|conn| {
+                        Ok(conn.execute(
+                            "UPDATE clips SET image_path = ?2 \
+                                 WHERE id = ?1 AND image_path IS NULL",
+                            params![id, path_str],
+                        )?)
+                    })?;
+                    if updated == 0 {
+                        remove_files([&path]);
+                    }
+                }
+            }
             return Ok(IngestOutcome::Bumped {
                 id,
                 kind: Kind::Image,
@@ -818,10 +846,25 @@ mod tests {
         assert_eq!(
             p.ingest(image(40, 30, 1)).unwrap(),
             IngestOutcome::Bumped {
-                id,
+                id: id.clone(),
                 kind: Kind::Image
             }
         );
+
+        // Raising the cap and re-copying restores the full image.
+        let mut cfg2 = PipelineConfig::with_defaults(dir.0.clone()).unwrap();
+        cfg2.max_image_bytes = 8 * 1024 * 1024;
+        let p2 = Pipeline::open(cfg2).unwrap();
+        assert_eq!(
+            p2.ingest(image(40, 30, 1)).unwrap(),
+            IngestOutcome::Bumped {
+                id: id.clone(),
+                kind: Kind::Image
+            }
+        );
+        let clip = p2.store().get(&id).unwrap().unwrap();
+        let full = clip.image_path.expect("full image restored under new cap");
+        assert!(Path::new(&full).exists());
     }
 
     #[test]

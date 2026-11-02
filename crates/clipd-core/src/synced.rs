@@ -374,8 +374,13 @@ impl Pipeline {
             bail!("synced image has invalid size");
         }
 
+        // The local cap applies to synced images too: over it we keep only
+        // the thumbnail (built below) instead of the full PNG.
+        let keep_full = png.len() <= self.config().max_image_bytes;
         let image_path = self.images_dir().join(format!("{id}.png"));
-        write_bytes_atomic(&image_path, png)?;
+        if keep_full {
+            write_bytes_atomic(&image_path, png)?;
+        }
         let mut new_thumb: Option<PathBuf> = None;
         if clip.summary.thumb_path.is_none() {
             let decoded = image::load_from_memory_with_format(png, ImageFormat::Png)
@@ -384,18 +389,22 @@ impl Pipeline {
             write_png(&thumbnail(&decoded.to_rgba8()), &path)?;
             new_thumb = Some(path);
         }
-        let image_str = image_path.to_string_lossy().into_owned();
+        let image_str = keep_full.then(|| image_path.to_string_lossy().into_owned());
         let thumb_str = new_thumb.as_ref().map(|p| p.to_string_lossy().into_owned());
         let updated = self.store().quiet(|conn| {
             Ok(conn.execute(
-                "UPDATE clips SET image_path = ?2, thumb_path = coalesce(thumb_path, ?3), \
+                "UPDATE clips SET image_path = coalesce(image_path, ?2), \
+                     thumb_path = coalesce(thumb_path, ?3), \
                      width = ?4, height = ?5 WHERE id = ?1",
                 params![id, image_str, thumb_str, i64::from(w), i64::from(h)],
             )?)
         })?;
         if updated == 0 {
             // Deleted while we were writing.
-            remove_files([image_path].iter().chain(new_thumb.iter()));
+            if keep_full {
+                remove_files([&image_path]);
+            }
+            remove_files(new_thumb.iter());
         }
         Ok(())
     }
@@ -718,5 +727,35 @@ mod tests {
         );
         p.delete_synced(&[5; 32], i64::MAX).unwrap();
         assert!(!Path::new(&full).exists());
+    }
+
+    #[test]
+    fn synced_image_over_cap_keeps_thumbnail_only() {
+        let dir = TempDir::new();
+        let mut cfg = PipelineConfig::with_defaults(dir.0.clone()).unwrap();
+        cfg.max_image_bytes = 1; // every PNG is over the cap
+        let p = Pipeline::open(cfg).unwrap();
+        let img = image::RgbaImage::from_fn(64, 32, |x, y| image::Rgba([x as u8, y as u8, 9, 255]));
+        let mut png = Vec::new();
+        image::DynamicImage::ImageRgba8(img)
+            .write_to(&mut Cursor::new(&mut png), ImageFormat::Png)
+            .unwrap();
+        let mut c = remote(5, "", 10);
+        c.kind = Kind::Image;
+        c.text = None;
+        c.image = Some(SyncedImage {
+            width: 64,
+            height: 32,
+            thumb_png: None,
+        });
+        let IngestOutcome::Stored { id, .. } = p.ingest_synced(c).unwrap() else {
+            panic!()
+        };
+        p.attach_synced_image(&id, &png).unwrap();
+        let clip = p.store().get(&id).unwrap().unwrap();
+        assert!(clip.image_path.is_none(), "over-cap synced image dropped");
+        let thumb = clip.summary.thumb_path.unwrap();
+        assert!(Path::new(&thumb).exists(), "thumbnail built instead");
+        assert_eq!(fs::read_dir(dir.0.join("images")).unwrap().count(), 0);
     }
 }
