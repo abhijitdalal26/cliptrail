@@ -497,6 +497,16 @@ CHANGELOG = r"""
         </div>
 
         <div class="cl-group">
+          <h3>macOS support (experimental)</h3>
+          <ul>
+            <li>macOS clipboard backend: text, rich text, images and file URLs; honours the opt-out markers password managers set; tags clips with the source app.</li>
+            <li>Menu-bar app (no Dock icon): the picker is a non-activating panel, so it never steals focus from the app you paste back into. <kbd>Cmd</kbd> <kbd>Shift</kbd> <kbd>Space</kbd> opens it.</li>
+            <li>Paste-back via Accessibility permission, with an in-app explainer that links straight to the setting.</li>
+            <li>Universal <code>.dmg</code> from the release pipeline; live pasteboard tests run on a real Mac in CI.</li>
+          </ul>
+        </div>
+
+        <div class="cl-group">
           <h3>Release pipeline <a class="commit" href="{{REPO}}/commit/47c44bb">47c44bb</a></h3>
           <ul>
             <li>Tagging <code>v*</code> builds Windows (<code>.exe</code>, <code>.msi</code>), Linux (<code>.deb</code>, AppImage), experimental macOS (<code>.dmg</code>) and CLI archives into a draft release.</li>
@@ -634,7 +644,7 @@ NOTFOUND = r"""
 
 def build(b):
     b.page("index.html", "{{B}}: your clipboard, everywhere, forever",
-           "Open-source clipboard history for Windows and Linux, with Android coming in v0.1: remembers everything you copy, sorts it by type, and syncs end-to-end encrypted between your devices.",
+           "Open-source clipboard history for Windows, Linux and macOS (experimental), with Android coming in v0.1: remembers everything you copy, sorts it by type, and syncs end-to-end encrypted between your devices.",
            INDEX, active=None)
     b.page("download.html", "Download",
            "Download {{B}} for Windows, Linux and macOS (experimental), and the clipd command-line tool. Android arrives with v0.1.",
@@ -651,6 +661,8 @@ def build(b):
     # robots + sitemap
     pages = ["", "download.html", "changelog.html", "privacy.html", "security.html"] + \
             ["docs/" + (f if f != "index.html" else "") for _, items in b.DOCS for f, _, _ in items]
-    urls = "\n".join(f"  <url><loc>{b.BASE}{p}</loc><lastmod>2026-11-01</lastmod></url>" for p in pages)
+    import datetime
+    today = datetime.date.today().isoformat()
+    urls = "\n".join(f"  <url><loc>{b.BASE}{p}</loc><lastmod>{today}</lastmod></url>" for p in pages)
     b.write("sitemap.xml", f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{urls}\n</urlset>\n')
     b.write("robots.txt", f"User-agent: *\nAllow: /\n\nSitemap: {b.BASE}sitemap.xml\n")
