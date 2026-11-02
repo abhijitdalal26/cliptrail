@@ -28,6 +28,9 @@ pub struct Settings {
     pub theme: Theme,
     /// Delete unpinned clips older than this many days. None = keep forever.
     pub retention_days: Option<u32>,
+    /// Copied images that encode to a PNG bigger than this many megabytes
+    /// are kept thumbnail-only. 0 = no limit.
+    pub max_image_mb: u32,
     /// Lifetime of sensitive clips (OTPs, keys) in minutes.
     pub sensitive_ttl_minutes: u32,
     /// Lowercased executable / process names whose copies are never stored.
@@ -50,6 +53,7 @@ impl Default for Settings {
             dashboard_shortcut: Some(DEFAULT_DASHBOARD_SHORTCUT.into()),
             theme: Theme::System,
             retention_days: None,
+            max_image_mb: 8,
             sensitive_ttl_minutes: 60 * 24,
             excluded_apps: Vec::new(),
             clean_links: false,
@@ -99,6 +103,7 @@ impl Settings {
         self.excluded_apps = apps;
         self.sensitive_ttl_minutes = self.sensitive_ttl_minutes.clamp(1, 60 * 24 * 30);
         self.retention_days = self.retention_days.filter(|d| *d > 0);
+        self.max_image_mb = self.max_image_mb.min(2048);
         if self.sync_port < 1024 {
             self.sync_port = clipd_sync::DEFAULT_PORT;
         }

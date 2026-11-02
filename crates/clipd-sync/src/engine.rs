@@ -2,6 +2,7 @@
 //! the clip store, image blobs. Synchronous (SQLite); async callers wrap
 //! calls in `spawn_blocking`.
 
+use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -10,6 +11,7 @@ use clipd_core::{
     ClipWithHash, IngestOutcome, JournalOp, Kind, ListQuery, Pipeline, PipelineConfig, SyncedClip,
     SyncedImage, now_millis,
 };
+use image::{ImageFormat, imageops};
 use serde::Serialize;
 
 use crate::crypto::{SecretKey, SpaceKeys, aad, b64, unb64};
@@ -86,7 +88,20 @@ pub fn open_db(data_dir: &Path) -> Result<SyncDb> {
 }
 
 pub fn open_pipeline(data_dir: &Path) -> Result<Pipeline> {
-    Pipeline::open(PipelineConfig::with_defaults(data_dir.to_path_buf())?)
+    let mut cfg = PipelineConfig::with_defaults(data_dir.to_path_buf())?;
+    // The desktop app stores its image cap in settings.json (same data
+    // dir): synced images must respect the same limit as local copies.
+    if let Ok(raw) = std::fs::read(data_dir.join("settings.json"))
+        && let Ok(v) = serde_json::from_slice::<serde_json::Value>(&raw)
+        && let Some(mb) = v.get("max_image_mb").and_then(|v| v.as_u64())
+    {
+        cfg.max_image_bytes = if mb == 0 {
+            usize::MAX
+        } else {
+            mb as usize * 1024 * 1024
+        };
+    }
+    Pipeline::open(cfg)
 }
 
 impl Engine {
@@ -141,16 +156,28 @@ impl Engine {
         let hash = b64(&c.content_hash);
         let mut blob = None;
         let image = (s.kind == Kind::Image).then(|| {
+            // A thumbnail-only clip (over the local cap) has no full image
+            // to fetch: advertise an empty blob_id instead of pointing
+            // receivers at a blob that can never exist.
+            let has_full = c.clip.image_path.is_some();
             let blob_id = self.keys.blob_id(&c.content_hash);
-            blob = Some((blob_id.clone(), c.content_hash.clone()));
+            if has_full {
+                blob = Some((blob_id.clone(), c.content_hash.clone()));
+            }
             let thumb = s
                 .thumb_path
                 .as_deref()
                 .and_then(|p| std::fs::read(p).ok())
-                .filter(|b| b.len() <= INLINE_THUMB_MAX)
+                .and_then(|b| {
+                    if b.len() <= INLINE_THUMB_MAX {
+                        Some(b)
+                    } else {
+                        shrink_thumb(&b)
+                    }
+                })
                 .map(|b| b64(&b));
             ImageRef {
-                blob_id,
+                blob_id: if has_full { blob_id } else { String::new() },
                 w: s.width.unwrap_or(0).max(0) as u32,
                 h: s.height.unwrap_or(0).max(0) as u32,
                 thumb,
@@ -321,7 +348,11 @@ impl Engine {
                     }
                 };
                 let mut blob = None;
-                if let Some(img) = &c.image {
+                // Empty blob_id = sender kept the image thumbnail-only;
+                // nothing to fetch.
+                if let Some(img) = &c.image
+                    && !img.blob_id.is_empty()
+                {
                     self.db.put_blob_index(&img.blob_id, &hash)?;
                     let has_full = self
                         .pipeline
@@ -497,4 +528,30 @@ pub fn valid_blob_id(id: &str) -> bool {
         && id
             .chars()
             .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+}
+
+/// Re-encode a thumbnail PNG small enough to travel inline. Progressively
+/// downscales until it fits; None when it can't be decoded or shrunk.
+fn shrink_thumb(png: &[u8]) -> Option<Vec<u8>> {
+    let img = image::load_from_memory_with_format(png, ImageFormat::Png)
+        .ok()?
+        .to_rgba8();
+    for side in [240u32, 120] {
+        let (w, h) = img.dimensions();
+        if w.max(h) <= side {
+            continue;
+        }
+        let scale = f64::from(side) / f64::from(w.max(h));
+        let tw = ((w as f64 * scale).round() as u32).max(1);
+        let th = ((h as f64 * scale).round() as u32).max(1);
+        let small = imageops::thumbnail(&img, tw, th);
+        let mut buf = Vec::new();
+        small
+            .write_to(&mut Cursor::new(&mut buf), ImageFormat::Png)
+            .ok()?;
+        if buf.len() <= INLINE_THUMB_MAX {
+            return Some(buf);
+        }
+    }
+    None
 }

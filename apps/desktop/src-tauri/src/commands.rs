@@ -422,6 +422,7 @@ pub async fn update_settings(app: AppHandle, settings: Settings) -> CmdResult<Se
 
     if new.excluded_apps != old.excluded_apps
         || new.sensitive_ttl_minutes != old.sensitive_ttl_minutes
+        || new.max_image_mb != old.max_image_mb
     {
         state.reload_pipeline(&new)?;
     }
