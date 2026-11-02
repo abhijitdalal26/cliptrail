@@ -604,6 +604,7 @@ const mockSettings: SettingsView = {
     dashboard_shortcut: "Ctrl+Alt+H",
     theme: "system",
     retention_days: null,
+    max_image_mb: 8,
     sensitive_ttl_minutes: 60 * 24,
     excluded_apps: [...DEFAULT_EXCLUDED],
     clean_links: false,
@@ -722,6 +723,10 @@ export async function handle(cmd: string, a: Record<string, unknown>): Promise<u
       publish("settings-changed", null);
       return { ...mockSettings, capture: captureState() };
     }
+    case "accessibility_state":
+      return true;
+    case "open_accessibility_settings":
+      return null;
     case "window_effects":
       return false;
     case "backend_status":

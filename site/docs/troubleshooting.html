@@ -60,14 +60,14 @@
 <ul>
   <li><strong>Another app owns it.</strong> If <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Space</kbd> is taken (some input-method switchers and launchers use it), Settings shows "… is already in use by another app". Pick another combination in <a href="settings.html#shortcuts">Settings → Shortcuts</a>, e.g. <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>V</kbd> or <kbd>Win</kbd> <kbd>Shift</kbd> <kbd>V</kbd>.</li>
   <li><strong>ClipTrail isn't running.</strong> Check for the tray icon. Turn on <em>Start with Windows</em> so it's always there.</li>
-  <li><strong>Linux on Wayland:</strong> Wayland may not deliver global shortcuts to apps. Click the tray icon, or log in to an X11 session.</li>
+  <li><strong>Linux on Wayland:</strong> most Wayland compositors have no global-shortcut protocol for apps to use. Bind a desktop-environment shortcut to <code>cliptrail --picker</code> instead — it opens the picker in the running app (KDE: <em>System Settings → Shortcuts → Custom Shortcuts → Command</em>; GNOME: <em>Settings → Keyboard → Custom Shortcuts</em>). On an X11 session the built-in hotkey works as on Windows.</li>
 </ul>
 
 <h2 id="paste-back">Paste-back doesn't paste</h2>
 <p>The clip is always put on your clipboard first, so <kbd>Ctrl</kbd> <kbd>V</kbd> works as a fallback. If the automatic paste doesn't happen:</p>
 <ul>
   <li><strong>Elevated (administrator) windows:</strong> Windows blocks normal apps from typing into them. Paste manually.</li>
-  <li><strong>Terminals:</strong> most Linux terminals paste with <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>V</kbd>, so the synthetic <kbd>Ctrl</kbd> <kbd>V</kbd> does nothing. Press <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>V</kbd> yourself. (Windows Terminal and PowerShell accept <kbd>Ctrl</kbd> <kbd>V</kbd>.)</li>
+  <li><strong>Terminals:</strong> most Linux terminals paste with <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>V</kbd>. ClipTrail detects common terminal windows on X11 and sends that combination automatically; if yours isn't detected, press it yourself. (Windows Terminal and PowerShell accept <kbd>Ctrl</kbd> <kbd>V</kbd>.)</li>
   <li><strong>Wayland:</strong> paste-back is X11-only. The picker shows "Copied — press Ctrl+V to paste".</li>
   <li><strong>Games and remote desktops</strong> may ignore synthetic keystrokes. Paste manually.</li>
   <li><strong>Focus moved:</strong> if you clicked another window while the picker was open, it pastes into the window that had focus when the picker opened, or not at all if that window closed.</li>
@@ -80,7 +80,15 @@
   <li><strong>It was a secret.</strong> Codes and keys are saved as <em>Sensitive</em>, masked, and deleted after their lifetime. Look under Sensitive.</li>
   <li><strong>It was huge.</strong> Text clips over 2 MB are skipped.</li>
   <li><strong>Linux on GNOME (Wayland):</strong> GNOME doesn't offer the clipboard protocol ClipTrail needs, so it falls back to X11 and only sees copies while an X11 (XWayland) window has focus. KDE Plasma, Sway and Hyprland work natively; an X11 session also works.</li>
-  <li><strong>macOS:</strong> capture isn't implemented yet.</li>
+  <li><strong>macOS:</strong> copies from apps that mark them concealed or transient (password managers, one-time fields) are skipped on purpose. Otherwise capture is automatic — check that capture isn't paused.</li>
+</ul>
+
+<h2 id="macos">macOS</h2>
+<ul>
+  <li><strong>"ClipTrail can't be opened"</strong> on first launch: the build isn't code-signed. Open <em>System Settings → Privacy &amp; Security</em> and click <strong>Open Anyway</strong>, then launch it again.</li>
+  <li><strong>Picking a clip copies it but doesn't paste:</strong> paste-back needs Accessibility permission. Open <em>System Settings → Privacy &amp; Security → Accessibility</em> and allow ClipTrail (Settings in the app has a button that jumps straight there). Until then, press <kbd>Cmd</kbd> <kbd>V</kbd> yourself.</li>
+  <li><strong>The picker doesn't open:</strong> the default hotkey is <kbd>Cmd</kbd> <kbd>Shift</kbd> <kbd>Space</kbd>. If you changed it or it clashes with another app, rebind it in Settings → Shortcuts.</li>
+  <li><strong>No Dock icon:</strong> that's intended — ClipTrail is a menu-bar app. Use the menu-bar icon or the hotkeys.</li>
 </ul>
 
 <h2 id="sync">Sync doesn't connect</h2>

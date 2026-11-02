@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use anyhow::{Context, Result};
 use image::{ImageFormat, RgbaImage, imageops};
+use rusqlite::params;
 use sha2::{Digest, Sha256};
 use ulid::Ulid;
 
@@ -71,6 +72,9 @@ pub struct PipelineConfig {
     pub sensitive_ttl_ms: Millis,
     /// Texts longer than this (bytes) are skipped.
     pub max_text_bytes: usize,
+    /// Encoded PNGs bigger than this are stored thumbnail-only: the trail
+    /// stays searchable but the full-size copy is never written to disk.
+    pub max_image_bytes: usize,
 }
 
 impl PipelineConfig {
@@ -87,6 +91,7 @@ impl PipelineConfig {
                 .collect(),
             sensitive_ttl_ms: 60 * 60 * 1000,
             max_text_bytes: 2 * 1024 * 1024,
+            max_image_bytes: 8 * 1024 * 1024,
         })
     }
 }
@@ -308,7 +313,9 @@ impl Pipeline {
             b"image",
             &[&width.to_le_bytes(), &height.to_le_bytes(), &rgba],
         );
-        // Cheap path for repeats: skip PNG encoding entirely.
+        // Cheap path for repeats: skip PNG encoding entirely — unless the
+        // stored clip was kept thumbnail-only under a lower cap and now
+        // fits, in which case we restore the full copy.
         if let Some(id) = self.store.bump_existing(
             &content_hash,
             at,
@@ -316,6 +323,31 @@ impl Pipeline {
             &self.config.device_id,
             None,
         )? {
+            if let Some(clip) = self.store.get(&id)?
+                && clip.image_path.is_none()
+            {
+                let img = RgbaImage::from_raw(width, height, rgba).context("image buffer size")?;
+                let png = encode_png(&img)?;
+                if png.len() <= self.config.max_image_bytes {
+                    let path = self
+                        .config
+                        .data_dir
+                        .join(IMAGES_DIR)
+                        .join(format!("{id}.png"));
+                    write_bytes_atomic(&path, &png)?;
+                    let path_str = path.to_string_lossy().into_owned();
+                    let updated = self.store.quiet(|conn| {
+                        Ok(conn.execute(
+                            "UPDATE clips SET image_path = ?2 \
+                                 WHERE id = ?1 AND image_path IS NULL",
+                            params![id, path_str],
+                        )?)
+                    })?;
+                    if updated == 0 {
+                        remove_files([&path]);
+                    }
+                }
+            }
             return Ok(IngestOutcome::Bumped {
                 id,
                 kind: Kind::Image,
@@ -334,9 +366,17 @@ impl Pipeline {
             .data_dir
             .join(THUMBS_DIR)
             .join(format!("{id}.png"));
-        write_png(&img, &image_path)?;
+        // Encode once; a PNG over the cap keeps the trail thumbnail-only
+        // and the full-size copy is never written.
+        let png = encode_png(&img)?;
+        let keep_full = png.len() <= self.config.max_image_bytes;
+        if keep_full {
+            write_bytes_atomic(&image_path, &png)?;
+        }
         if let Err(e) = write_png(&thumbnail(&img), &thumb_path) {
-            remove_files([&image_path]);
+            if keep_full {
+                remove_files([&image_path]);
+            }
             return Err(e);
         }
 
@@ -348,7 +388,7 @@ impl Pipeline {
             text: None,
             html: None,
             files: Vec::new(),
-            image_path: Some(image_path.to_string_lossy().into_owned()),
+            image_path: keep_full.then(|| image_path.to_string_lossy().into_owned()),
             thumb_path: Some(thumb_path.to_string_lossy().into_owned()),
             width: Some(i64::from(width)),
             height: Some(i64::from(height)),
@@ -473,6 +513,26 @@ fn thumb_size(w: u32, h: u32) -> (u32, u32) {
     (fit(w), fit(h))
 }
 
+/// Render an image buffer as PNG bytes.
+pub(crate) fn encode_png(img: &RgbaImage) -> Result<Vec<u8>> {
+    let mut buf = Vec::new();
+    img.write_to(&mut std::io::Cursor::new(&mut buf), ImageFormat::Png)?;
+    Ok(buf)
+}
+
+/// Write to `<path>.tmp`, then rename into place so readers never see a
+/// half-written file.
+fn write_bytes_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
+    let mut tmp = path.as_os_str().to_owned();
+    tmp.push(".tmp");
+    let tmp = PathBuf::from(tmp);
+    let written = fs::write(&tmp, bytes).and_then(|()| fs::rename(&tmp, path));
+    if written.is_err() {
+        let _ = fs::remove_file(&tmp);
+    }
+    written.with_context(|| format!("write {}", path.display()))
+}
+
 /// Encode to `<path>.tmp`, then rename into place so readers never see a
 /// half-written PNG.
 pub(crate) fn write_png(img: &RgbaImage, path: &Path) -> Result<()> {
@@ -593,6 +653,7 @@ mod tests {
         assert_eq!(a.device_id.len(), 26);
         assert_eq!(a.sensitive_ttl_ms, 3_600_000);
         assert_eq!(a.max_text_bytes, 2 * 1024 * 1024);
+        assert_eq!(a.max_image_bytes, 8 * 1024 * 1024);
         assert!(a.excluded_apps.iter().any(|s| s == "keepassxc.exe"));
         let b = PipelineConfig::with_defaults(dir.0.join("data")).unwrap();
         assert_eq!(a.device_id, b.device_id);
@@ -767,6 +828,43 @@ mod tests {
         assert!(!Path::new(&thumb).exists());
         assert!(p.store().get(&id).unwrap().is_none());
         p.delete(&id).unwrap();
+    }
+
+    #[test]
+    fn oversized_image_keeps_thumbnail_only() {
+        let dir = TempDir::new();
+        let mut cfg = PipelineConfig::with_defaults(dir.0.clone()).unwrap();
+        cfg.max_image_bytes = 1; // every PNG is over the cap
+        let p = Pipeline::open(cfg).unwrap();
+        let id = stored_id(p.ingest(image(40, 30, 1)).unwrap());
+        let clip = p.store().get(&id).unwrap().unwrap();
+        assert!(clip.image_path.is_none(), "full image dropped over the cap");
+        let thumb = clip.summary.thumb_path.clone().unwrap();
+        assert!(Path::new(&thumb).exists());
+        assert_eq!(fs::read_dir(dir.0.join("images")).unwrap().count(), 0);
+        // Re-copying still dedup-bumps without touching disk.
+        assert_eq!(
+            p.ingest(image(40, 30, 1)).unwrap(),
+            IngestOutcome::Bumped {
+                id: id.clone(),
+                kind: Kind::Image
+            }
+        );
+
+        // Raising the cap and re-copying restores the full image.
+        let mut cfg2 = PipelineConfig::with_defaults(dir.0.clone()).unwrap();
+        cfg2.max_image_bytes = 8 * 1024 * 1024;
+        let p2 = Pipeline::open(cfg2).unwrap();
+        assert_eq!(
+            p2.ingest(image(40, 30, 1)).unwrap(),
+            IngestOutcome::Bumped {
+                id: id.clone(),
+                kind: Kind::Image
+            }
+        );
+        let clip = p2.store().get(&id).unwrap().unwrap();
+        let full = clip.image_path.expect("full image restored under new cap");
+        assert!(Path::new(&full).exists());
     }
 
     #[test]

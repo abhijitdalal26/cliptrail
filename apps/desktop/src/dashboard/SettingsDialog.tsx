@@ -32,6 +32,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   if (!view) return null;
   const s = view.settings;
   const isWin = view.platform === "windows";
+  const isMac = view.platform === "macos";
 
   const save = async (patch: Partial<Settings>, field: string) => {
     try {
@@ -94,6 +95,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
               </div>
             )}
           </Row>
+          {isMac && <AccessibilityRow />}
         </Section>
 
         <DevicesSection />
@@ -118,7 +120,9 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
               <Switch
                 label="Dashboard shortcut"
                 checked={s.dashboard_shortcut != null}
-                onChange={(on) => void save({ dashboard_shortcut: on ? "Ctrl+Alt+H" : null }, "dashboard")}
+                onChange={(on) =>
+                  void save({ dashboard_shortcut: on ? (isMac ? "Cmd+Alt+H" : "Ctrl+Alt+H") : null }, "dashboard")
+                }
               />
             </div>
           </Row>
@@ -192,6 +196,24 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
               ]}
             />
           </Row>
+          <Row
+            title="Full-size image cap"
+            desc="Copied images bigger than this keep only a thumbnail in your trail — searchable and tiny, but not pasteable at full size."
+            error={errors.imgCap}
+          >
+            <Select
+              value={String(s.max_image_mb)}
+              onChange={(v) => void save({ max_image_mb: Number(v) }, "imgCap")}
+              options={[
+                ["4", "4 MB"],
+                ["8", "8 MB"],
+                ["16", "16 MB"],
+                ["32", "32 MB"],
+                ["64", "64 MB"],
+                ["0", "No limit"],
+              ]}
+            />
+          </Row>
           <Row title="Data folder" desc={<span className="code text-[11.5px] break-all">{view.data_dir}</span>}>
             <Button size="sm" icon={FolderOpen} onClick={() => void api.openDataDir().catch(() => undefined)}>
               Open folder
@@ -233,6 +255,32 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
     </Modal>
     {clearing && <ClearHistoryDialog onClose={() => setClearing(false)} />}
     </>
+  );
+}
+
+/** macOS only: paste-back needs Accessibility permission (CGEvent). The OS
+ *  grants it only in System Settings, so this row explains + deep-links. */
+function AccessibilityRow() {
+  const [trusted, setTrusted] = useState<boolean | null>(null);
+  const check = () => void api.accessibilityState().then(setTrusted).catch(() => undefined);
+
+  useEffect(() => {
+    check();
+    // The user flips the toggle in System Settings, then comes back.
+    window.addEventListener("focus", check);
+    return () => window.removeEventListener("focus", check);
+  }, []);
+
+  if (trusted !== false) return null;
+  return (
+    <Row
+      title="Allow pasting into apps"
+      desc="macOS lets ClipTrail press Cmd+V for you only after you allow it once in System Settings → Privacy & Security → Accessibility. Until then, picking a clip just copies it — press Cmd+V yourself."
+    >
+      <Button size="sm" variant="primary" onClick={() => void api.openAccessibilitySettings().catch(() => undefined)}>
+        Open Accessibility settings
+      </Button>
+    </Row>
   );
 }
 

@@ -1158,6 +1158,7 @@ fn describe(engine: &Engine, env: &Envelope) -> Meta {
         Event::ClipAdded(c) => c
             .image
             .as_ref()
+            .filter(|i| !i.blob_id.is_empty())
             .and_then(|i| ev.hash().ok().map(|h| (i.blob_id.clone(), h))),
         _ => None,
     };

@@ -157,7 +157,15 @@ pub async fn start(cfg: HubConfig) -> Result<HubHandle> {
     let addr = listener.local_addr()?;
     engine.db.set("port", &addr.port().to_string())?;
     let hosts = advertise
-        .unwrap_or_else(lan_ipv4s)
+        .unwrap_or_else(|| {
+            // A loopback-bound hub is only reachable on this machine;
+            // advertising LAN IPs would produce unusable pair links.
+            if bind.is_loopback() {
+                vec!["127.0.0.1".to_string()]
+            } else {
+                lan_ipv4s()
+            }
+        })
         .into_iter()
         .map(|h| {
             if h.contains(':') {

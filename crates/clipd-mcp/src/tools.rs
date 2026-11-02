@@ -123,7 +123,7 @@ pub fn call(store: &Store, name: &str, args: &Value) -> Result<Value> {
             let now = clipd_core::now_millis();
             let from = now - i64::from(days) * 86_400_000;
             Ok(text_result(&serde_json::to_value(
-                store.day_counts(from, now)?,
+                store.day_counts(from, now + 1)?,
             )?))
         }
         "pin_clip" => {

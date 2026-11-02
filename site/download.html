@@ -79,7 +79,7 @@
       <article class="os-card" data-os="macos" id="macos">
         <span class="chip chip-accent detected-tag">Your system</span>
         <div class="os-head"><span class="os-logo"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.4 12.7c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.1-1.2 2.9-2.4.9-1.3 1.3-2.7 1.3-2.8 0 0-2.4-1-2.4-3.9ZM14.1 5.6c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1 .1 2.1-.6 2.8-1.4Z"/></svg></span><div><h2>macOS <span class="chip chip-warn">Experimental</span></h2><span class="os-sub">Universal (Apple silicon and Intel)</span></div></div>
-        <p>Built by CI but untested, and clipboard capture isn't implemented on macOS yet. Try it only if you want to help get it there.</p>
+        <p>Built by CI and lightly tested. A menu-bar app: capture and paste-back work once you allow it in <strong>Accessibility</strong>; <kbd>Cmd</kbd> <kbd>Shift</kbd> <kbd>Space</kbd> opens the picker.</p>
         <div class="assets"><div class="asset skeleton" data-asset="mac-dmg" data-label="Disk image (.dmg)" data-soon="Arrives with v0.1.0 (experimental)"><span class="a-main"><span class="a-name">Disk image (.dmg)</span><span class="a-meta">Checking GitHub…</span></span></div></div>
       </article>
       <article class="os-card" data-os="android" id="android">
@@ -162,7 +162,7 @@
         <ol>
           <li>Open the <code>.dmg</code> and drag ClipTrail to Applications.</li>
           <li>On first launch macOS blocks the unsigned app. Open <strong>System Settings → Privacy &amp; Security</strong> and click <strong>Open Anyway</strong>.</li>
-          <li>Paste-back will need <strong>Accessibility</strong> permission once it's implemented on macOS.</li>
+          <li>For paste-back, allow ClipTrail under <strong>Privacy &amp; Security → Accessibility</strong> (Settings in the app links straight there).</li>
         </ol>
       </div>
       <div class="note-card">
@@ -178,7 +178,7 @@
         <tbody>
           <tr><td>Windows</td><td>Windows 10 or 11, 64-bit (x64). Uses the Microsoft Edge WebView2 runtime, which Windows 11 includes; the installer fetches it on older systems.</td></tr>
           <tr><td>Linux</td><td>x86_64 with WebKitGTK 4.1 (Ubuntu 22.04 or newer, Debian 12, Fedora 38+). X11 for paste-back; Wayland capture needs a data-control compositor.</td></tr>
-          <tr><td>macOS</td><td>Experimental universal build. Capture and paste-back are not implemented yet.</td></tr>
+          <tr><td>macOS</td><td>macOS 12 or newer, universal (Apple silicon and Intel). Experimental: capture and paste-back work; paste-back needs Accessibility permission.</td></tr>
           <tr><td>Android</td><td>Android 10 or newer (arm64), coming with v0.1. Tested first on Samsung One UI.</td></tr>
           <tr><td>Sync</td><td>Devices on the same local network (Wi-Fi or LAN) that can reach the hub on TCP port 47821.</td></tr>
         </tbody>

@@ -87,6 +87,16 @@
         </div>
 
         <div class="cl-group">
+          <h3>macOS support (experimental)</h3>
+          <ul>
+            <li>macOS clipboard backend: text, rich text, images and file URLs; honours the opt-out markers password managers set; tags clips with the source app.</li>
+            <li>Menu-bar app (no Dock icon): the picker is a non-activating panel, so it never steals focus from the app you paste back into. <kbd>Cmd</kbd> <kbd>Shift</kbd> <kbd>Space</kbd> opens it.</li>
+            <li>Paste-back via Accessibility permission, with an in-app explainer that links straight to the setting.</li>
+            <li>Universal <code>.dmg</code> from the release pipeline; live pasteboard tests run on a real Mac in CI.</li>
+          </ul>
+        </div>
+
+        <div class="cl-group">
           <h3>Release pipeline <a class="commit" href="https://github.com/abhijitdalal26/cliptrail/commit/47c44bb">47c44bb</a></h3>
           <ul>
             <li>Tagging <code>v*</code> builds Windows (<code>.exe</code>, <code>.msi</code>), Linux (<code>.deb</code>, AppImage), experimental macOS (<code>.dmg</code>) and CLI archives into a draft release.</li>

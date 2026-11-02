@@ -348,6 +348,34 @@ pub fn resume_capture(app: AppHandle) {
     pause(&app, Pause::Off);
 }
 
+/// Whether paste-back can post synthetic input. Always true off macOS;
+/// the Settings page shows the Accessibility explainer when this is false.
+#[cfg(desktop)]
+#[tauri::command]
+pub fn accessibility_state() -> bool {
+    clipd_capture::accessibility_trusted()
+}
+
+/// Deep-link into System Settings → Privacy & Security → Accessibility so
+/// the user can allow paste-back. (There's no programmatic grant; the OS
+/// requires the toggle in Settings.)
+#[cfg(desktop)]
+#[tauri::command]
+pub fn open_accessibility_settings() -> CmdResult<()> {
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
+            .status()
+            .map_err(|_| "Couldn't open System Settings".to_string())?;
+        Ok(())
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        Err("Accessibility permission is only needed on macOS".into())
+    }
+}
+
 #[cfg(desktop)]
 #[tauri::command]
 pub fn window_effects(window: Window, app: AppHandle) -> bool {
@@ -422,6 +450,7 @@ pub async fn update_settings(app: AppHandle, settings: Settings) -> CmdResult<Se
 
     if new.excluded_apps != old.excluded_apps
         || new.sensitive_ttl_minutes != old.sensitive_ttl_minutes
+        || new.max_image_mb != old.max_image_mb
     {
         state.reload_pipeline(&new)?;
     }

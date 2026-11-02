@@ -1,0 +1,30 @@
+# https://docs.devin.ai/onboard-devin/environment-yaml
+initialize:
+  - name: system deps (clipboard live tests + tauri)
+    run: sudo apt-get update -qq && sudo apt-get install -y -qq xvfb xclip wl-clipboard sway libxcb-xfixes0-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev
+  - name: node on PATH (nvm install already on box)
+    run: echo "PATH=$HOME/.nvm/versions/node/v24.19.0/bin:$PATH" >> $ENVRC
+  - name: pnpm via corepack
+    run: corepack enable && corepack prepare pnpm@latest --activate
+maintenance:
+  - run: (cd apps/desktop && pnpm install)
+knowledge:
+  - name: lint
+    contents: cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings
+  - name: test
+    contents: cargo test --workspace
+  - name: live-clipboard-tests
+    contents: |
+      # Real-session tests; serial. X11:
+      xvfb-run -a -s "-screen 0 1280x800x24" env -u WAYLAND_DISPLAY cargo test -p clipd-capture -- --ignored --test-threads=1
+      # Wayland (headless sway, data-control):
+      XDG_RUNTIME_DIR=/tmp/xdg-sway WAYLAND_DISPLAY=wayland-1 WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 WLR_RENDERER=pixman sway -c /dev/null &
+      cargo test -p clipd-capture -- --ignored --test-threads=1
+      # See docs/linux.md for the full matrix.
+  - name: frontend-build
+    contents: (cd apps/desktop && pnpm build)
+  - name: notes
+    contents: |
+      # Rust pinned to 1.96 via rust-toolchain.toml. Weston is useless for Wayland tests
+      # (no data-control) — use headless sway. Don't pkill -f "sway" (self-match kills the shell).
+      # Site docs: edit site/_src/docs/*.html then python site/_src/build.py (needs py3.12+).

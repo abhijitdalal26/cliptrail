@@ -19,6 +19,8 @@ pub mod urilist;
 
 #[cfg(target_os = "linux")]
 mod linux;
+#[cfg(target_os = "macos")]
+mod macos;
 #[cfg(windows)]
 mod windows;
 
@@ -31,7 +33,9 @@ pub struct WatcherHandle {
     _inner: windows::Watcher,
     #[cfg(target_os = "linux")]
     _inner: linux::Watcher,
-    #[cfg(not(any(windows, target_os = "linux")))]
+    #[cfg(target_os = "macos")]
+    _inner: macos::Watcher,
+    #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
     _private: (),
 }
 
@@ -59,7 +63,13 @@ where
             _inner: linux::Watcher::spawn(on_clip)?,
         })
     }
-    #[cfg(not(any(windows, target_os = "linux")))]
+    #[cfg(target_os = "macos")]
+    {
+        Ok(WatcherHandle {
+            _inner: macos::Watcher::spawn(on_clip)?,
+        })
+    }
+    #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
     {
         let _ = on_clip;
         anyhow::bail!("unsupported platform")
@@ -78,7 +88,11 @@ pub fn read_current() -> Result<Option<RawClip>> {
     {
         linux::read_current()
     }
-    #[cfg(not(any(windows, target_os = "linux")))]
+    #[cfg(target_os = "macos")]
+    {
+        macos::read_current()
+    }
+    #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
     {
         anyhow::bail!("unsupported platform")
     }
@@ -105,7 +119,11 @@ pub fn write_clip(content: WriteContent<'_>) -> Result<()> {
     {
         linux::write_clip(content)
     }
-    #[cfg(not(any(windows, target_os = "linux")))]
+    #[cfg(target_os = "macos")]
+    {
+        macos::write_clip(content)
+    }
+    #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
     {
         let _ = content;
         anyhow::bail!("unsupported platform")
@@ -127,7 +145,11 @@ pub fn remember_foreground() -> Option<ForeignWindow> {
     {
         linux::remember_foreground()
     }
-    #[cfg(not(any(windows, target_os = "linux")))]
+    #[cfg(target_os = "macos")]
+    {
+        macos::remember_foreground()
+    }
+    #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
     {
         None
     }
@@ -143,9 +165,27 @@ pub fn paste_into(target: ForeignWindow) -> Result<()> {
     {
         linux::paste_into(target)
     }
-    #[cfg(not(any(windows, target_os = "linux")))]
+    #[cfg(target_os = "macos")]
+    {
+        macos::paste_into(target)
+    }
+    #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
     {
         let _ = target;
         anyhow::bail!("unsupported platform")
+    }
+}
+
+/// Whether this process may post synthetic input events — required for
+/// [`paste_into`]. Always true outside macOS (other OSes gate elsewhere).
+/// The desktop UI polls this to show the Accessibility explainer.
+pub fn accessibility_trusted() -> bool {
+    #[cfg(target_os = "macos")]
+    {
+        macos::accessibility_trusted()
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        true
     }
 }

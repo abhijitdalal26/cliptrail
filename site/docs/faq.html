@@ -80,7 +80,7 @@
 <h3 id="ios">What about iOS?</h3>
 <p>Later. iOS doesn't let apps read the clipboard in the background, so it will start with a share extension and Shortcuts.</p>
 <h3 id="mac">Does it work on macOS?</h3>
-<p>An experimental build is produced, but clipboard capture and paste-back aren't implemented on macOS yet. Contributions welcome.</p>
+<p>An experimental universal build is produced by CI. Capture (text, rich text, images, file URLs) and paste-back work; paste-back needs Accessibility permission, and first launch needs <em>System Settings → Privacy &amp; Security → Open Anyway</em> because the build isn't signed. It hasn't been heavily tested on real Macs yet — <a href="https://github.com/abhijitdalal26/cliptrail/issues">report what you find</a>.</p>
 <h3 id="wayland">Does it work on Wayland?</h3>
 <p>Capture works on compositors with the data-control protocol (KDE Plasma, Sway, Hyprland). GNOME is limited. Paste-back needs X11; on Wayland you press <kbd>Ctrl</kbd> <kbd>V</kbd> yourself. See <a href="troubleshooting.html#capture">Troubleshooting</a>.</p>
 
