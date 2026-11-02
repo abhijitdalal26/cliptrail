@@ -72,14 +72,14 @@
       </article>
       <article class="os-card" data-os="linux" id="linux">
         <span class="chip chip-accent detected-tag">Your system</span>
-        <div class="os-head"><span class="os-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5c-2.1 0-3.4 1.8-3.4 4.1 0 1.3.3 2.1-.4 3.5-1.1 1.9-3 4.3-3 6.9 0 1 .3 1.7.9 2.2L5.4 21h3.4c.9.5 2 .8 3.2.8s2.3-.3 3.2-.8h3.4l-.7-1.8c.6-.5.9-1.2.9-2.2 0-2.6-1.9-5-3-6.9-.7-1.4-.4-2.2-.4-3.5 0-2.3-1.3-4.1-3.4-4.1Z"/><path d="M10.2 6.6h.01M13.8 6.6h.01"/><path d="m10.6 8.6 1.4.9 1.4-.9"/></svg></span><div><h2>Linux <span class="chip chip-muted">Beta</span></h2><span class="os-sub">x86_64 · Debian/Ubuntu or any distro</span></div></div>
+        <div class="os-head"><span class="os-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5c-2.1 0-3.4 1.8-3.4 4.1 0 1.3.3 2.1-.4 3.5-1.1 1.9-3 4.3-3 6.9 0 1 .3 1.7.9 2.2L5.4 21h3.4c.9.5 2 .8 3.2.8s2.3-.3 3.2-.8h3.4l-.7-1.8c.6-.5.9-1.2.9-2.2 0-2.6-1.9-5-3-6.9-.7-1.4-.4-2.2-.4-3.5 0-2.3-1.3-4.1-3.4-4.1Z"/><path d="M10.2 6.6h.01M13.8 6.6h.01"/><path d="m10.6 8.6 1.4.9 1.4-.9"/></svg></span><div><h2>Linux <span class="chip chip-ok">Supported</span></h2><span class="os-sub">x86_64 · Debian/Ubuntu or any distro</span></div></div>
         <p>Use the <code>.deb</code> on Debian, Ubuntu and derivatives; the AppImage runs almost anywhere. Paste-back works on X11 only.</p>
         <div class="assets"><div class="asset skeleton" data-asset="linux-deb" data-label="Debian / Ubuntu (.deb)" data-primary><span class="a-main"><span class="a-name">Debian / Ubuntu (.deb)</span><span class="a-meta">Checking GitHub…</span></span></div><div class="asset skeleton" data-asset="linux-appimage" data-label="AppImage"><span class="a-main"><span class="a-name">AppImage</span><span class="a-meta">Checking GitHub…</span></span></div></div>
       </article>
       <article class="os-card" data-os="macos" id="macos">
         <span class="chip chip-accent detected-tag">Your system</span>
         <div class="os-head"><span class="os-logo"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.4 12.7c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.1-1.2 2.9-2.4.9-1.3 1.3-2.7 1.3-2.8 0 0-2.4-1-2.4-3.9ZM14.1 5.6c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1 .1 2.1-.6 2.8-1.4Z"/></svg></span><div><h2>macOS <span class="chip chip-warn">Experimental</span></h2><span class="os-sub">Universal (Apple silicon and Intel)</span></div></div>
-        <p>Built by CI and lightly tested. A menu-bar app: capture and paste-back work once you allow it in <strong>Accessibility</strong>; <kbd>Cmd</kbd> <kbd>Shift</kbd> <kbd>Space</kbd> opens the picker.</p>
+        <p>Built by CI and not yet tested on real hardware: clipboard capture works, paste-back needs <strong>Accessibility</strong> permission. A menu-bar app; <kbd>Cmd</kbd> <kbd>Shift</kbd> <kbd>Space</kbd> opens the picker.</p>
         <div class="assets"><div class="asset skeleton" data-asset="mac-dmg" data-label="Disk image (.dmg)" data-soon="Arrives with v0.1.0 (experimental)"><span class="a-main"><span class="a-name">Disk image (.dmg)</span><span class="a-meta">Checking GitHub…</span></span></div></div>
       </article>
       <article class="os-card" data-os="android" id="android">
@@ -178,7 +178,7 @@
         <tbody>
           <tr><td>Windows</td><td>Windows 10 or 11, 64-bit (x64). Uses the Microsoft Edge WebView2 runtime, which Windows 11 includes; the installer fetches it on older systems.</td></tr>
           <tr><td>Linux</td><td>x86_64 with WebKitGTK 4.1 (Ubuntu 22.04 or newer, Debian 12, Fedora 38+). X11 for paste-back; Wayland capture needs a data-control compositor.</td></tr>
-          <tr><td>macOS</td><td>macOS 12 or newer, universal (Apple silicon and Intel). Experimental: capture and paste-back work; paste-back needs Accessibility permission.</td></tr>
+          <tr><td>macOS</td><td>macOS 12 or newer, universal (Apple silicon and Intel). Experimental: clipboard capture works, but the build is untested on real hardware; paste-back needs Accessibility permission.</td></tr>
           <tr><td>Android</td><td>Android 10 or newer (arm64), coming with v0.1. Tested first on Samsung One UI.</td></tr>
           <tr><td>Sync</td><td>Devices on the same local network (Wi-Fi or LAN) that can reach the hub on TCP port 47821.</td></tr>
         </tbody>
@@ -212,6 +212,7 @@
           <li><a href="docs/shortcuts.html">Keyboard shortcuts</a></li>
           <li><a href="docs/sync.html">Sync your devices</a></li>
           <li><a href="docs/cli.html">Command line</a></li>
+          <li><a href="docs/ai-assistants.html">AI assistants</a></li>
           <li><a href="docs/troubleshooting.html">Troubleshooting</a></li>
         </ul>
       </div>

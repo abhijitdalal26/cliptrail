@@ -74,21 +74,12 @@
     ios: "See all downloads",
     unknown: ("Download " + BRAND).trim()
   };
-  var NOTE = {
-    windows: "Windows 10 and 11 · 64-bit",
-    linux: "Beta · .deb and AppImage",
-    macos: "Experimental, untested build",
-    android: "Coming with v0.1 · on your computer for now",
-    ios: "iOS is planned for later",
-    unknown: "Windows · Linux · macOS (experimental)"
-  };
   document.querySelectorAll("[data-os-cta]").forEach(function (el) {
     var span = el.querySelector("[data-os-cta-label]") || el;
     span.textContent = CTA[os];
     var href = el.getAttribute("href");
     if (href && href.indexOf("#") === -1 && OS_LABEL[os]) el.setAttribute("href", href + "#" + os);
   });
-  document.querySelectorAll("[data-os-note]").forEach(function (el) { el.textContent = NOTE[os]; });
 
   // ---- copy buttons on code blocks
   if (navigator.clipboard) {

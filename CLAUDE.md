@@ -5,7 +5,7 @@
 ## Current decisions (these override older docs where they disagree)
 
 - **Phase:** v1 = Windows laptop + Android phone. Make it work first, then polish. The desktop UI must look modern and beautiful; that is a core differentiator.
-- **Branch:** commit to `main` directly while bootstrapping; push after each milestone.
+- **Branch:** `main` is protected (PR required + 5 CI checks: Rust ubuntu/windows/macos, Linux live clipboard tests, Relay Docker image); work on a branch and merge via PR.
 - **Crates:** `clipd-core` (model, store, classifier, pipeline; no OS code), `clipd-capture` (desktop clipboard watcher, write-back, paste-back), `clipd-cli` (binary `clipd`). Contract types live in `crates/clipd-core/src/model.rs`.
 - **Storage:** SQLite (rusqlite, bundled) + FTS5 trigram index for substring search. Images live as PNG files under the data dir (`images/`, `thumbs/`); the DB stores paths.
 - **Encryption:** the local DB is plaintext during the prototype. Before sync ships: SQLCipher for the DB, XChaCha20-Poly1305 for sync envelopes and image files. One cipher family everywhere.

@@ -49,6 +49,7 @@ I = {
  "devices": svg('<rect x="2" y="4" width="13" height="10" rx="1.5"/><path d="M5 18h7"/><rect x="17" y="8" width="5" height="12" rx="1.2"/>'),
  "tray": svg('<path d="M4 6h16M4 12h16M4 18h7"/><path d="m15 18 2 2 4-4"/>'),
  "search": svg('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>'),
+ "copy": svg('<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>'),
  "link": svg('<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>'),
  "code": svg('<path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/>'),
  "text": svg('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/>'),
@@ -197,6 +198,7 @@ def footer(R):
           <li><a href="{R}docs/shortcuts.html">Keyboard shortcuts</a></li>
           <li><a href="{R}docs/sync.html">Sync your devices</a></li>
           <li><a href="{R}docs/cli.html">Command line</a></li>
+          <li><a href="{R}docs/ai-assistants.html">AI assistants</a></li>
           <li><a href="{R}docs/troubleshooting.html">Troubleshooting</a></li>
         </ul>
       </div>
@@ -242,6 +244,7 @@ DOCS = [
     ("kinds.html", "Kinds & classification", "link code text contact color file image sensitive language detect"),
     ("smart-actions.html", "Smart actions", "transform clean url tracking json color rgb hsl markdown dedent"),
     ("search.html", "Search & timeline", "find filter heatmap calendar date app pinned"),
+    ("ai-assistants.html", "AI assistants (MCP)", "ai claude cursor mcp agent clipd-mcp chatgpt assistant llm"),
   ]),
   ("Devices", [
     ("sync.html", "Sync your devices", "pair qr hub lan firewall wifi revoke encryption"),

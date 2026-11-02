@@ -54,13 +54,11 @@
       <p class="lede">ClipTrail remembers everything you copy, knows what each thing is, and puts it one keystroke away. Pair your devices and your history follows you, end-to-end encrypted. Open source, no account, no tracking.</p>
       <div class="hero-cta">
         <a class="btn btn-primary btn-lg" href="download.html" data-os-cta><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg><span data-os-cta-label>Download ClipTrail</span></a>
-        <a class="btn btn-lg" href="docs/index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>Read the docs</a>
         <a class="btn btn-lg btn-ghost" href="https://github.com/abhijitdalal26/cliptrail"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.68-1.28-1.68-1.04-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.8 1.19 1.83 1.19 3.09 0 4.42-2.7 5.4-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>Star on GitHub</a>
       </div>
-      <p class="hero-note"><span data-os-note>Windows · Linux · macOS (experimental)</span> · Free and open source</p>
       <div class="platform-row" aria-label="Platform support">
         <span class="pill"><span class="status-dot ok"></span><b>Windows</b></span>
-        <span class="pill"><span class="status-dot beta"></span><b>Linux</b> beta</span>
+        <span class="pill"><span class="status-dot ok"></span><b>Linux</b></span>
         <span class="pill"><span class="status-dot soon"></span><b>Android</b> coming in v0.1</span>
         <span class="pill"><span class="status-dot exp"></span><b>macOS</b> experimental</span>
         <span class="pill"><span class="status-dot"></span><b>iOS</b> later</span>
@@ -173,10 +171,36 @@
       </div>
       <div class="tile span-2">
         <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 17 6-6-6-6M12 19h8"/></svg></span>
-        <h3>Scriptable — and agent-ready</h3>
-        <p>The <code>clipd</code> CLI does everything the app does — capture, search, pin, sync — so scripts and AI agents can reach your history too. An MCP server that plugs ClipTrail straight into agent tooling is in development.</p>
+        <h3>Scriptable, and agent-ready</h3>
+        <p>The <code>clipd</code> CLI does everything the app does (capture, search, pin, sync), so scripts can reach your history too. AI assistants can search it through the local <a href="docs/ai-assistants.html"><code>clipd-mcp</code></a> server.</p>
         <a class="more" href="docs/cli.html">clipd commands →</a>
       </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="ai">
+  <div class="wrap split">
+    <div>
+      <span class="eyebrow">AI assistants</span>
+      <h2 class="h2">Works with your AI assistant.</h2>
+      <p class="lede" style="margin-bottom:24px">Claude Code, Claude Desktop, Cursor and any MCP-compatible client can search your clipboard history for you, right on your own computer. Ask in plain words; get the clip back.</p>
+      <ul class="checklist">
+        <li><span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><span><b>Runs locally.</b> The assistant starts <code>clipd-mcp</code> on your machine and talks to it over stdio. No account, no hosted service, no open port.</span></li>
+        <li><span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><span><b>Sensitive clips are withheld.</b> Keys, one-time codes and card numbers are masked; the assistant never gets their body and can't copy them back.</span></li>
+        <li><span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><span><b>Read-mostly.</b> It can search, read, pin and put a clip back on your clipboard. It can't delete or edit anything.</span></li>
+        <li><span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><span><b>Honest about the edges.</b> Clips an assistant reads become part of that conversation with your AI provider. ChatGPT isn't supported: it needs a remote server, and ours is local by design.</span></li>
+      </ul>
+      <p style="margin-top:20px"><a class="btn" href="docs/ai-assistants.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>Set up your assistant</a></p>
+    </div>
+    <div class="chat-card" role="img" aria-label="Example conversation: you ask for the Postgres connection string you copied in March and the assistant finds it with search_clips, then puts it on your clipboard with copy_to_clipboard.">
+      <div class="head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>Ask your history</div>
+      <div class="msg you">Find the Postgres connection string I copied in March.</div>
+      <div class="tool"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span><code>search_clips</code> for "postgres", 1 to 31 March</span></div>
+      <div class="msg ai">Found one from 12 March, copied from VS Code: <code>postgres://app@db.internal:5432/orders</code></div>
+      <div class="msg you">Put it back on my clipboard.</div>
+      <div class="tool"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span><code>copy_to_clipboard</code></span></div>
+      <div class="msg ai">Done. It's on your clipboard, so press <kbd>Ctrl</kbd> <kbd>V</kbd>.</div>
     </div>
   </div>
 </section>
@@ -243,9 +267,9 @@
         <thead><tr><th scope="col">Platform</th><th scope="col">Status</th><th scope="col">Capture</th><th scope="col">Paste-back</th><th scope="col">Sync</th></tr></thead>
         <tbody>
           <tr><th scope="row">Windows 10 / 11</th><td><span class="status-dot ok"></span>Supported</td><td>Automatic</td><td>Yes</td><td>Hub or client</td></tr>
-          <tr><th scope="row">Linux</th><td><span class="status-dot beta"></span>Beta</td><td>X11; Wayland with data-control (KDE, Sway, Hyprland). GNOME is limited.</td><td>X11 only</td><td>Hub or client</td></tr>
+          <tr><th scope="row">Linux</th><td><span class="status-dot ok"></span>Supported</td><td>X11; Wayland with data-control (KDE, Sway, Hyprland). GNOME Wayland only sees X11 apps.</td><td>X11 only</td><td>Hub or client</td></tr>
           <tr><th scope="row">Android</th><td><span class="status-dot soon"></span>Coming in v0.1</td><td>Automatic via accessibility, plus tile and share menu</td><td>Tap to copy</td><td>Client</td></tr>
-          <tr><th scope="row">macOS</th><td><span class="status-dot exp"></span>Experimental</td><td>Automatic (text, rich text, images, file URLs)</td><td>Yes — needs Accessibility permission</td><td>Hub or client (untested)</td></tr>
+          <tr><th scope="row">macOS</th><td><span class="status-dot exp"></span>Experimental</td><td>Capture works (text, rich text, images, file URLs); untested on real hardware</td><td>Needs Accessibility permission; untested</td><td>Hub or client (untested)</td></tr>
           <tr><th scope="row">iOS</th><td><span class="status-dot"></span>Later</td><td colspan="3" class="m">Share extension and shortcuts are on the roadmap.</td></tr>
         </tbody>
       </table>
@@ -358,6 +382,7 @@
           <li><a href="docs/shortcuts.html">Keyboard shortcuts</a></li>
           <li><a href="docs/sync.html">Sync your devices</a></li>
           <li><a href="docs/cli.html">Command line</a></li>
+          <li><a href="docs/ai-assistants.html">AI assistants</a></li>
           <li><a href="docs/troubleshooting.html">Troubleshooting</a></li>
         </ul>
       </div>
