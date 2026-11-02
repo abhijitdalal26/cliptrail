@@ -130,3 +130,6 @@ pub fn paste_into(target: ForeignWindow) -> Result<()> {
         }
     }
 }
+
+#[cfg(test)]
+mod live_tests;

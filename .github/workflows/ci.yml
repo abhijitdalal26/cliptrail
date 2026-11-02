@@ -45,6 +45,42 @@ jobs:
         if: runner.os == 'macOS'
         run: cargo test -p clipd-capture -- --ignored --test-threads=1
 
+  linux-live-clipboard:
+    name: Linux live clipboard tests (X11 + Wayland)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Session tools (Xvfb for X11, sway headless for data-control Wayland)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb xclip wl-clipboard sway libxcb-xfixes0-dev
+      # Wayland env vars for the whole job; DISPLAY is set per-step.
+      - name: Wayland runtime dir
+        run: |
+          mkdir -p "$RUNNER_TEMP/xdg" && chmod 700 "$RUNNER_TEMP/xdg"
+          echo "XDG_RUNTIME_DIR=$RUNNER_TEMP/xdg" >> "$GITHUB_ENV"
+          echo "WAYLAND_DISPLAY=wayland-1" >> "$GITHUB_ENV"
+      - name: X11 live tests under Xvfb
+        env:
+          WAYLAND_DISPLAY: ""
+        run: |
+          xvfb-run -a -s "-screen 0 1280x800x24" \
+            cargo test -p clipd-capture -- --ignored --test-threads=1
+      - name: Wayland live tests under headless sway
+        run: |
+          WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 WLR_RENDERER=pixman \
+            sway -c /dev/null >sway.log 2>&1 &
+          # wait for the socket instead of sleeping a fixed interval
+          for i in $(seq 1 50); do
+            [ -S "$XDG_RUNTIME_DIR/wayland-1" ] && break
+            sleep 0.2
+          done
+          test -S "$XDG_RUNTIME_DIR/wayland-1"
+          cargo test -p clipd-capture -- --ignored --test-threads=1
+          kill %1 || true
+
   relay-image:
     name: Relay Docker image (build only)
     runs-on: ubuntu-latest

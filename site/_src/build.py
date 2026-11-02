@@ -122,7 +122,7 @@ NAV = [("Features", "index.html#features", "features"), ("Download", "download.h
 
 def header(R, active, wide=False):
     links = "".join(
-        '<a href="{}{}"{}>{}</a>'.format(R, href, ' aria-current="page"' if key == active else "", label)
+        '<a href="{0}{1}"{2}>{3}</a>'.format(R, href, ' aria-current="page"' if key == active else '', label)
         for label, href, key in NAV)
     mlinks = "".join(f'<a href="{R}{href}">{label}</a>' for label, href, key in NAV)
     return f"""<a class="skip" href="#main">Skip to content</a>

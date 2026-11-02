@@ -7,15 +7,16 @@
 //! 2. Fallback: `XSetInputFocus` + raise, polled up to 50 ms.
 //!
 //! Held modifiers (typically the picker hotkey) are released first so they do
-//! not combine with our Ctrl+V.
+//! not combine with our Ctrl+V. Terminal emulators get Ctrl+Shift+V instead:
+//! for them Ctrl+V is "literal next", not paste.
 
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, bail};
 use x11rb::connection::Connection;
 use x11rb::protocol::xproto::{
-    ClientMessageEvent, ConfigureWindowAux, ConnectionExt, EventMask, InputFocus, KEY_PRESS_EVENT,
-    KEY_RELEASE_EVENT, StackMode, Window,
+    AtomEnum, ClientMessageEvent, ConfigureWindowAux, ConnectionExt, EventMask, InputFocus,
+    KEY_PRESS_EVENT, KEY_RELEASE_EVENT, StackMode, Window,
 };
 use x11rb::protocol::xtest::ConnectionExt as _;
 use x11rb::rust_connection::RustConnection;
@@ -30,9 +31,89 @@ const FOCUS_WAIT: Duration = Duration::from_millis(50);
 
 const XK_V: u32 = 0x0076;
 const XK_CONTROL_L: u32 = 0xffe3;
+const XK_SHIFT_L: u32 = 0xffe1;
 /// Physical-key fallbacks (evdev + 8) if the keymap has no such keysym.
 const KEYCODE_V_FALLBACK: u8 = 55;
 const KEYCODE_CTRL_L_FALLBACK: u8 = 37;
+const KEYCODE_SHIFT_L_FALLBACK: u8 = 50;
+
+/// WM_CLASS classes whose paste shortcut is Ctrl+Shift+V (Ctrl+V is
+/// "literal next" in a terminal). Lowercase, matched case-insensitively.
+/// Editors with an integrated terminal (code, codium) are deliberately
+/// left out: there Ctrl+V is right for the editor itself.
+const TERMINAL_CLASSES: &[&str] = &[
+    "xterm",
+    "uxterm",
+    "konsole",
+    "gnome-terminal",
+    "gnome-terminal-server",
+    "kgx",
+    "mate-terminal",
+    "xfce4-terminal",
+    "lxterminal",
+    "tilix",
+    "terminator",
+    "alacritty",
+    "kitty",
+    "wezterm",
+    "wezterm-gui",
+    "foot",
+    "st",
+    "st-256color",
+    "simpleterminal",
+    "termite",
+    "urxvt",
+    "rxvt-unicode",
+    "rxvt-unicode-256color",
+    "eterm",
+    "aterm",
+    "mlterm",
+    "sakura",
+    "terminology",
+    "qterminal",
+    "yakuake",
+    "guake",
+    "tilda",
+    "cool-retro-term",
+    "deepin-terminal",
+    "io.elementary.terminal",
+    "hyper",
+    "tabby",
+    "contour",
+    "blackbox",
+];
+
+fn is_terminal_class(class: &str) -> bool {
+    let class = class.to_ascii_lowercase();
+    TERMINAL_CLASSES.iter().any(|t| *t == class)
+}
+
+/// The WM_CLASS class part of `win` or the nearest ancestor that has one.
+fn wm_class(conn: &RustConnection, atoms: &Atoms, root: Window, mut win: Window) -> Option<String> {
+    for _ in 0..16 {
+        if win == x11rb::NONE || win == root {
+            return None;
+        }
+        if let Some(reply) = conn
+            .get_property(false, win, atoms.WM_CLASS, AtomEnum::STRING, 0, 1024)
+            .ok()
+            .and_then(|c| c.reply().ok())
+            && !reply.value.is_empty()
+        {
+            // WM_CLASS is "instance\0class\0".
+            let class = reply
+                .value
+                .split(|&b| b == 0)
+                .rfind(|s| !s.is_empty())
+                .map(|s| String::from_utf8_lossy(s).into_owned());
+            if let Some(class) = class {
+                return Some(class);
+            }
+        }
+        win = conn.query_tree(win).ok()?.reply().ok()?.parent;
+    }
+    None
+}
 
 fn session() -> Result<(RustConnection, Atoms, Window)> {
     let (conn, screen_num) = connect()?;
@@ -201,12 +282,24 @@ pub(in crate::linux) fn paste_into(target: ForeignWindow) -> Result<()> {
     let v = find_keycode(&map.keysyms, per, min, XK_V).unwrap_or(KEYCODE_V_FALLBACK);
 
     release_held_modifiers(&conn, root)?;
-    for (kind, code) in [
-        (KEY_PRESS_EVENT, ctrl),
-        (KEY_PRESS_EVENT, v),
-        (KEY_RELEASE_EVENT, v),
-        (KEY_RELEASE_EVENT, ctrl),
-    ] {
+    // Terminals paste with Ctrl+Shift+V.
+    let shift = wm_class(&conn, &atoms, root, win)
+        .as_deref()
+        .is_some_and(is_terminal_class)
+        .then(|| {
+            find_keycode(&map.keysyms, per, min, XK_SHIFT_L).unwrap_or(KEYCODE_SHIFT_L_FALLBACK)
+        });
+    let mut seq = vec![(KEY_PRESS_EVENT, ctrl)];
+    if let Some(shift) = shift {
+        seq.push((KEY_PRESS_EVENT, shift));
+    }
+    seq.push((KEY_PRESS_EVENT, v));
+    seq.push((KEY_RELEASE_EVENT, v));
+    if let Some(shift) = shift {
+        seq.push((KEY_RELEASE_EVENT, shift));
+    }
+    seq.push((KEY_RELEASE_EVENT, ctrl));
+    for (kind, code) in seq {
         conn.xtest_fake_input(kind, code, 0, root, 0, 0, 0)?;
     }
     conn.flush()?;
@@ -237,5 +330,16 @@ mod tests {
         km[4] = 1 << 5; // keycode 37
         assert!(pressed(&km, 37));
         assert!(!pressed(&km, 36));
+    }
+
+    #[test]
+    fn terminal_classes() {
+        assert!(is_terminal_class("konsole"));
+        assert!(is_terminal_class("Gnome-terminal"));
+        assert!(is_terminal_class("Alacritty"));
+        assert!(!is_terminal_class("chrome"));
+        assert!(!is_terminal_class("kwrite"));
+        // Integrated terminals: editor windows stay on Ctrl+V.
+        assert!(!is_terminal_class("code"));
     }
 }

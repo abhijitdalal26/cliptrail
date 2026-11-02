@@ -54,7 +54,7 @@
       "dmg": { "windowPosition": { "x": 200, "y": 120 }, "appPosition": { "x": 160, "y": 170 }, "applicationFolderPosition": { "x": 480, "y": 170 } }
     },
     "linux": {
-      "deb": { "depends": ["libxdo3"] }
+      "deb": { "depends": [] }
     }
   }
 }
