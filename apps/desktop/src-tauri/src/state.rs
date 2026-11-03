@@ -76,6 +76,16 @@ pub struct AppState {
     pub watcher: Mutex<Option<WatcherHandle>>,
     #[cfg(desktop)]
     pub hotkeys: Mutex<Hotkeys>,
+    /// When ClipTrail last wrote a *transformed* clip (clean link, prettified
+    /// JSON…) to the clipboard. The watcher sees our own writes come back;
+    /// plain write-backs keep the clip's original source app, transformed
+    /// text is new content and is credited to ClipTrail.
+    #[cfg(desktop)]
+    pub transform_write: Mutex<Option<Instant>>,
+    /// Why a global hotkey from the settings isn't registered (e.g. another
+    /// app owns it). Shown in Settings and on the dashboard.
+    #[cfg(desktop)]
+    pub hotkey_error: Mutex<Option<String>>,
 }
 
 impl Deref for AppState {
@@ -124,6 +134,10 @@ impl AppState {
             watcher: Mutex::new(None),
             #[cfg(desktop)]
             hotkeys: Mutex::new(Hotkeys::default()),
+            #[cfg(desktop)]
+            transform_write: Mutex::new(None),
+            #[cfg(desktop)]
+            hotkey_error: Mutex::new(None),
         }
     }
 

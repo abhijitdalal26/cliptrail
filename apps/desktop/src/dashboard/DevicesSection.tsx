@@ -16,6 +16,7 @@ import {
   type SyncView,
 } from "../lib/sync";
 import type { Millis } from "../lib/types";
+import { RelayCard } from "../components/RelayCard";
 import { Button, Switch } from "../components/ui";
 
 function ago(t: Millis | null): string {
@@ -90,6 +91,8 @@ export function DevicesSection() {
             ))}
           </div>
         )}
+
+        {view.enabled && st.configured && st.running && <RelayCard view={view} />}
 
         {view.enabled && !isClient && <PortRow view={view} busy={busy} run={run} />}
       </div>

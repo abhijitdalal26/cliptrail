@@ -114,6 +114,7 @@ export function Preview({ summary, onCopy, onTogglePin, onDelete, toast }: Props
           <Meta label="First copied">{fullDate(s.created_at)}</Meta>
           {s.copy_count > 1 && <Meta label="Last copied">{fullDate(s.last_seen_at)}</Meta>}
           <Meta label="Size">{sizeLabel(s)}</Meta>
+          {clip?.html && <Meta label="Format">Rich text · Copy keeps formatting</Meta>}
           {s.expires_at && <Meta label="Expires">in {untilLabel(s.expires_at)}</Meta>}
         </dl>
       </div>

@@ -78,6 +78,8 @@ export const api = {
   windowEffects: () => call<boolean>("window_effects"),
   /** `panel` (Android): the bars sit over a panel-coloured screen (the clip view). Ignored on desktop. */
   setWindowTheme: (dark: boolean, panel = false) => call<void>("set_window_theme", { dark, panel }),
+  /** Release the global hotkeys while Settings records a new one (desktop). */
+  suspendHotkeys: (suspended: boolean) => call<void>("suspend_hotkeys", { suspended }),
   backendStatus: () => call<string | null>("backend_status"),
   getSettings: () => call<SettingsView>("get_settings"),
   updateSettings: (settings: Settings) => call<SettingsView>("update_settings", { settings }),

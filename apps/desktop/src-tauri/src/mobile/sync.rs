@@ -16,6 +16,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, LazyLock, Mutex};
 use std::time::Duration;
 
+use clipd_sync::relay::RelayHello;
 use clipd_sync::{ClientConfig, ClientHandle, PairOutcome, Role, SyncNotice, SyncStatus};
 use serde::Serialize;
 
@@ -298,4 +299,52 @@ pub async fn sync_fetch_image(id: String) -> CmdResult<bool> {
         super::emit("clips-updated", ());
     }
     Ok(got)
+}
+
+// ---- off-LAN relays ("Sync anywhere") ---------------------------------------
+
+/// Check a relay URL without changing anything (the "Test" button).
+#[tauri::command]
+pub async fn sync_relay_check(url: String) -> CmdResult<RelayHello> {
+    clipd_sync::relay_check(&url)
+        .await
+        .map_err(|e| format!("{e:#}"))
+}
+
+fn relay_changed() {
+    if let Some(c) = &*lock(&CTL.running) {
+        c.relay_changed();
+    }
+}
+
+/// Register this space on a relay and share it with the computer (and the
+/// other devices) through the hub.
+#[tauri::command]
+pub async fn sync_relay_add(url: String, invite: Option<String>) -> CmdResult<SyncView> {
+    let core = super::core()?;
+    let ks = super::keystore()?;
+    let invite = invite.filter(|i| !i.trim().is_empty());
+    clipd_sync::relay_add(&core.data_dir, ks, &url, invite.as_deref())
+        .await
+        .map_err(|e| format!("{e:#}"))?;
+    relay_changed();
+    changed();
+    view().await
+}
+
+/// Stop using a relay (on every device); `purge` also deletes this space's
+/// data from it.
+#[tauri::command]
+pub async fn sync_relay_remove(url: String, purge: bool) -> CmdResult<SyncView> {
+    let core = super::core()?;
+    let ks = super::keystore()?;
+    let found = clipd_sync::relay_remove(&core.data_dir, ks, &url, purge)
+        .await
+        .map_err(|e| format!("{e:#}"))?;
+    if !found {
+        return Err("That relay isn't set up here".into());
+    }
+    relay_changed();
+    changed();
+    view().await
 }

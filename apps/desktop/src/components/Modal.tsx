@@ -20,7 +20,9 @@ export function Modal({
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+      // A control that records keys (the hotkey input) uses Esc to cancel.
+      const t = e.target as HTMLElement | null;
+      if (e.key === "Escape" && !t?.closest?.("[data-records-keys]")) {
         e.preventDefault();
         e.stopPropagation();
         onClose();

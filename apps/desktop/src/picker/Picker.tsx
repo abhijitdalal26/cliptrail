@@ -40,6 +40,13 @@ const TABS: Tab[] = [
 
 const ROW_H = 46;
 
+/** A real pointer move, not the synthetic mousemove the webview fires when
+ *  the window opens (or the list scrolls) under a cursor that stayed put;
+ *  hovering must not steal the keyboard selection then. */
+function pointerMoved(e: React.MouseEvent): boolean {
+  return e.movementX !== 0 || e.movementY !== 0;
+}
+
 export function Picker() {
   useTick(60_000);
   const [search, setSearch] = useState("");
@@ -395,7 +402,7 @@ function ActionMenu({
             key={t}
             role="menuitem"
             aria-selected={on}
-            onMouseMove={() => !on && onHover(i)}
+            onMouseMove={(e) => !on && pointerMoved(e) && onHover(i)}
             onClick={() => onPick(t)}
             className={cx("flex h-[34px] items-center gap-2.5 rounded-lg px-2.5", on && "bg-accent-soft")}
           >
@@ -442,7 +449,7 @@ const PickerRow = memo(function PickerRow({
     <div
       role="option"
       aria-selected={selected}
-      onMouseMove={() => !selected && onHover(index)}
+      onMouseMove={(e) => !selected && pointerMoved(e) && onHover(index)}
       onMouseDown={(e) => e.preventDefault()}
       onClick={(e) => onPick(index, e.shiftKey)}
       className={cx(

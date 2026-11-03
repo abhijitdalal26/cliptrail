@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { format, startOfDay } from "date-fns";
-import { AlertTriangle, CalendarDays, Flame } from "lucide-react";
+import { AlertTriangle, CalendarDays, Flame, Keyboard } from "lucide-react";
 import { api, errorMessage, isTauri, listen, onClipsChanged } from "../lib/api";
 import { appName } from "../lib/apps";
 import { dayKey, plural } from "../lib/format";
 import { heatmapStart } from "../lib/heat";
 import { isTypingTarget, useDebounced, useEvent, useTick } from "../lib/hooks";
 import { KIND_META } from "../lib/kinds";
-import { toast } from "../lib/toast";
+import { dismiss, toast } from "../lib/toast";
 import type { CaptureState, ClipSummary, ListQuery, Stats } from "../lib/types";
 import { useClips } from "../lib/useClips";
 import type { View } from "../lib/view";
-import { Chip, Segmented } from "../components/ui";
+import { Button, Chip, Segmented } from "../components/ui";
 import { Toasts } from "../components/Toasts";
 import { Heatmap, HeatLegend } from "./Heatmap";
 import { Preview } from "./Preview";
@@ -44,6 +44,7 @@ export function Dashboard() {
   const [capture, setCapture] = useState<CaptureState>({ paused: false, until: null });
   const [pickerKey, setPickerKey] = useState("Ctrl+Shift+Space");
   const [backendError, setBackendError] = useState<string | null>(null);
+  const [hotkeyError, setHotkeyError] = useState<string | null>(null);
 
   const searchRef = useRef<HTMLInputElement>(null);
   const timeline = useRef<TimelineHandle>(null);
@@ -71,6 +72,8 @@ export function Dashboard() {
   // ---------- pending deletes (undo) ----------
   const [pending, setPending] = useState<Set<string>>(new Set());
   const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  /** The "Clip deleted · Undo" toast per pending delete, dismissed on undo. */
+  const undoToasts = useRef(new Map<string, number>());
   const lastDeleted = useRef<string | null>(null);
 
   const visible = useMemo(() => clips.items.filter((c) => !pending.has(c.id)), [clips.items, pending]);
@@ -92,7 +95,10 @@ export function Dashboard() {
     void api.captureState().then(setCapture).catch(() => undefined);
     void api
       .getSettings()
-      .then((v) => setPickerKey(v.settings.picker_shortcut))
+      .then((v) => {
+        setPickerKey(v.settings.picker_shortcut);
+        setHotkeyError(v.hotkey_error ?? null);
+      })
       .catch(() => undefined);
     void api.backendStatus().then(setBackendError).catch(() => undefined);
     if (isTauri) {
@@ -119,7 +125,10 @@ export function Dashboard() {
     const c = listen("settings-changed", () =>
       void api
         .getSettings()
-        .then((v) => setPickerKey(v.settings.picker_shortcut))
+        .then((v) => {
+          setPickerKey(v.settings.picker_shortcut);
+          setHotkeyError(v.hotkey_error ?? null);
+        })
         .catch(() => undefined),
     );
     return () => {
@@ -174,6 +183,9 @@ export function Dashboard() {
     if (!t) return;
     clearTimeout(t);
     timers.current.delete(id);
+    const tid = undoToasts.current.get(id);
+    if (tid != null) dismiss(tid);
+    undoToasts.current.delete(id);
     setPending((p) => {
       const n = new Set(p);
       n.delete(id);
@@ -190,6 +202,7 @@ export function Dashboard() {
     lastDeleted.current = c.id;
     const t = setTimeout(() => {
       timers.current.delete(c.id);
+      undoToasts.current.delete(c.id);
       api
         .deleteClip(c.id)
         .then(() => {
@@ -206,7 +219,10 @@ export function Dashboard() {
         );
     }, UNDO_MS);
     timers.current.set(c.id, t);
-    toast({ message: "Clip deleted", action: { label: "Undo", run: () => undoDelete(c.id) }, duration: UNDO_MS });
+    undoToasts.current.set(
+      c.id,
+      toast({ message: "Clip deleted", action: { label: "Undo", run: () => undoDelete(c.id) }, duration: UNDO_MS }),
+    );
   });
 
   const select = useCallback((id: string) => setSelectedId(id), []);
@@ -397,6 +413,18 @@ export function Dashboard() {
                 <span>
                   <span className="font-medium text-fg">The clip store couldn't be opened.</span> {backendError}
                 </span>
+              </div>
+            )}
+            {hotkeyError && !backendError && (
+              <div className="anim-drop mx-6 mb-2 flex items-center gap-2.5 rounded-xl border border-[color-mix(in_oklab,#f59e0b_35%,transparent)] bg-[color-mix(in_oklab,#f59e0b_8%,transparent)] px-3.5 py-2.5 text-[12.5px] text-fg-2">
+                <Keyboard size={15} className="shrink-0 text-[#b45309] dark:text-[#fbbf24]" />
+                <span className="min-w-0 flex-1">
+                  <span className="font-medium text-fg">A keyboard shortcut isn't working.</span> {hotkeyError}. Pick
+                  another combination in Settings.
+                </span>
+                <Button size="sm" onClick={() => setModal("settings")}>
+                  Change shortcut
+                </Button>
               </div>
             )}
             <UpdateNotices />

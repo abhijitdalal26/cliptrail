@@ -123,6 +123,8 @@ export interface SettingsView {
   version: string;
   capture: CaptureState;
   platform: string;
+  /** A global hotkey from the settings that couldn't be registered (desktop). */
+  hotkey_error?: string | null;
 }
 
 // ---- type-aware actions (mirror of clipd_core::transform::Transform) ----
