@@ -55,7 +55,8 @@ pub const DEFAULT_EXCLUDED_APPS: &[&str] = &[
 ];
 
 const DEVICE_ID_FILE: &str = "device_id";
-const DB_FILE: &str = "clips.db";
+/// The clip database inside the data dir.
+pub const DB_FILE: &str = "clips.db";
 pub(crate) const IMAGES_DIR: &str = "images";
 pub(crate) const THUMBS_DIR: &str = "thumbs";
 

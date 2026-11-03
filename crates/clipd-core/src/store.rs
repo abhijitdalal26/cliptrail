@@ -171,8 +171,8 @@ impl Store {
             std::fs::create_dir_all(parent)
                 .with_context(|| format!("create directory {}", parent.display()))?;
         }
-        let conn =
-            Connection::open(path).with_context(|| format!("open database {}", path.display()))?;
+        let conn = crate::dbkey::open_connection(path)
+            .with_context(|| format!("open database {}", path.display()))?;
         Self::init(conn)
     }
 

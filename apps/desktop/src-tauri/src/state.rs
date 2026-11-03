@@ -17,6 +17,7 @@ use std::time::Instant;
 #[cfg(desktop)]
 use clipd_capture::{ForeignWindow, WatcherHandle};
 use clipd_core::{Millis, Pipeline, PipelineConfig};
+use clipd_sync::KeyStore;
 use serde::Serialize;
 #[cfg(desktop)]
 use tauri_plugin_global_shortcut::Shortcut;
@@ -54,6 +55,9 @@ pub struct Core {
     pub default_excluded: Mutex<Vec<String>>,
     pause: Mutex<Pause>,
     init_once: Once,
+    /// Holds the key of the encrypted local databases. `None`: the
+    /// platform default for this data dir (OS keychain on desktop).
+    keystore: Option<Arc<dyn KeyStore>>,
 }
 
 pub struct AppState {
@@ -114,7 +118,7 @@ pub fn guard<T>(what: &str, f: impl FnOnce() -> anyhow::Result<T>) -> Result<T, 
 impl AppState {
     #[cfg(desktop)]
     pub fn new(data_dir: PathBuf) -> AppState {
-        AppState::with_core(Arc::new(Core::new(data_dir)))
+        AppState::with_core(Arc::new(Core::new(data_dir, None)))
     }
 
     pub fn with_core(core: Arc<Core>) -> AppState {
@@ -152,8 +156,9 @@ impl AppState {
 }
 
 impl Core {
-    pub fn new(data_dir: PathBuf) -> Core {
+    pub fn new(data_dir: PathBuf, keystore: Option<Arc<dyn KeyStore>>) -> Core {
         Core {
+            keystore,
             data_dir,
             pipeline: RwLock::new(None),
             init_error: Mutex::new(None),
@@ -221,6 +226,13 @@ impl Core {
     fn open_pipeline(&self, s: &Settings) -> Result<Arc<Pipeline>, String> {
         guard("opening the clip store", || {
             let mut cfg = PipelineConfig::with_defaults(self.data_dir.clone())?;
+            if !clipd_core::dbkey::has_db_key(&cfg.data_dir) {
+                let ks = self
+                    .keystore
+                    .clone()
+                    .unwrap_or_else(|| clipd_sync::default_keystore(&cfg.data_dir, &cfg.device_id));
+                clipd_sync::unlock_data_dir(&cfg.data_dir, ks.as_ref())?;
+            }
             cfg.excluded_apps = s.excluded_apps.clone();
             cfg.sensitive_ttl_ms = s.sensitive_ttl_minutes as Millis * 60_000;
             cfg.max_image_bytes = if s.max_image_mb == 0 {

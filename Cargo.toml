@@ -1,6 +1,13 @@
 [workspace]
 resolver = "3"
 members = ["crates/clipd-core", "crates/clipd-capture", "crates/clipd-sync", "crates/clipd-relay", "crates/clipd-cli", "crates/clipd-mcp", "apps/desktop/src-tauri"]
+# Vendored, patched dependencies; not ours to lint or test.
+exclude = ["third_party"]
+
+# Bundled SQLite is built as SQLite3 Multiple Ciphers (encrypted databases).
+# See third_party/README.md.
+[patch.crates-io]
+libsqlite3-sys = { path = "third_party/libsqlite3-sys" }
 
 [workspace.package]
 version = "0.1.0"

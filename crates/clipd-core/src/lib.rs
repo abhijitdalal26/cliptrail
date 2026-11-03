@@ -7,6 +7,7 @@
 //! Rule: never log or put clip content into errors. Log ids, kinds, sizes.
 
 pub mod classify;
+pub mod dbkey;
 pub mod model;
 pub mod pipeline;
 pub mod store;

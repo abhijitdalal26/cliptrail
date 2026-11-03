@@ -769,6 +769,7 @@ dependencies = [
  "clap",
  "clipd-capture",
  "clipd-core",
+ "clipd-sync",
  "serde",
  "serde_json",
  "tracing",
@@ -2745,11 +2746,10 @@ dependencies = [
 [[package]]
 name = "libsqlite3-sys"
 version = "0.39.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "14a5f01b87b92705d07b433c06f96cbc764637d81a0bffb5734ce17cf0f9a2b3"
 dependencies = [
  "cc",
  "pkg-config",
+ "sqlite3mc-src",
  "vcpkg",
 ]
 
@@ -4520,6 +4520,12 @@ dependencies = [
  "cc",
  "rsqlite-vfs",
 ]
+
+[[package]]
+name = "sqlite3mc-src"
+version = "206.1.0+sqlite3mc-2.6.1-sqlite-3.54.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f4b3912efb0d47fcf6e2c71eca58a9b1a4432c424ff9194a87140ec229ac87bf"
 
 [[package]]
 name = "stable_deref_trait"
