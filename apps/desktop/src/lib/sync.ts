@@ -40,6 +40,39 @@ export interface SyncStatus {
   head_seq: number;
   last_error: string | null;
   keystore: string;
+  /** Off-LAN relays of the space and their state on this device. */
+  relays?: RelayView[];
+}
+
+/** clipd_sync::RelayView */
+export interface RelayView {
+  url: string;
+  /** "connected" | "standby" | "connecting" | "offline" | "denied" | "stopped" */
+  state: string;
+  connected: boolean;
+  /** This device's key is registered on the relay. */
+  enrolled: boolean;
+  added_at: Millis;
+  last_ok: Millis | null;
+  last_error: string | null;
+  pull_seq: number;
+  push_seq: number;
+}
+
+/** `GET /v1/hello` of a relay (the Test button). */
+export interface RelayHello {
+  proto: number;
+  kind: string;
+  version: string;
+  /** "open" | "invite" | "closed" */
+  registration: string;
+  limits: {
+    max_event_bytes: number;
+    max_blob_bytes: number;
+    max_space_bytes: number;
+    max_devices: number;
+    retention_days: number;
+  };
 }
 
 export interface SyncView {
@@ -101,6 +134,12 @@ export const syncApi = {
   unpair: () => call<boolean>("sync_unpair"),
   /** Phone: download a synced image's full size. */
   fetchImage: (id: string) => call<boolean>("sync_fetch_image", { id }),
+  /** Check a relay URL without changing anything. */
+  relayCheck: (url: string) => call<RelayHello>("sync_relay_check", { url }),
+  /** Register this space on a relay; other devices pick it up on their next sync. */
+  relayAdd: (url: string, invite: string | null) => call<SyncView>("sync_relay_add", { url, invite }),
+  /** Stop using a relay on every device; `purge` also deletes this space's data on it. */
+  relayRemove: (url: string, purge: boolean) => call<SyncView>("sync_relay_remove", { url, purge }),
 };
 
 // ---- shared store ----
@@ -210,6 +249,7 @@ const mock: { view: SyncView; offerCount: number } = {
       head_seq: 42,
       last_error: null,
       keystore: "Windows Credential Manager",
+      relays: [],
     },
   },
 };
@@ -310,6 +350,33 @@ async function mockCall(cmd: string, a: Record<string, unknown>): Promise<unknow
       } satisfies OfferView;
     case "sync_cancel_offer":
       return null;
+    case "sync_relay_check": {
+      await new Promise((r) => setTimeout(r, 400));
+      const url = String(a.url).trim();
+      if (!/^https:\/\/|^http:\/\/(localhost|127\.|192\.168\.)/.test(url) && url.includes("://"))
+        throw "Use an https:// address (plain http only works on your own network)";
+      return {
+        proto: 1,
+        kind: "clipd-relay",
+        version: "0.1.0",
+        registration: url.includes("invite") ? "invite" : "open",
+        limits: { max_event_bytes: 1 << 20, max_blob_bytes: 48 << 20, max_space_bytes: 256 << 20, max_devices: 16, retention_days: 30 },
+      } satisfies RelayHello;
+    }
+    case "sync_relay_add": {
+      await new Promise((r) => setTimeout(r, 600));
+      const relays = mock.view.status.relays ?? [];
+      const url = String(a.url).trim().replace(/\/+$/, "");
+      if (relays.some((r) => r.url === url)) throw `${url} is already one of this space's relays`;
+      mock.view.status.relays = [
+        ...relays,
+        { url, state: "standby", connected: false, enrolled: true, added_at: Date.now(), last_ok: Date.now(), last_error: null, pull_seq: 0, push_seq: 0 },
+      ];
+      return mockView();
+    }
+    case "sync_relay_remove":
+      mock.view.status.relays = (mock.view.status.relays ?? []).filter((r) => r.url !== a.url);
+      return mockView();
     case "sync_revoke":
       mock.view.status.devices = mock.view.status.devices.map((d) =>
         d.id === a.deviceId ? { ...d, revoked_at: Date.now(), online: false } : d,

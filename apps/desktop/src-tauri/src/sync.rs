@@ -8,6 +8,7 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
+use clipd_sync::relay::RelayHello;
 use clipd_sync::{
     ClientConfig, ClientHandle, HubConfig, HubHandle, KeyStore, OfferView, Role, SyncNotice,
     SyncStatus,
@@ -303,4 +304,66 @@ pub async fn sync_revoke(app: AppHandle, device_id: String) -> CmdResult<()> {
     }
     emit_changed(&app);
     Ok(())
+}
+
+// ---- off-LAN relays ("Sync anywhere") ---------------------------------------
+
+/// Check a relay URL without changing anything (the "Test" button).
+#[tauri::command]
+pub async fn sync_relay_check(url: String) -> CmdResult<RelayHello> {
+    clipd_sync::relay_check(&url)
+        .await
+        .map_err(|e| format!("{e:#}"))
+}
+
+/// Tell the running hub / client that the relay list changed.
+fn relay_changed(app: &AppHandle) {
+    match &*lock(&app.state::<SyncState>().running) {
+        Some(Running::Hub(h)) => h.relay_changed(),
+        Some(Running::Client(c)) => c.relay_changed(),
+        None => {}
+    }
+}
+
+fn require_space(app: &AppHandle) -> CmdResult<()> {
+    if !app.state::<AppState>().settings().sync_enabled {
+        return Err("Turn on sync first".into());
+    }
+    Ok(())
+}
+
+/// Register this space on a relay and share it with the other devices.
+#[tauri::command]
+pub async fn sync_relay_add(
+    app: AppHandle,
+    url: String,
+    invite: Option<String>,
+) -> CmdResult<SyncView> {
+    require_space(&app)?;
+    let ks = keystore(&app)?;
+    let dd = app.state::<AppState>().data_dir.clone();
+    let invite = invite.filter(|i| !i.trim().is_empty());
+    clipd_sync::relay_add(&dd, ks, &url, invite.as_deref())
+        .await
+        .map_err(|e| format!("{e:#}"))?;
+    relay_changed(&app);
+    emit_changed(&app);
+    view(&app).await
+}
+
+/// Stop using a relay (on every device); `purge` also deletes this space's
+/// data from it.
+#[tauri::command]
+pub async fn sync_relay_remove(app: AppHandle, url: String, purge: bool) -> CmdResult<SyncView> {
+    let ks = keystore(&app)?;
+    let dd = app.state::<AppState>().data_dir.clone();
+    let found = clipd_sync::relay_remove(&dd, ks, &url, purge)
+        .await
+        .map_err(|e| format!("{e:#}"))?;
+    if !found {
+        return Err("That relay isn't set up here".into());
+    }
+    relay_changed(&app);
+    emit_changed(&app);
+    view(&app).await
 }

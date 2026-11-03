@@ -26,6 +26,7 @@ import { otherDevices, platformIcon, refreshSync, setSyncView, syncApi, useSyncV
 import { setThemePref } from "../lib/theme";
 import type { Settings, SettingsView, ThemePref } from "../lib/types";
 import { ClearHistoryDialog } from "../components/ClearHistoryDialog";
+import { RelayCard } from "../components/RelayCard";
 import { Button, Segmented, Switch } from "../components/ui";
 import { Row, Section, Select } from "../dashboard/SettingsDialog";
 
@@ -447,6 +448,7 @@ function DevicesSection({ pairLink, onPairLinkUsed }: { pairLink: string | null;
   const HubIcon = platformIcon(hub?.platform ?? "windows");
 
   return (
+    <>
     <Section title="Your computer">
       {paired && (
         <div className="anim-pop m-3 flex items-start gap-3 rounded-xl border border-line bg-panel-2 px-3.5 py-3">
@@ -594,5 +596,11 @@ function DevicesSection({ pairLink, onPairLinkUsed }: { pairLink: string | null;
         </>
       )}
     </Section>
+    {isClient && v.enabled && (
+      <Section title="Sync anywhere">
+        <RelayCard view={v} mobile />
+      </Section>
+    )}
+    </>
   );
 }

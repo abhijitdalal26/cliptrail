@@ -58,6 +58,7 @@ function androidName(pkg: string): string | null {
 }
 
 const NAMES: Record<string, string> = {
+  cliptrail: "ClipTrail",
   chrome: "Chrome",
   msedge: "Edge",
   firefox: "Firefox",

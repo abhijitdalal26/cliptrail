@@ -112,9 +112,7 @@ pub fn run() {
                 windows::toggle_picker(&handle, windows::PickerMode::Center, None);
             }
 
-            if let Err(e) = shortcuts::apply(&handle, &state.settings()) {
-                tracing::warn!("global shortcut not registered: {e}");
-            }
+            shortcuts::apply_at_launch(&handle, &state.settings());
 
             start_watcher(&handle);
             maintenance::spawn(handle.clone());
@@ -150,6 +148,7 @@ pub fn run() {
             commands::open_accessibility_settings,
             commands::window_effects,
             commands::set_window_theme,
+            commands::suspend_hotkeys,
             commands::backend_status,
             commands::get_settings,
             commands::update_settings,
@@ -160,6 +159,9 @@ pub fn run() {
             sync::sync_create_offer,
             sync::sync_cancel_offer,
             sync::sync_revoke,
+            sync::sync_relay_check,
+            sync::sync_relay_add,
+            sync::sync_relay_remove,
             updater::update_check,
             updater::update_pending,
             updater::update_install,
@@ -197,6 +199,20 @@ pub(crate) fn clean_copied_link(raw: &mut RawClip) {
     }
 }
 
+/// True when `app` (an executable name from the capture backend) is this
+/// process, i.e. ClipTrail itself put the content on the clipboard.
+#[cfg(desktop)]
+fn is_own_exe(app: &str) -> bool {
+    static OWN: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::new();
+    OWN.get_or_init(|| {
+        std::env::current_exe()
+            .ok()
+            .and_then(|p| p.file_name().map(|n| n.to_string_lossy().into_owned()))
+    })
+    .as_deref()
+    .is_some_and(|own| own.eq_ignore_ascii_case(app))
+}
+
 #[cfg(desktop)]
 fn on_raw_clip(app: &AppHandle, raw: RawClip) {
     let state = app.state::<AppState>();
@@ -206,6 +222,17 @@ fn on_raw_clip(app: &AppHandle, raw: RawClip) {
     }
     let Ok(p) = state.pipeline() else { return };
     let mut raw = raw;
+    if raw.source_app.as_deref().is_some_and(is_own_exe) {
+        // Our own write-back coming round. A plain write-back bumps the
+        // existing clip; `None` keeps its original source app. Transformed
+        // text is new content, credited to ClipTrail.
+        let transformed = lock(&state.transform_write)
+            .take()
+            .is_some_and(|t| t.elapsed() < std::time::Duration::from_secs(3));
+        if !transformed {
+            raw.source_app = None;
+        }
+    }
     if state.settings().clean_links {
         clean_copied_link(&mut raw);
     }

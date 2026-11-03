@@ -36,6 +36,27 @@ fn parse(s: &str) -> Result<Shortcut, String> {
     Shortcut::from_str(s).map_err(|_| format!("“{s}” isn't a valid shortcut"))
 }
 
+/// At launch: register the hotkeys, or as many as possible. A dashboard
+/// hotkey owned by another app must not cost the user the picker hotkey.
+/// The error (if any) is kept for the UI.
+pub fn apply_at_launch(app: &AppHandle, s: &Settings) {
+    let mut result = apply(app, s);
+    if result.is_err() && s.dashboard_shortcut.is_some() {
+        let picker_only = Settings {
+            dashboard_shortcut: None,
+            ..s.clone()
+        };
+        if apply(app, &picker_only).is_ok() {
+            // Keep the original message (it names the dashboard key).
+            result = result.map_err(|e| format!("Dashboard shortcut not set: {e}"));
+        }
+    }
+    if let Err(e) = &result {
+        tracing::warn!("global shortcut not registered: {e}");
+    }
+    *lock(&app.state::<AppState>().hotkey_error) = result.err();
+}
+
 /// Register the hotkeys from `s`, replacing the current ones. On failure
 /// nothing new stays registered and the error says which key failed.
 pub fn apply(app: &AppHandle, s: &Settings) -> Result<(), String> {
@@ -65,5 +86,23 @@ pub fn apply(app: &AppHandle, s: &Settings) -> Result<(), String> {
         picker: Some(picker),
         dashboard,
     };
+    *lock(&state.hotkey_error) = None;
     Ok(())
+}
+
+/// Settings is recording a new hotkey: release ours so the keys reach the
+/// recorder (pressing the current picker combo would otherwise open the
+/// picker). `false` registers them again from the saved settings.
+pub fn suspend(app: &AppHandle, suspended: bool) {
+    let state = app.state::<AppState>();
+    if suspended {
+        let _ = app.global_shortcut().unregister_all();
+        *lock(&state.hotkeys) = Hotkeys::default();
+    } else if lock(&state.hotkeys).picker.is_none() {
+        let settings = state.settings();
+        if let Err(e) = apply(app, &settings) {
+            tracing::warn!("global shortcut not registered: {e}");
+            *lock(&state.hotkey_error) = Some(e);
+        }
+    }
 }

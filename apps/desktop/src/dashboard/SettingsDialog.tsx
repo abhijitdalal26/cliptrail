@@ -33,6 +33,10 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const s = view.settings;
   const isWin = view.platform === "windows";
   const isMac = view.platform === "macos";
+  // A hotkey that couldn't be registered at launch (another app owns it).
+  const hkErr = view.hotkey_error ?? null;
+  const dashHkErr = hkErr?.startsWith("Dashboard shortcut") ? hkErr : null;
+  const pickerHkErr = hkErr && !dashHkErr ? hkErr : null;
 
   const save = async (patch: Partial<Settings>, field: string) => {
     try {
@@ -54,6 +58,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
           <Row
             title={isWin ? "Start with Windows" : "Start at login"}
             desc="Launch quietly into the tray when you sign in."
+            error={errors.autostart}
           >
             <Switch
               label="Start at login"
@@ -75,7 +80,6 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
                   : "Paused until you resume it."
                 : "Everything you copy is saved, except from excluded apps."
             }
-            error={errors.autostart}
           >
             {view.capture.paused ? (
               <Button size="sm" variant="primary" onClick={() => void api.resumeCapture()}>
@@ -101,14 +105,14 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
         <DevicesSection />
 
         <Section title="Shortcuts">
-          <Row title="Quick picker" desc="Search and paste from anywhere." error={errors.picker}>
+          <Row title="Quick picker" desc="Search and paste from anywhere." error={errors.picker ?? pickerHkErr}>
             <HotkeyInput
               value={s.picker_shortcut}
               onChange={(v) => save({ picker_shortcut: v }, "picker")}
               onError={(m) => setErrors((x) => ({ ...x, picker: m }))}
             />
           </Row>
-          <Row title="Open dashboard" desc="Bring this window to the front." error={errors.dashboard}>
+          <Row title="Open dashboard" desc="Bring this window to the front." error={errors.dashboard ?? dashHkErr}>
             <div className="flex items-center gap-2.5">
               {s.dashboard_shortcut && (
                 <HotkeyInput
@@ -370,6 +374,9 @@ function HotkeyInput({
 
   useEffect(() => {
     if (!recording) return;
+    // Our own global hotkeys would swallow the keys being recorded.
+    void api.suspendHotkeys(true).catch(() => undefined);
+    let committed = false;
     const onKey = (e: KeyboardEvent) => {
       e.preventDefault();
       e.stopPropagation();
@@ -386,9 +393,12 @@ function HotkeyInput({
         fail(bad);
         return;
       }
+      committed = true;
       setRecording(false);
       fail(null);
-      void change(accel);
+      // Saving re-registers the hotkeys (or restores the old ones on error);
+      // resume afterwards in case nothing changed.
+      void change(accel).finally(() => void api.suspendHotkeys(false).catch(() => undefined));
     };
     const onBlur = () => setRecording(false);
     window.addEventListener("keydown", onKey, true);
@@ -396,11 +406,13 @@ function HotkeyInput({
     return () => {
       window.removeEventListener("keydown", onKey, true);
       window.removeEventListener("blur", onBlur);
+      if (!committed) void api.suspendHotkeys(false).catch(() => undefined);
     };
   }, [recording, change, fail]);
 
   return (
     <button
+      data-records-keys={recording || undefined}
       onClick={() => {
         setHeld(null);
         setRecording((r) => !r);

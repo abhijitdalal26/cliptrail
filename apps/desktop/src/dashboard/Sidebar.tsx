@@ -118,7 +118,8 @@ export function Sidebar(p: Props) {
           ) : (
             <>
               <span className="relative grid h-3.5 w-3.5 shrink-0 place-items-center">
-                <span className="absolute h-2 w-2 animate-ping rounded-full bg-success opacity-30 [animation-duration:2.4s]" />
+                {/* Static halo: an endless ping kept the GPU busy (~8% of a core) while idle. */}
+                <span className="absolute h-3 w-3 rounded-full bg-success opacity-20" />
                 <span className="h-[7px] w-[7px] rounded-full bg-success" />
               </span>
               <span className="flex-1 text-left">Capturing</span>

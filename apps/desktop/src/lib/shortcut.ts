@@ -5,7 +5,9 @@ const MODS = ["Ctrl", "Alt", "Shift", "Super"] as const;
 
 /** Build an accelerator from a keydown, or null while only modifiers are held. */
 export function accelFromEvent(e: KeyboardEvent): string | null {
-  const code = e.code;
+  // Synthetic input (remote desktop, macro tools) can arrive without a scan
+  // code; fall back to the key value for letters, digits, F-keys and Space.
+  const code = e.code || codeFromKey(e.key);
   if (/^(Control|Alt|Shift|Meta|OS)(Left|Right)?$/.test(code) || code === "") return null;
   const mods: string[] = [];
   if (e.ctrlKey) mods.push("Ctrl");
@@ -16,6 +18,14 @@ export function accelFromEvent(e: KeyboardEvent): string | null {
   if (/^Key[A-Z]$/.test(code)) key = code.slice(3);
   else if (/^Digit\d$/.test(code)) key = code.slice(5);
   return [...mods, key].join("+");
+}
+
+function codeFromKey(key: string): string {
+  if (/^[a-z]$/i.test(key)) return `Key${key.toUpperCase()}`;
+  if (/^\d$/.test(key)) return `Digit${key}`;
+  if (/^F\d{1,2}$/.test(key)) return key;
+  if (key === " ") return "Space";
+  return "";
 }
 
 /** A global hotkey needs a modifier unless it's a function key. */

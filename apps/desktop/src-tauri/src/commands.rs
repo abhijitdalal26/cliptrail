@@ -233,7 +233,16 @@ pub async fn copy_clip(
     transform: Option<Transform>,
 ) -> CmdResult<()> {
     let p = pipeline(&app)?;
+    note_transform_write(&app, transform);
     blocking(move || write_back_with(&p, &id, plain, transform)).await
+}
+
+/// See [`AppState::transform_write`].
+#[cfg(desktop)]
+fn note_transform_write(app: &AppHandle, transform: Option<Transform>) {
+    if transform.is_some() {
+        *lock(&app.state::<AppState>().transform_write) = Some(std::time::Instant::now());
+    }
 }
 
 /// Write the clip, hide the picker and paste into the window that was
@@ -249,6 +258,7 @@ pub async fn paste_clip(
 ) -> CmdResult<()> {
     let p = pipeline(&app)?;
     let target = *lock(&app.state::<AppState>().paste_target);
+    note_transform_write(&app, transform);
     blocking(move || write_back_with(&p, &id, plain, transform)).await?;
     let Some(target) = target else {
         return Err("paste-unavailable: no window to paste into".into());
@@ -382,6 +392,13 @@ pub fn window_effects(window: Window, app: AppHandle) -> bool {
     app.state::<AppState>().effect(window.label())
 }
 
+/// Pause ClipTrail's global hotkeys while Settings records a new one.
+#[cfg(desktop)]
+#[tauri::command]
+pub fn suspend_hotkeys(app: AppHandle, suspended: bool) {
+    shortcuts::suspend(&app, suspended);
+}
+
 #[cfg(desktop)]
 #[tauri::command]
 pub fn set_window_theme(app: AppHandle, dark: bool) {
@@ -402,6 +419,8 @@ pub struct SettingsView {
     version: String,
     capture: CaptureState,
     platform: &'static str,
+    /// A global hotkey from the settings that couldn't be registered.
+    hotkey_error: Option<String>,
 }
 
 fn settings_view(app: &AppHandle) -> SettingsView {
@@ -417,6 +436,10 @@ fn settings_view(app: &AppHandle) -> SettingsView {
         version: app.package_info().version.to_string(),
         capture: state.capture_state(),
         platform: std::env::consts::OS,
+        #[cfg(desktop)]
+        hotkey_error: lock(&state.hotkey_error).clone(),
+        #[cfg(mobile)]
+        hotkey_error: None,
     }
 }
 
