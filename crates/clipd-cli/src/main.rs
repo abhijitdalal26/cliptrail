@@ -126,7 +126,10 @@ fn main() {
 
 fn run(cli: Cli) -> Result<()> {
     let data_dir = cli.data_dir.unwrap_or_else(default_data_dir);
-    let pipeline = Pipeline::open(PipelineConfig::with_defaults(data_dir)?)?;
+    let config = PipelineConfig::with_defaults(data_dir)?;
+    let ks = clipd_sync::default_keystore(&config.data_dir, &config.device_id);
+    clipd_sync::unlock_data_dir(&config.data_dir, ks.as_ref())?;
+    let pipeline = Pipeline::open(config)?;
     let store = pipeline.store();
 
     match cli.command {

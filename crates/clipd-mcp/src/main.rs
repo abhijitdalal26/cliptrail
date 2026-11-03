@@ -35,6 +35,9 @@ fn main() -> Result<()> {
 
     let cli = Cli::parse();
     let data_dir = cli.data_dir.unwrap_or_else(default_data_dir);
+    let device_id = clipd_sync::local_device_id(&data_dir)?;
+    let ks = clipd_sync::default_keystore(&data_dir, &device_id);
+    clipd_sync::unlock_data_dir(&data_dir, ks.as_ref())?;
     let store = Store::open(&data_dir.join(DB_FILE))?;
 
     let stdin = std::io::stdin();

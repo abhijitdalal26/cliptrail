@@ -39,7 +39,9 @@ pub use db::{DeviceRow, Role};
 pub use engine::SyncNotice;
 #[cfg(feature = "hub")]
 pub use hub::{HubConfig, HubHandle, OfferView};
-pub use keystore::{FileKeyStore, KeyStore, MemoryKeyStore, default_keystore};
+pub use keystore::{
+    DB_KEY, FileKeyStore, KeyStore, MemoryKeyStore, default_keystore, unlock_data_dir,
+};
 pub use relay_link::{RelayView, relay_add, relay_check, relay_remove};
 
 use crate::crypto::SecretKey;

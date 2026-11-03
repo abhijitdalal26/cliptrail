@@ -49,12 +49,13 @@ static APP: Mutex<Option<AppHandle>> = Mutex::new(None);
 pub fn init(data_dir: PathBuf, keys_dir: PathBuf, device_name: String) -> &'static Arc<Core> {
     let env = ENV.get_or_init(|| {
         tracing::info!("initializing the clip store");
+        // TODO(android): wrap these with an Android Keystore key. For now a
+        // 0600 file in noBackupFilesDir (app-private, never backed up). It
+        // holds the sync keys and the key of the encrypted clip database.
+        let keystore: Arc<dyn KeyStore> = Arc::new(FileKeyStore::new(&keys_dir));
         Env {
-            core: Arc::new(Core::new(data_dir)),
-            // TODO(android): wrap these with an Android Keystore key. For now
-            // a 0600 file in noBackupFilesDir (app-private, never backed up);
-            // the clip DB next to it is plaintext during the prototype anyway.
-            keystore: Arc::new(FileKeyStore::new(&keys_dir)),
+            core: Arc::new(Core::new(data_dir, Some(keystore.clone()))),
+            keystore,
             device_name: if device_name.trim().is_empty() {
                 "Android phone".into()
             } else {

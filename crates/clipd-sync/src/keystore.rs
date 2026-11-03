@@ -215,6 +215,46 @@ impl KeyStore for OsKeyStore {
     }
 }
 
+/// Name of the key that encrypts this device's local databases.
+pub const DB_KEY: &str = "db-key";
+
+/// Databases in a data dir that are encrypted with [`DB_KEY`].
+const LOCAL_DBS: &[&str] = &[clipd_core::pipeline::DB_FILE, crate::engine::SYNC_DB_FILE];
+
+/// Unlock the local databases of `data_dir` for this process: fetch the
+/// database key from `ks` (creating it on first use) and register it with
+/// [`clipd_core::dbkey::set_db_key`]. Call before opening the pipeline.
+///
+/// A key is only ever created while no database here is encrypted yet, so
+/// a keychain that's unavailable can't lead to a second key and an
+/// unreadable history; that case is an error instead.
+pub fn unlock_data_dir(data_dir: &Path, ks: &dyn KeyStore) -> Result<()> {
+    let key = match ks.get(DB_KEY)? {
+        Some(k) => k,
+        // Created while the keychain was unavailable (see default_keystore).
+        None => match FileKeyStore::new(data_dir).get(DB_KEY)? {
+            Some(k) => k,
+            None => {
+                if clipd_core::dbkey::any_encrypted(data_dir, LOCAL_DBS) {
+                    anyhow::bail!(
+                        "your clip history is encrypted but its key isn't in {}",
+                        ks.describe()
+                    );
+                }
+                let k = crate::crypto::random_bytes::<32>();
+                ks.set(DB_KEY, &k).context("save the database key")?;
+                k.to_vec()
+            }
+        },
+    };
+    let key: clipd_core::dbkey::DbKey = key
+        .as_slice()
+        .try_into()
+        .map_err(|_| anyhow::anyhow!("the database key in {} is corrupt", ks.describe()))?;
+    clipd_core::dbkey::set_db_key(data_dir, key);
+    Ok(())
+}
+
 /// The platform's preferred store for a data dir whose device id is
 /// `device_id`: OS keychain where available, else [`FileKeyStore`].
 /// `CLIPTRAIL_KEYSTORE=file` forces the file store.
@@ -248,6 +288,27 @@ mod tests {
         ks.delete(MASTER_KEY).unwrap();
         ks.delete(MASTER_KEY).unwrap();
         assert_eq!(ks.get(MASTER_KEY).unwrap(), None);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn unlock_creates_one_key_and_never_replaces_it() {
+        let dir = std::env::temp_dir().join(format!("clipd-unlock-{}", ulid::Ulid::generate()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let ks = MemoryKeyStore::default();
+        unlock_data_dir(&dir, &ks).unwrap();
+        let key = ks.get(DB_KEY).unwrap().expect("key created");
+        // An encrypted history now exists.
+        let store = clipd_core::Store::open(&dir.join(clipd_core::pipeline::DB_FILE)).unwrap();
+        drop(store);
+        unlock_data_dir(&dir, &ks).unwrap();
+        assert_eq!(ks.get(DB_KEY).unwrap(), Some(key));
+
+        // Key gone (e.g. keychain wiped): refuse instead of making a new one.
+        let empty = MemoryKeyStore::default();
+        let err = unlock_data_dir(&dir, &empty).unwrap_err().to_string();
+        assert!(err.contains("encrypted"), "{err}");
+        assert_eq!(empty.get(DB_KEY).unwrap(), None);
         let _ = std::fs::remove_dir_all(dir);
     }
 }

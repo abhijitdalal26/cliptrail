@@ -180,7 +180,7 @@ pub struct SyncDb {
 
 impl SyncDb {
     pub fn open(path: &Path) -> Result<SyncDb> {
-        let conn = Connection::open(path)
+        let conn = clipd_core::dbkey::open_connection(path)
             .with_context(|| format!("open sync database {}", path.display()))?;
         Self::init(conn)
     }

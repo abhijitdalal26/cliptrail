@@ -11,6 +11,7 @@ WORKDIR /src
 # already is 1.96 and needs no clippy/rustfmt.)
 COPY Cargo.toml Cargo.lock ./
 COPY crates ./crates
+COPY third_party ./third_party
 COPY apps/desktop/src-tauri/Cargo.toml apps/desktop/src-tauri/build.rs ./apps/desktop/src-tauri/
 COPY apps/desktop/src-tauri/src ./apps/desktop/src-tauri/src
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
