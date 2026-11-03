@@ -22,13 +22,11 @@ INDEX = r"""
       <p class="lede">{{B}} remembers everything you copy, knows what each thing is, and puts it one keystroke away. Pair your devices and your history follows you, end-to-end encrypted. Open source, no account, no tracking.</p>
       <div class="hero-cta">
         <a class="btn btn-primary btn-lg" href="{{R}}download.html" data-os-cta>{{i:download}}<span data-os-cta-label>Download {{B}}</span></a>
-        <a class="btn btn-lg" href="{{R}}docs/index.html">{{i:book}}Read the docs</a>
         <a class="btn btn-lg btn-ghost" href="{{REPO}}">{{i:github}}Star on GitHub</a>
       </div>
-      <p class="hero-note"><span data-os-note>Windows · Linux · macOS (experimental)</span> · Free and open source</p>
       <div class="platform-row" aria-label="Platform support">
         <span class="pill"><span class="status-dot ok"></span><b>Windows</b></span>
-        <span class="pill"><span class="status-dot beta"></span><b>Linux</b> beta</span>
+        <span class="pill"><span class="status-dot ok"></span><b>Linux</b></span>
         <span class="pill"><span class="status-dot soon"></span><b>Android</b> coming in v0.1</span>
         <span class="pill"><span class="status-dot exp"></span><b>macOS</b> experimental</span>
         <span class="pill"><span class="status-dot"></span><b>iOS</b> later</span>
@@ -141,10 +139,36 @@ INDEX = r"""
       </div>
       <div class="tile span-2">
         <span class="ico">{{i:terminal}}</span>
-        <h3>Scriptable — and agent-ready</h3>
-        <p>The <code>clipd</code> CLI does everything the app does — capture, search, pin, sync — so scripts and AI agents can reach your history too. An MCP server that plugs {{B}} straight into agent tooling is in development.</p>
+        <h3>Scriptable, and agent-ready</h3>
+        <p>The <code>clipd</code> CLI does everything the app does (capture, search, pin, sync), so scripts can reach your history too. AI assistants can search it through the local <a href="{{R}}docs/ai-assistants.html"><code>clipd-mcp</code></a> server.</p>
         <a class="more" href="{{R}}docs/cli.html">clipd commands →</a>
       </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="ai">
+  <div class="wrap split">
+    <div>
+      <span class="eyebrow">AI assistants</span>
+      <h2 class="h2">Works with your AI assistant.</h2>
+      <p class="lede" style="margin-bottom:24px">Claude Code, Claude Desktop, Cursor and any MCP-compatible client can search your clipboard history for you, right on your own computer. Ask in plain words; get the clip back.</p>
+      <ul class="checklist">
+        <li>""" + CHECK + r"""<span><b>Runs locally.</b> The assistant starts <code>clipd-mcp</code> on your machine and talks to it over stdio. No account, no hosted service, no open port.</span></li>
+        <li>""" + CHECK + r"""<span><b>Sensitive clips are withheld.</b> Keys, one-time codes and card numbers are masked; the assistant never gets their body and can't copy them back.</span></li>
+        <li>""" + CHECK + r"""<span><b>Read-mostly.</b> It can search, read, pin and put a clip back on your clipboard. It can't delete or edit anything.</span></li>
+        <li>""" + CHECK + r"""<span><b>Honest about the edges.</b> Clips an assistant reads become part of that conversation with your AI provider. ChatGPT isn't supported: it needs a remote server, and ours is local by design.</span></li>
+      </ul>
+      <p style="margin-top:20px"><a class="btn" href="{{R}}docs/ai-assistants.html">{{i:book}}Set up your assistant</a></p>
+    </div>
+    <div class="chat-card" role="img" aria-label="Example conversation: you ask for the Postgres connection string you copied in March and the assistant finds it with search_clips, then puts it on your clipboard with copy_to_clipboard.">
+      <div class="head">{{i:sparkles}}Ask your history</div>
+      <div class="msg you">Find the Postgres connection string I copied in March.</div>
+      <div class="tool">{{i:search}}<span><code>search_clips</code> for "postgres", 1 to 31 March</span></div>
+      <div class="msg ai">Found one from 12 March, copied from VS Code: <code>postgres://app@db.internal:5432/orders</code></div>
+      <div class="msg you">Put it back on my clipboard.</div>
+      <div class="tool">{{i:copy}}<span><code>copy_to_clipboard</code></span></div>
+      <div class="msg ai">Done. It's on your clipboard, so press <kbd>Ctrl</kbd> <kbd>V</kbd>.</div>
     </div>
   </div>
 </section>
@@ -211,9 +235,9 @@ INDEX = r"""
         <thead><tr><th scope="col">Platform</th><th scope="col">Status</th><th scope="col">Capture</th><th scope="col">Paste-back</th><th scope="col">Sync</th></tr></thead>
         <tbody>
           <tr><th scope="row">Windows 10 / 11</th><td><span class="status-dot ok"></span>Supported</td><td>Automatic</td><td>Yes</td><td>Hub or client</td></tr>
-          <tr><th scope="row">Linux</th><td><span class="status-dot beta"></span>Beta</td><td>X11; Wayland with data-control (KDE, Sway, Hyprland). GNOME is limited.</td><td>X11 only</td><td>Hub or client</td></tr>
+          <tr><th scope="row">Linux</th><td><span class="status-dot ok"></span>Supported</td><td>X11; Wayland with data-control (KDE, Sway, Hyprland). GNOME Wayland only sees X11 apps.</td><td>X11 only</td><td>Hub or client</td></tr>
           <tr><th scope="row">Android</th><td><span class="status-dot soon"></span>Coming in v0.1</td><td>Automatic via accessibility, plus tile and share menu</td><td>Tap to copy</td><td>Client</td></tr>
-          <tr><th scope="row">macOS</th><td><span class="status-dot exp"></span>Experimental</td><td>Automatic (text, rich text, images, file URLs)</td><td>Yes — needs Accessibility permission</td><td>Hub or client (untested)</td></tr>
+          <tr><th scope="row">macOS</th><td><span class="status-dot exp"></span>Experimental</td><td>Capture works (text, rich text, images, file URLs); untested on real hardware</td><td>Needs Accessibility permission; untested</td><td>Hub or client (untested)</td></tr>
           <tr><th scope="row">iOS</th><td><span class="status-dot"></span>Later</td><td colspan="3" class="m">Share extension and shortcuts are on the roadmap.</td></tr>
         </tbody>
       </table>
@@ -338,14 +362,14 @@ DOWNLOAD = r"""
       </article>
       <article class="os-card" data-os="linux" id="linux">
         <span class="chip chip-accent detected-tag">Your system</span>
-        <div class="os-head"><span class="os-logo">{{i:linux}}</span><div><h2>Linux <span class="chip chip-muted">Beta</span></h2><span class="os-sub">x86_64 · Debian/Ubuntu or any distro</span></div></div>
+        <div class="os-head"><span class="os-logo">{{i:linux}}</span><div><h2>Linux <span class="chip chip-ok">Supported</span></h2><span class="os-sub">x86_64 · Debian/Ubuntu or any distro</span></div></div>
         <p>Use the <code>.deb</code> on Debian, Ubuntu and derivatives; the AppImage runs almost anywhere. Paste-back works on X11 only.</p>
         <div class="assets">""" + slot("linux-deb", "Debian / Ubuntu (.deb)", primary=True) + slot("linux-appimage", "AppImage") + r"""</div>
       </article>
       <article class="os-card" data-os="macos" id="macos">
         <span class="chip chip-accent detected-tag">Your system</span>
         <div class="os-head"><span class="os-logo">{{i:apple}}</span><div><h2>macOS <span class="chip chip-warn">Experimental</span></h2><span class="os-sub">Universal (Apple silicon and Intel)</span></div></div>
-        <p>Built by CI and lightly tested. A menu-bar app: capture and paste-back work once you allow it in <strong>Accessibility</strong>; <kbd>Cmd</kbd> <kbd>Shift</kbd> <kbd>Space</kbd> opens the picker.</p>
+        <p>Built by CI and not yet tested on real hardware: clipboard capture works, paste-back needs <strong>Accessibility</strong> permission. A menu-bar app; <kbd>Cmd</kbd> <kbd>Shift</kbd> <kbd>Space</kbd> opens the picker.</p>
         <div class="assets">""" + slot("mac-dmg", "Disk image (.dmg)", soon="Arrives with v0.1.0 (experimental)") + r"""</div>
       </article>
       <article class="os-card" data-os="android" id="android">
@@ -444,7 +468,7 @@ DOWNLOAD = r"""
         <tbody>
           <tr><td>Windows</td><td>Windows 10 or 11, 64-bit (x64). Uses the Microsoft Edge WebView2 runtime, which Windows 11 includes; the installer fetches it on older systems.</td></tr>
           <tr><td>Linux</td><td>x86_64 with WebKitGTK 4.1 (Ubuntu 22.04 or newer, Debian 12, Fedora 38+). X11 for paste-back; Wayland capture needs a data-control compositor.</td></tr>
-          <tr><td>macOS</td><td>macOS 12 or newer, universal (Apple silicon and Intel). Experimental: capture and paste-back work; paste-back needs Accessibility permission.</td></tr>
+          <tr><td>macOS</td><td>macOS 12 or newer, universal (Apple silicon and Intel). Experimental: clipboard capture works, but the build is untested on real hardware; paste-back needs Accessibility permission.</td></tr>
           <tr><td>Android</td><td>Android 10 or newer (arm64), coming with v0.1. Tested first on Samsung One UI.</td></tr>
           <tr><td>Sync</td><td>Devices on the same local network (Wi-Fi or LAN) that can reach the hub on TCP port 47821.</td></tr>
         </tbody>

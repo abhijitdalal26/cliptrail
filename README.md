@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="branding/cliptrail-logo.png" alt="ClipTrail" width="420">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="branding/cliptrail-logo-mono-light.png">
+    <img src="branding/cliptrail-logo.png" alt="ClipTrail" width="420">
+  </picture>
 </p>
 
 # ClipTrail
