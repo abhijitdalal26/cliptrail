@@ -2,7 +2,8 @@
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
   <external-path name="my_images" path="." />
   <cache-path name="my_cache_images" path="." />
-  <!-- ClipTrail: copying an image clip puts a content:// URI to it on the clipboard. -->
-  <files-path name="clip_images" path="images/" />
-  <files-path name="clip_thumbs" path="thumbs/" />
+  <!-- ClipTrail: copying an image clip puts a content:// URI on the clipboard. Stored images are
+       encrypted, so the Rust side writes a plain copy of the one being copied here
+       (src/mobile/commands.rs, CLIPBOARD_OUT_DIR). -->
+  <files-path name="clip_out" path="clipboard-out/" />
 </paths>

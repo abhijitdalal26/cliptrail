@@ -248,13 +248,12 @@ pub fn write_clip(content: WriteContent<'_>) -> Result<()> {
                 items.push((f.html, data));
             }
         }
-        WriteContent::ImagePng(path) => {
-            let png = std::fs::read(path).with_context(|| format!("reading {path}"))?;
-            let img = image::load_from_memory_with_format(&png, image::ImageFormat::Png)
-                .with_context(|| format!("decoding PNG {path}"))?
+        WriteContent::ImagePng(png) => {
+            let img = image::load_from_memory_with_format(png, image::ImageFormat::Png)
+                .context("decoding PNG")?
                 .to_rgba8();
             let (w, h) = img.dimensions();
-            items.push((f.png, png));
+            items.push((f.png, png.to_vec()));
             items.push((CF_DIB, dib::rgba_to_dib32(w, h, img.as_raw())?));
         }
         WriteContent::Files(files) => {

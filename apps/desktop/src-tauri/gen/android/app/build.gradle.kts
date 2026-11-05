@@ -14,6 +14,13 @@ val tauriProperties = Properties().apply {
     }
 }
 
+// Release signing: gen/android/keystore.properties (gitignored; CI writes it
+// from secrets). Without it, release builds come out unsigned.
+val keystoreProperties = Properties().apply {
+    val f = rootProject.file("keystore.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+
 android {
     compileSdk = 36
     // Needed so AGP can strip debug symbols from the Rust .so (else the APK is ~400 MB).
@@ -28,6 +35,16 @@ android {
         versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()
         versionName = tauriProperties.getProperty("tauri.android.versionName", "1.0")
     }
+    signingConfigs {
+        if (keystoreProperties.getProperty("storeFile") != null) {
+            create("release") {
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
     buildTypes {
         getByName("debug") {
             manifestPlaceholders["usesCleartextTraffic"] = "true"
@@ -38,6 +55,7 @@ android {
             // To debug native code, restore jniLibs.keepDebugSymbols.add("*/arm64-v8a/*.so").
         }
         getByName("release") {
+            signingConfig = signingConfigs.findByName("release")
             optimization {
                enable = true
             }

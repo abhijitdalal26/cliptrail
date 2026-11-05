@@ -127,6 +127,10 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(bridge::plugin())
+        .register_asynchronous_uri_scheme_protocol(
+            crate::imageproto::SCHEME,
+            crate::imageproto::handle,
+        )
         .setup(|app| {
             let handle = app.handle().clone();
             let core = match ENV.get() {
@@ -138,12 +142,6 @@ pub fn run() {
                 }
             };
             core.init();
-            if let Err(e) = app
-                .asset_protocol_scope()
-                .allow_directory(&core.data_dir, true)
-            {
-                tracing::warn!("asset scope: {e}");
-            }
             app.manage(AppState::with_core(core));
             *lock(&APP) = Some(handle.clone());
             maintenance::spawn(handle);

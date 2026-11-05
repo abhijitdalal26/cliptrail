@@ -17,7 +17,7 @@ INDEX = r"""
 <section class="hero">
   <div class="wrap">
     <div class="hero-copy">
-      <a class="badge" href="{{R}}changelog.html"><span class="dot"></span>Pre-release · v0.1.0 alpha is coming <span class="arrow">→</span></a>
+      <a class="badge" href="{{R}}changelog.html"><span class="dot"></span>v0.1.0 alpha is out: Windows + Android <span class="arrow">→</span></a>
       <h1 class="h1">Your clipboard,<br><span class="grad">everywhere, forever.</span></h1>
       <p class="lede">{{B}} remembers everything you copy, knows what each thing is, and puts it one keystroke away. Pair your devices and your history follows you, end-to-end encrypted. Open source, no account, no tracking.</p>
       <div class="hero-cta">
@@ -27,7 +27,7 @@ INDEX = r"""
       <div class="platform-row" aria-label="Platform support">
         <span class="pill"><span class="status-dot ok"></span><b>Windows</b></span>
         <span class="pill"><span class="status-dot ok"></span><b>Linux</b></span>
-        <span class="pill"><span class="status-dot soon"></span><b>Android</b> coming in v0.1</span>
+        <span class="pill"><span class="status-dot"></span><b>Android</b> APK</span>
         <span class="pill"><span class="status-dot exp"></span><b>macOS</b> experimental</span>
         <span class="pill"><span class="status-dot"></span><b>iOS</b> later</span>
       </div>
@@ -189,7 +189,7 @@ INDEX = r"""
         </div>
         <h3>Copy on Windows, paste on your phone</h3>
         <p>An address from an email on your laptop is in your phone's {{B}} a moment later. Tap it to copy, then paste anywhere.</p>
-        <span class="chip chip-accent">Android app arrives with v0.1</span>
+        <span class="chip chip-accent">Android app available</span>
       </div>
       <div class="flow">
         <div class="flow-track" aria-hidden="true">
@@ -199,7 +199,7 @@ INDEX = r"""
         </div>
         <h3>An image from your phone on your Mac</h3>
         <p>Screenshots and photos sync as full images (thumbnails first), so they're there when you sit down at your computer.</p>
-        <span class="chip chip-warn">Android v0.1 · macOS experimental</span>
+        <span class="chip chip-warn">macOS experimental</span>
       </div>
       <div class="flow">
         <div class="flow-track" aria-hidden="true">
@@ -236,7 +236,7 @@ INDEX = r"""
         <tbody>
           <tr><th scope="row">Windows 10 / 11</th><td><span class="status-dot ok"></span>Supported</td><td>Automatic</td><td>Yes</td><td>Hub or client</td></tr>
           <tr><th scope="row">Linux</th><td><span class="status-dot ok"></span>Supported</td><td>X11; Wayland with data-control (KDE, Sway, Hyprland). GNOME Wayland only sees X11 apps.</td><td>X11 only</td><td>Hub or client</td></tr>
-          <tr><th scope="row">Android</th><td><span class="status-dot soon"></span>Coming in v0.1</td><td>Automatic via accessibility, plus tile and share menu</td><td>Tap to copy</td><td>Client</td></tr>
+          <tr><th scope="row">Android</th><td><span class="status-dot"></span>Available (APK)</td><td>Automatic via accessibility, plus tile and share menu</td><td>Tap to copy</td><td>Client</td></tr>
           <tr><th scope="row">macOS</th><td><span class="status-dot exp"></span>Experimental</td><td>Capture works (text, rich text, images, file URLs); untested on real hardware</td><td>Needs Accessibility permission; untested</td><td>Hub or client (untested)</td></tr>
           <tr><th scope="row">iOS</th><td><span class="status-dot"></span>Later</td><td colspan="3" class="m">Share extension and shortcuts are on the roadmap.</td></tr>
         </tbody>
@@ -260,8 +260,8 @@ INDEX = r"""
           <tr><th scope="row">Sorted by type automatically</th><td class="n">—</td><td class="m">some</td><td class="n">—</td><td class="us y">✓</td></tr>
           <tr><th scope="row">Timeline and calendar heatmap</th><td class="n">—</td><td class="m">rare</td><td class="n">—</td><td class="us y">✓</td></tr>
           <tr><th scope="row">Smart paste actions</th><td class="n">—</td><td class="m">some</td><td class="n">—</td><td class="us y">✓</td></tr>
-          <tr><th scope="row">Laptop ↔ phone</th><td class="m">with an account</td><td class="n">—</td><td class="y">✓</td><td class="us m">Android in v0.1</td></tr>
-          <tr><th scope="row">Windows + Linux + Android</th><td class="n">—</td><td class="m">some</td><td class="m">some</td><td class="us m">✓ (Android in v0.1)</td></tr>
+          <tr><th scope="row">Laptop ↔ phone</th><td class="m">with an account</td><td class="n">—</td><td class="y">✓</td><td class="us y">✓</td></tr>
+          <tr><th scope="row">Windows + Linux + Android</th><td class="n">—</td><td class="m">some</td><td class="m">some</td><td class="us y">✓</td></tr>
           <tr><th scope="row">End-to-end encrypted, open source</th><td class="n">—</td><td class="m">some</td><td class="m">some</td><td class="us y">✓</td></tr>
           <tr><th scope="row">No account needed</th><td class="y">✓</td><td class="y">✓</td><td class="m">some</td><td class="us y">✓</td></tr>
         </tbody>
@@ -306,7 +306,7 @@ INDEX = r"""
     <div class="faq">
       <details><summary>Is {{B}} free?</summary><div class="a"><p>Yes. It's open source under MIT or Apache-2.0, with no account and no paid tier.</p></div></details>
       <details><summary>Does my clipboard leave my computer?</summary><div class="a"><p>Only if you pair another device, and then only as ciphertext to that device over your local network. There is no {{B}} server and no telemetry.</p></div></details>
-      <details><summary>When is the Android app coming?</summary><div class="a"><p>With v0.1.0, the first alpha. Capture on Android works through an accessibility service plus a Quick Settings tile and the share menu; it will be a sideloaded APK at first. See <a href="{{R}}docs/android.html">Android setup</a>.</p></div></details>
+      <details><summary>Is there an Android app?</summary><div class="a"><p>Yes, since v0.1.0. It captures copies through an accessibility service plus a Quick Settings tile and the share menu. It isn't on the Play Store: download the APK from this site and install it yourself. See <a href="{{R}}docs/android.html">Android setup</a>.</p></div></details>
       <details><summary>Do I need two devices?</summary><div class="a"><p>No. Every app is fully useful on one device: history, search, the picker and smart actions all work offline. Pairing only adds devices when you have them.</p></div></details>
       <details><summary>Is it safe to copy passwords?</summary><div class="a"><p>Copies from password managers are ignored by default. Anything that looks like a one-time code, API key, private key or card number is masked, never searchable, never synced, and deleted after an hour (you can change that).</p></div></details>
     </div>
@@ -318,7 +318,7 @@ INDEX = r"""
   <div class="wrap">
     <span class="logo-big">{{LOGO}}</span>
     <h2 class="h2">Start keeping your trail.</h2>
-    <p class="lede">Free, open source, and private by design. Watch the repo to hear the moment v0.1 ships.</p>
+    <p class="lede">Free, open source, and private by design. Download it, or watch the repo to hear about new releases.</p>
     <div class="hero-cta">
       <a class="btn btn-primary btn-lg" href="{{R}}download.html" data-os-cta>{{i:download}}<span data-os-cta-label>Download {{B}}</span></a>
       <a class="btn btn-lg" href="{{REPO}}">{{i:star}}Star on GitHub</a>
@@ -374,9 +374,9 @@ DOWNLOAD = r"""
       </article>
       <article class="os-card" data-os="android" id="android">
         <span class="chip chip-accent detected-tag">Your system</span>
-        <div class="os-head"><span class="os-logo">{{i:android}}</span><div><h2>Android <span class="chip chip-accent">Coming in v0.1</span></h2><span class="os-sub">Sideloaded APK · Android 10+</span></div></div>
-        <p>Automatic capture through an accessibility service, a Quick Settings tile and the share menu. Pairs with your computer by QR. Being built now.</p>
-        <div class="assets">""" + slot("android-apk", "Android app (.apk)", soon="Coming with v0.1.0", missing="Not in this release yet") + r"""<a class="asset" href="{{R}}docs/android.html">{{i:book}}<span class="a-main"><span class="a-name">Android setup guide</span><span class="a-meta">Samsung and other phones, step by step</span></span></a></div>
+        <div class="os-head"><span class="os-logo">{{i:android}}</span><div><h2>Android <span class="chip chip-ok">New</span></h2><span class="os-sub">Sideloaded APK · Android 10+</span></div></div>
+        <p>Automatic capture through an accessibility service, a Quick Settings tile and the share menu. Pairs with your computer by QR. Not on the Play Store: install the APK directly (Android asks you to allow installs from your browser).</p>
+        <div class="assets">""" + slot("android-apk", "Android app (.apk)", primary=True, missing="Not in this release") + r"""<a class="asset" href="{{R}}docs/android.html">{{i:book}}<span class="a-main"><span class="a-name">Android setup guide</span><span class="a-meta">Samsung and other phones, step by step</span></span></a></div>
       </article>
       <article class="os-card" data-os="ios" id="ios" style="grid-column:1/-1">
         <div class="os-head"><span class="os-logo">{{i:ios}}</span><div><h2>iOS <span class="chip chip-muted">Later</span></h2><span class="os-sub">Not available yet</span></div></div>
@@ -405,7 +405,7 @@ DOWNLOAD = r"""
       </div>
       <div class="install-card">
         <h3>{{i:download}}Installers <span class="chip chip-accent">v0.1.0</span></h3>
-        <p>Every release attaches the desktop installers and prebuilt <code>clipd</code> archives. Use the buttons above or the <a href="{{REPO}}/releases">Releases page</a>.</p>
+        <p>Every release attaches the desktop installers, the Android APK and prebuilt <code>clipd</code> archives. Use the buttons above or the <a href="{{REPO}}/releases">Releases page</a>.</p>
       </div>
     </div>
     <div class="os-grid" style="margin-top:16px">
@@ -457,7 +457,7 @@ DOWNLOAD = r"""
       </div>
       <div class="note-card">
         <h3>{{i:android}}Android: sideloading</h3>
-        <p>When v0.1 ships, install the APK from the release (allow "Install unknown apps" for your browser or file manager), then follow the in-app checklist: accessibility service, restricted settings, battery, tile. Samsung needs a few extra steps.</p>
+        <p>Download the APK on your phone and open it (allow "Install unknown apps" for your browser or file manager when asked), then follow the in-app checklist: accessibility service, restricted settings, battery, tile. Samsung needs a few extra steps.</p>
         <p style="margin:0"><a href="{{R}}docs/android.html">Android setup guide →</a></p>
       </div>
     </div>
@@ -469,12 +469,12 @@ DOWNLOAD = r"""
           <tr><td>Windows</td><td>Windows 10 or 11, 64-bit (x64). Uses the Microsoft Edge WebView2 runtime, which Windows 11 includes; the installer fetches it on older systems.</td></tr>
           <tr><td>Linux</td><td>x86_64 with WebKitGTK 4.1 (Ubuntu 22.04 or newer, Debian 12, Fedora 38+). X11 for paste-back; Wayland capture needs a data-control compositor.</td></tr>
           <tr><td>macOS</td><td>macOS 12 or newer, universal (Apple silicon and Intel). Experimental: clipboard capture works, but the build is untested on real hardware; paste-back needs Accessibility permission.</td></tr>
-          <tr><td>Android</td><td>Android 10 or newer (arm64), coming with v0.1. Tested first on Samsung One UI.</td></tr>
+          <tr><td>Android</td><td>Android 10 or newer (arm64). Tested on Samsung One UI (Galaxy S23 FE, Android 16).</td></tr>
           <tr><td>Sync</td><td>Devices on the same local network (Wi-Fi or LAN) that can reach the hub on TCP port 47821.</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="muted" style="font-size:14px;margin-top:16px">Checksums: releases don't publish SHA-256 files yet; signed builds and checksums are planned. Every release is built by GitHub Actions from the tagged source (<a href="{{REPO}}/blob/main/.github/workflows/release.yml">release workflow</a>).</p>
+    <p class="muted" style="font-size:14px;margin-top:16px">Checksums: the Android APK and the CLI archives come with a <code>.sha256</code> file; the APK is signed with the project's release key. Desktop installers aren't code-signed yet. Every release is built by GitHub Actions from the tagged source (<a href="{{REPO}}/blob/main/.github/workflows/release.yml">release workflow</a>).</p>
   </div>
 </section>
 """
@@ -492,11 +492,22 @@ CHANGELOG = r"""
     <div class="changelog-entry">
       <div class="changelog-meta">
         <div class="ver">v0.1.0</div>
-        <div class="date">Unreleased</div>
-        <span class="chip chip-accent">Alpha · in progress</span>
+        <div class="date">2026-11-05</div>
+        <span class="chip chip-accent">Alpha</span>
       </div>
       <div class="prose">
-        <p>The first alpha: a Windows and Linux desktop app, the <code>clipd</code> CLI and encrypted LAN sync, with the Android app being built for the same release.</p>
+        <p>The first alpha: the Windows desktop app and the Android app, on the same core, with end-to-end encrypted sync between them. Also: Linux, an experimental macOS build and the <code>clipd</code> CLI.</p>
+
+        <div class="cl-group">
+          <h3>Android app and encryption at rest</h3>
+          <ul>
+            <li>The Android app: the same history, search and smart actions as the desktop, automatic capture through an accessibility service, a Quick Settings tile, the share menu and the text-selection menu. Pairs with your computer by QR. A signed APK you install yourself (not on the Play Store).</li>
+            <li>Your history is encrypted on every device: the databases with ChaCha20-Poly1305 (SQLite3 Multiple Ciphers), copied images and thumbnails with XChaCha20-Poly1305. The key stays in the OS keychain (Windows Credential Manager) or the app's private storage on Android.</li>
+            <li>Optional relay for syncing when your devices aren't on the same network ("Sync anywhere" in Settings → Devices); it only ever sees ciphertext.</li>
+            <li>Opt-in update check on the desktop app; updates are signed and never installed without asking.</li>
+            <li><code>clipd export-image</code> saves an image clip as a PNG.</li>
+          </ul>
+        </div>
 
         <div class="cl-group">
           <h3>Encrypted sync and smart actions <a class="commit" href="{{REPO}}/commit/e9c3d7b">e9c3d7b</a></h3>
@@ -558,12 +569,8 @@ CHANGELOG = r"""
         </div>
 
         <div class="cl-group">
-          <h3>Still to come in v0.1</h3>
-          <ul>
-            <li>The Android app (capture, tile, share menu, pairing).</li>
-            <li>The first tagged release with installers.</li>
-          </ul>
-          <p class="muted">Coming later: sync across networks, on-device database encryption, paste stack, snippets, OCR. See the <a href="{{REPO}}/blob/main/ROADMAP.md">roadmap</a>.</p>
+          <h3>Coming later</h3>
+          <p class="muted">Paste stack, snippets, OCR, history export, package-manager listings and code-signed installers. See the <a href="{{REPO}}/blob/main/ROADMAP.md">roadmap</a>.</p>
         </div>
       </div>
     </div>
@@ -621,7 +628,7 @@ SECURITY = r"""
         <table>
           <thead><tr><th scope="col">Where</th><th scope="col">Protection today</th></tr></thead>
           <tbody>
-            <tr><td>On your device</td><td>A SQLite database and image files in your user's data folder, protected by your OS account. Not yet encrypted at rest.</td></tr>
+            <tr><td>On your device</td><td>An encrypted SQLite database and encrypted image files in your user's data folder. The key is kept in your OS keychain (or the app's private storage on Android).</td></tr>
             <tr><td>Between devices</td><td>Every clip and image is sealed with XChaCha20-Poly1305 under a key only your paired devices hold. Requests are authenticated with HMAC-SHA256; the device token itself never travels.</td></tr>
             <tr><td>Pairing</td><td>X25519 key agreement over a one-time QR secret (10-minute, single-use, rate-limited) plus a 4-digit check code shown on both devices.</td></tr>
             <tr><td>Keys</td><td>Windows Credential Manager, macOS Keychain; elsewhere (Linux, Android) a file readable only by your user or the app.</td></tr>
@@ -668,10 +675,10 @@ NOTFOUND = r"""
 
 def build(b):
     b.page("index.html", "{{B}}: your clipboard, everywhere, forever",
-           "Open-source clipboard history for Windows, Linux and macOS (experimental), with Android coming in v0.1: remembers everything you copy, sorts it by type, and syncs end-to-end encrypted between your devices.",
+           "Open-source clipboard history for Windows, Linux and macOS (experimental), and Android: remembers everything you copy, sorts it by type, and syncs end-to-end encrypted between your devices.",
            INDEX, active=None)
     b.page("download.html", "Download",
-           "Download {{B}} for Windows, Linux and macOS (experimental), and the clipd command-line tool. Android arrives with v0.1.",
+           "Download {{B}} for Windows, Android, Linux and macOS (experimental), and the clipd command-line tool.",
            DOWNLOAD, active="download", extra_head='\n<script src="assets/download.js" defer></script>')
     b.page("changelog.html", "Changelog", "What's new in {{B}}, release by release.", CHANGELOG, active="changelog")
     b.page("privacy.html", "Privacy policy", "{{B}} collects nothing. No telemetry, no account, and no cookies or analytics on this website.", PRIVACY)

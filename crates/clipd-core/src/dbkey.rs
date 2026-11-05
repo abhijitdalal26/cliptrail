@@ -49,7 +49,12 @@ pub fn has_db_key(data_dir: &Path) -> bool {
 }
 
 fn key_for(db_path: &Path) -> Option<DbKey> {
-    let dir = normalize(db_path.parent()?);
+    key_for_dir(db_path.parent()?)
+}
+
+/// The key registered for `data_dir`, if it's unlocked.
+pub(crate) fn key_for_dir(data_dir: &Path) -> Option<DbKey> {
+    let dir = normalize(data_dir);
     KEYS.lock()
         .unwrap_or_else(|e| e.into_inner())
         .iter()

@@ -6,6 +6,7 @@
 //! Rule: never log clip content. Log ids, kinds, sizes.
 
 mod commands;
+mod imageproto;
 mod maintenance;
 #[cfg(mobile)]
 mod mobile;
@@ -84,6 +85,7 @@ pub fn run() {
         ))
         .plugin(shortcuts::plugin())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .register_asynchronous_uri_scheme_protocol(imageproto::SCHEME, imageproto::handle)
         .manage(AppState::new(clipd_core::default_data_dir()))
         .manage(sync::SyncState::default())
         .manage(updater::UpdaterState::default())
@@ -96,14 +98,6 @@ pub fn run() {
             let handle = app.handle().clone();
             let state = app.state::<AppState>();
             state.init();
-
-            // Thumbnails / images are served from the data dir via asset://.
-            if let Err(e) = app
-                .asset_protocol_scope()
-                .allow_directory(&state.data_dir, true)
-            {
-                tracing::warn!("asset scope: {e}");
-            }
 
             windows::create_windows(&handle, start_hidden && !want_picker)?;
             tray::create(&handle)?;

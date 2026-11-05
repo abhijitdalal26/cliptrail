@@ -139,9 +139,13 @@ pub fn write_back(p: &Pipeline, id: &str, plain: bool) -> CmdResult<Kind> {
     let joined_paths = clip.summary.files.join("\n");
     guard("writing to clipboard", || {
         let has_files = !clip.summary.files.is_empty();
+        let png;
         let content = match kind {
             Kind::Image => match clip.image_path.as_deref() {
-                Some(path) => WriteContent::ImagePng(path),
+                Some(path) => {
+                    png = clipd_core::read_image(path)?;
+                    WriteContent::ImagePng(&png)
+                }
                 None => anyhow::bail!("image file is missing"),
             },
             Kind::File if has_files && !plain => WriteContent::Files(&clip.summary.files),

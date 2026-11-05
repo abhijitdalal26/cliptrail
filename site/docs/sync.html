@@ -56,7 +56,7 @@
 <h1>Sync your devices</h1>
 <p class="doc-lede">Pair a phone or another computer and they share one clipboard history: copy on one, find it on the others. Everything is end-to-end encrypted and stays on your own network. No account, no cloud.</p>
 
-<div class="callout info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><div><p><strong>Sync is optional.</strong> Every ClipTrail app is fully useful on its own. Pair devices only if you have more than one. The Android app arrives with v0.1; until then you can pair computers.</p></div></div>
+<div class="callout info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><div><p><strong>Sync is optional.</strong> Every ClipTrail app is fully useful on its own. Pair devices only if you have more than one. Pair your phone with the Android app, or another computer with the desktop app.</p></div></div>
 
 <h2 id="how">How it works</h2>
 <ul>
@@ -148,8 +148,13 @@ clipd sync pair "cliptrail://pair?v=1&amp;h=…"</code></pre></li>
   <li><strong>Start over:</strong> <code>clipd sync reset</code> (with the app closed) forgets keys, devices and sync progress for this device, keeping all clips.</li>
 </ul>
 
-<h2 id="roadmap">Coming later</h2>
-<p>Sync across networks, so your devices stay in step when they're not on the same Wi-Fi, is on the <a href="https://github.com/abhijitdalal26/cliptrail/blob/main/ROADMAP.md">roadmap</a>.</p>
+<h2 id="anywhere">Sync away from home (relay)</h2>
+<p>Devices on different networks (your phone on mobile data, the laptop at home or asleep) can sync through a <strong>relay</strong>: a small mailbox server that stores only end-to-end-encrypted events and images. It never has a key that can open them.</p>
+<ol>
+  <li>Run a relay on a server you control. The <a href="https://github.com/abhijitdalal26/cliptrail/tree/main/docker">self-hosting guide</a> has a one-command Docker setup with automatic HTTPS.</li>
+  <li>On the desktop app: <em>Settings → Devices → Sync anywhere</em>, paste the relay's URL (and its invite code), test it and add it. Paired devices pick it up automatically.</li>
+</ol>
+<p>There is no public ClipTrail relay; you host your own.</p>
 
   </article>
   <nav class="docs-pager" aria-label="Previous and next page"><a class="prev" href="ai-assistants.html"><span class="lbl">← Previous</span><span class="ttl">AI assistants (MCP)</span></a><a class="next" href="android.html"><span class="lbl">Next →</span><span class="ttl">Android setup</span></a></nav>

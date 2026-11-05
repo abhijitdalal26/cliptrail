@@ -5,7 +5,6 @@
 //! Masked (sensitive) clips are never journaled and never accepted from
 //! sync, so they never leave the device they were copied on.
 
-use std::fs;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
@@ -465,20 +464,14 @@ impl Pipeline {
 }
 
 fn write_bytes_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
-    let mut tmp = path.as_os_str().to_owned();
-    tmp.push(".tmp");
-    let tmp = PathBuf::from(tmp);
-    let written = fs::write(&tmp, bytes).and_then(|()| fs::rename(&tmp, path));
-    if written.is_err() {
-        let _ = fs::remove_file(&tmp);
-    }
-    written.with_context(|| format!("write {}", path.display()))
+    crate::imagefile::write_image(path, bytes)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::{ClearScope, PipelineConfig, RawClip, RawContent, now_millis};
+    use std::fs;
 
     struct TempDir(PathBuf);
     impl TempDir {

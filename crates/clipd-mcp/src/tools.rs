@@ -159,7 +159,8 @@ pub fn call(store: &Store, name: &str, args: &Value) -> Result<Value> {
                 .cloned()
                 .collect();
             if let Some(path) = &clip.image_path {
-                clipd_capture::write_clip(WriteContent::ImagePng(path))?;
+                let png = clipd_core::read_image(path)?;
+                clipd_capture::write_clip(WriteContent::ImagePng(&png))?;
             } else if !clip.summary.files.is_empty() {
                 if local_files.is_empty() {
                     bail!("none of this clip's files exist on this device");

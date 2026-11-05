@@ -105,8 +105,9 @@ pub enum WriteContent<'a> {
         text: &'a str,
         html: Option<&'a str>,
     },
-    /// Path to a PNG file on disk.
-    ImagePng(&'a str),
+    /// PNG bytes (callers read stored images with `clipd_core::read_image`,
+    /// which decrypts them).
+    ImagePng(&'a [u8]),
     Files(&'a [String]),
 }
 

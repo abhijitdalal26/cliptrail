@@ -60,7 +60,7 @@
         <table>
           <thead><tr><th scope="col">Where</th><th scope="col">Protection today</th></tr></thead>
           <tbody>
-            <tr><td>On your device</td><td>A SQLite database and image files in your user's data folder, protected by your OS account. Not yet encrypted at rest.</td></tr>
+            <tr><td>On your device</td><td>An encrypted SQLite database and encrypted image files in your user's data folder. The key is kept in your OS keychain (or the app's private storage on Android).</td></tr>
             <tr><td>Between devices</td><td>Every clip and image is sealed with XChaCha20-Poly1305 under a key only your paired devices hold. Requests are authenticated with HMAC-SHA256; the device token itself never travels.</td></tr>
             <tr><td>Pairing</td><td>X25519 key agreement over a one-time QR secret (10-minute, single-use, rate-limited) plus a 4-digit check code shown on both devices.</td></tr>
             <tr><td>Keys</td><td>Windows Credential Manager, macOS Keychain; elsewhere (Linux, Android) a file readable only by your user or the app.</td></tr>

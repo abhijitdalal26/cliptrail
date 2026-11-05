@@ -167,7 +167,7 @@ impl Engine {
             let thumb = s
                 .thumb_path
                 .as_deref()
-                .and_then(|p| std::fs::read(p).ok())
+                .and_then(|p| clipd_core::read_image(p).ok())
                 .and_then(|b| {
                     if b.len() <= INLINE_THUMB_MAX {
                         Some(b)
@@ -471,11 +471,10 @@ impl Engine {
         let Some(path) = c.clip.image_path else {
             return Ok(None);
         };
-        let png = match std::fs::read(&path) {
-            Ok(b) => b,
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-            Err(e) => return Err(e).context("read image file"),
-        };
+        if !std::path::Path::new(&path).exists() {
+            return Ok(None);
+        }
+        let png = clipd_core::read_image(&path).context("read image file")?;
         Ok(Some(self.keys.blobs.seal_packed(
             &blob_aad(&self.space.space_id, blob_id),
             &png,
