@@ -116,11 +116,12 @@ jobs:
             echo "::error::ANDROID_KEYSTORE_B64 / ANDROID_KEYSTORE_PASSWORD secrets are not set"; exit 1
           fi
           echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
-          printf 'storeFile=%s
-storePassword=%s
-keyAlias=cliptrail
-keyPassword=%s
-'             "$RUNNER_TEMP/release.jks" "$KEYSTORE_PASSWORD" "$KEYSTORE_PASSWORD"             > apps/desktop/src-tauri/gen/android/keystore.properties
+          {
+            echo "storeFile=$RUNNER_TEMP/release.jks"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=cliptrail"
+            echo "keyPassword=$KEYSTORE_PASSWORD"
+          } > apps/desktop/src-tauri/gen/android/keystore.properties
       - name: Build APK
         working-directory: apps/desktop
         run: pnpm tauri android build --apk --target aarch64
