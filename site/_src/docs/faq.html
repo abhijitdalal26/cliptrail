@@ -8,9 +8,9 @@ desc: Frequently asked questions about {{B}}: price, privacy, platforms, Android
 <h3 id="free">Is it free?</h3>
 <p>Yes. {{B}} is open source under MIT or Apache-2.0 (your choice). No account, no paid tier, no ads.</p>
 <h3 id="status">Is it ready to use?</h3>
-<p>It's pre-release. The first alpha, v0.1.0, is coming with installers for Windows and Linux, an experimental macOS build and the Android app. The desktop app, CLI and LAN sync work today if you <a href="index.html#build-from-source">build from source</a>. See the <a href="{{R}}changelog.html">changelog</a>.</p>
+<p>It's an alpha. v0.1.0 has installers for Windows and Linux, the Android app (APK), an experimental macOS build and the <code>clipd</code> CLI. Get them on the <a href="{{R}}download.html">download page</a>. See the <a href="{{R}}changelog.html">changelog</a>.</p>
 <h3 id="vs-winv">How is it different from Win+V?</h3>
-<p>Windows' built-in history keeps a limited number of recent items, and unpinned items are cleared when you restart. {{B}} keeps everything you choose, sorts it by kind, searches it instantly, has a timeline and smart actions, and syncs with Linux and (soon) Android, without a Microsoft account.</p>
+<p>Windows' built-in history keeps a limited number of recent items, and unpinned items are cleared when you restart. {{B}} keeps everything you choose, sorts it by kind, searches it instantly, has a timeline and smart actions, and syncs with Linux and Android, without a Microsoft account.</p>
 <h3 id="name">Why does it need to run all the time?</h3>
 <p>To see every copy as it happens. It sits quietly in the tray, and you can pause capture at any time.</p>
 
@@ -20,11 +20,11 @@ desc: Frequently asked questions about {{B}}: price, privacy, platforms, Android
 <h3 id="passwords">What about passwords?</h3>
 <p>Copies from password managers aren't stored. One-time codes, API keys, private keys and card numbers are masked, never searchable or synced, and deleted after an hour by default. A plain password copied from somewhere else looks like ordinary text, so pause capture first.</p>
 <h3 id="encrypted-local">Is my history encrypted on disk?</h3>
-<p>Not yet. It's protected by your OS account, like your browser history. Sync is end-to-end encrypted; on-device database encryption is on the roadmap.</p>
+<p>Yes. The database is encrypted with ChaCha20-Poly1305 and copied images with XChaCha20-Poly1305, with a key kept in your OS keychain (on Android, in the app's private storage). Sync is end-to-end encrypted too.</p>
 
 <h2 id="platforms">Platforms</h2>
-<h3 id="android">When is Android coming?</h3>
-<p>With v0.1.0. It captures copies through an accessibility service plus a Quick Settings tile and the share menu, and ships as an APK you install yourself at first. See <a href="android.html">Android setup</a>.</p>
+<h3 id="android">Is there an Android app?</h3>
+<p>Yes. It captures copies through an accessibility service plus a Quick Settings tile and the share menu. It isn't on the Play Store: it ships as an APK you download and install yourself. See <a href="android.html">Android setup</a>.</p>
 <h3 id="ios">What about iOS?</h3>
 <p>Later. iOS doesn't let apps read the clipboard in the background, so it will start with a share extension and Shortcuts.</p>
 <h3 id="mac">Does it work on macOS?</h3>
@@ -36,7 +36,7 @@ desc: Frequently asked questions about {{B}}: price, privacy, platforms, Android
 <h3 id="need-sync">Do I need two devices?</h3>
 <p>No. Every app is complete on its own. Pair devices only if you want shared history.</p>
 <h3 id="away">Does sync work when I'm away from home?</h3>
-<p>Not yet: devices sync while they're on the same network as the hub, and catch up when they're together again. Sync across networks is on the roadmap.</p>
+<p>On the same network, devices sync directly. Away from home they catch up when they're together again, or you can add a relay you host yourself (<em>Settings → Devices → Sync anywhere</em>); the relay only sees encrypted data. See <a href="sync.html">Sync</a>.</p>
 <h3 id="clipboard-overwrite">Will a copy on my phone overwrite my laptop's clipboard?</h3>
 <p>No. Synced clips show up in history and the picker; nothing changes your clipboard until you choose a clip.</p>
 <h3 id="how-many">How many devices can I pair?</h3>

@@ -4,7 +4,7 @@ desc: Pair a phone or another computer with {{B}} by QR code. How LAN sync works
 <h1>Sync your devices</h1>
 <p class="doc-lede">Pair a phone or another computer and they share one clipboard history: copy on one, find it on the others. Everything is end-to-end encrypted and stays on your own network. No account, no cloud.</p>
 
-<div class="callout info">{{i:info}}<div><p><strong>Sync is optional.</strong> Every {{B}} app is fully useful on its own. Pair devices only if you have more than one. The Android app arrives with v0.1; until then you can pair computers.</p></div></div>
+<div class="callout info">{{i:info}}<div><p><strong>Sync is optional.</strong> Every {{B}} app is fully useful on its own. Pair devices only if you have more than one. Pair your phone with the Android app, or another computer with the desktop app.</p></div></div>
 
 <h2 id="how">How it works</h2>
 <ul>
@@ -96,5 +96,10 @@ clipd sync pair "cliptrail://pair?v=1&amp;h=…"</code></pre></li>
   <li><strong>Start over:</strong> <code>clipd sync reset</code> (with the app closed) forgets keys, devices and sync progress for this device, keeping all clips.</li>
 </ul>
 
-<h2 id="roadmap">Coming later</h2>
-<p>Sync across networks, so your devices stay in step when they're not on the same Wi-Fi, is on the <a href="{{REPO}}/blob/main/ROADMAP.md">roadmap</a>.</p>
+<h2 id="anywhere">Sync away from home (relay)</h2>
+<p>Devices on different networks (your phone on mobile data, the laptop at home or asleep) can sync through a <strong>relay</strong>: a small mailbox server that stores only end-to-end-encrypted events and images. It never has a key that can open them.</p>
+<ol>
+  <li>Run a relay on a server you control. The <a href="{{REPO}}/tree/main/docker">self-hosting guide</a> has a one-command Docker setup with automatic HTTPS.</li>
+  <li>On the desktop app: <em>Settings → Devices → Sync anywhere</em>, paste the relay's URL (and its invite code), test it and add it. Paired devices pick it up automatically.</li>
+</ol>
+<p>There is no public ClipTrail relay; you host your own.</p>

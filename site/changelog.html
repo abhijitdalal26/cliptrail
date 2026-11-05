@@ -58,11 +58,22 @@
     <div class="changelog-entry">
       <div class="changelog-meta">
         <div class="ver">v0.1.0</div>
-        <div class="date">Unreleased</div>
-        <span class="chip chip-accent">Alpha · in progress</span>
+        <div class="date">2026-11-05</div>
+        <span class="chip chip-accent">Alpha</span>
       </div>
       <div class="prose">
-        <p>The first alpha: a Windows and Linux desktop app, the <code>clipd</code> CLI and encrypted LAN sync, with the Android app being built for the same release.</p>
+        <p>The first alpha: the Windows desktop app and the Android app, on the same core, with end-to-end encrypted sync between them. Also: Linux, an experimental macOS build and the <code>clipd</code> CLI.</p>
+
+        <div class="cl-group">
+          <h3>Android app and encryption at rest</h3>
+          <ul>
+            <li>The Android app: the same history, search and smart actions as the desktop, automatic capture through an accessibility service, a Quick Settings tile, the share menu and the text-selection menu. Pairs with your computer by QR. A signed APK you install yourself (not on the Play Store).</li>
+            <li>Your history is encrypted on every device: the databases with ChaCha20-Poly1305 (SQLite3 Multiple Ciphers), copied images and thumbnails with XChaCha20-Poly1305. The key stays in the OS keychain (Windows Credential Manager) or the app's private storage on Android.</li>
+            <li>Optional relay for syncing when your devices aren't on the same network ("Sync anywhere" in Settings → Devices); it only ever sees ciphertext.</li>
+            <li>Opt-in update check on the desktop app; updates are signed and never installed without asking.</li>
+            <li><code>clipd export-image</code> saves an image clip as a PNG.</li>
+          </ul>
+        </div>
 
         <div class="cl-group">
           <h3>Encrypted sync and smart actions <a class="commit" href="https://github.com/abhijitdalal26/cliptrail/commit/e9c3d7b">e9c3d7b</a></h3>
@@ -124,12 +135,8 @@
         </div>
 
         <div class="cl-group">
-          <h3>Still to come in v0.1</h3>
-          <ul>
-            <li>The Android app (capture, tile, share menu, pairing).</li>
-            <li>The first tagged release with installers.</li>
-          </ul>
-          <p class="muted">Coming later: sync across networks, on-device database encryption, paste stack, snippets, OCR. See the <a href="https://github.com/abhijitdalal26/cliptrail/blob/main/ROADMAP.md">roadmap</a>.</p>
+          <h3>Coming later</h3>
+          <p class="muted">Paste stack, snippets, OCR, history export, package-manager listings and code-signed installers. See the <a href="https://github.com/abhijitdalal26/cliptrail/blob/main/ROADMAP.md">roadmap</a>.</p>
         </div>
       </div>
     </div>

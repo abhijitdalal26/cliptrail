@@ -69,7 +69,7 @@
 <div class="table-wrap"><table>
   <thead><tr><th scope="col">Where your clips are</th><th scope="col">How they're protected today</th></tr></thead>
   <tbody>
-    <tr><td><strong>On your device</strong></td><td>In your user's data folder (SQLite database plus PNG images), protected by your OS account and disk encryption if you use it. <strong>Not yet encrypted by ClipTrail itself</strong>: on-device database encryption is on the roadmap.</td></tr>
+    <tr><td><strong>On your device</strong></td><td>In your user's data folder. The SQLite database is encrypted with ChaCha20-Poly1305 and image files with XChaCha20-Poly1305; the key lives in your OS keychain (Windows Credential Manager, macOS Keychain) or in the app's private storage on Android and Linux. Anyone who can sign in as you can still open the app and read your history.</td></tr>
     <tr><td><strong>On the network</strong></td><td>Each clip and image is sealed with XChaCha20-Poly1305 (256-bit key, random 192-bit nonce) on the device that copied it. Eavesdroppers see event and device ids, timestamps and sizes, not content.</td></tr>
     <tr><td><strong>On the hub</strong></td><td>The hub is one of <em>your</em> computers. It holds the key, so it decrypts clips into its own history just like your other devices. It also keeps the sealed event log so devices can catch up.</td></tr>
     <tr><td><strong>In logs</strong></td><td>Never. Logs and error messages contain ids, kinds and sizes only; this is a hard rule in the code.</td></tr>
