@@ -45,15 +45,20 @@ pub async fn copy_clip(
         let s = &clip.summary;
         let sensitive = s.masked || s.kind == Kind::Sensitive;
         Ok(match s.kind {
-            Kind::Image => WriteArgs {
-                image_path: Some(
-                    clip.image_path
-                        .clone()
-                        .or_else(|| s.thumb_path.clone())
-                        .ok_or_else(|| "The image isn't on this phone yet".to_string())?,
-                ),
-                ..Default::default()
-            },
+            Kind::Image => {
+                let src = clip
+                    .image_path
+                    .clone()
+                    .or_else(|| s.thumb_path.clone())
+                    .ok_or_else(|| "The image isn't on this phone yet".to_string())?;
+                let out = guard("preparing the image", || {
+                    clipboard_copy_of(&p.config().data_dir, &id, &src)
+                })?;
+                WriteArgs {
+                    image_path: Some(out.to_string_lossy().into_owned()),
+                    ..Default::default()
+                }
+            }
             Kind::File if !s.files.is_empty() => WriteArgs {
                 text: Some(s.files.join("\n")),
                 ..Default::default()
@@ -70,6 +75,27 @@ pub async fn copy_clip(
     bridge::call::<Value>(&app, "writeClipboard", args).await?;
     Ok(())
 }
+
+/// Stored images are encrypted, but the clipboard needs a readable file
+/// (shared by URI through the FileProvider, `res/xml/file_paths.xml`). Keep
+/// exactly one: the image currently being copied.
+fn clipboard_copy_of(
+    data_dir: &std::path::Path,
+    id: &str,
+    src: &str,
+) -> anyhow::Result<std::path::PathBuf> {
+    let dir = data_dir.join(CLIPBOARD_OUT_DIR);
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir)?;
+    let png = clipd_core::read_image(src)?;
+    let name: String = id.chars().filter(|c| c.is_ascii_alphanumeric()).collect();
+    let out = dir.join(format!("{name}.png"));
+    std::fs::write(&out, png)?;
+    Ok(out)
+}
+
+/// Under the data dir (Android `filesDir`). Must match `file_paths.xml`.
+const CLIPBOARD_OUT_DIR: &str = "clipboard-out";
 
 #[tauri::command]
 pub fn paste_clip(id: String, plain: bool, transform: Option<Transform>) -> CmdResult<()> {

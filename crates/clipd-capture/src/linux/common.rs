@@ -77,11 +77,10 @@ fn decode_png(png: &[u8]) -> Result<(u32, u32, Vec<u8>)> {
     Ok((w, h, img.into_raw()))
 }
 
-/// Read a PNG file for `WriteContent::ImagePng`, validating that it decodes.
-pub(super) fn load_png_file(path: &str) -> Result<Vec<u8>> {
-    let png = std::fs::read(path).with_context(|| format!("reading {path}"))?;
-    decode_png(&png).with_context(|| format!("decoding PNG {path}"))?;
-    Ok(png)
+/// Validate PNG bytes for `WriteContent::ImagePng`.
+pub(super) fn checked_png(png: &[u8]) -> Result<Vec<u8>> {
+    decode_png(png).context("decoding PNG")?;
+    Ok(png.to_vec())
 }
 
 /// Payloads (target name, bytes) to publish for a `WriteContent`.
@@ -89,7 +88,7 @@ pub(super) fn offers_for(content: crate::WriteContent<'_>) -> Result<Vec<(&'stat
     use crate::WriteContent;
     Ok(match content {
         WriteContent::Text { text, html } => targets::text_offers(text, html),
-        WriteContent::ImagePng(path) => targets::image_offers(load_png_file(path)?),
+        WriteContent::ImagePng(png) => targets::image_offers(checked_png(png)?),
         WriteContent::Files(files) => {
             targets::file_offers(files).context("no absolute file paths to put on the clipboard")?
         }

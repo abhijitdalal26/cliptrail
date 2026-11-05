@@ -129,14 +129,18 @@ export async function emitAll(event: string, payload: unknown): Promise<void> {
   }
 }
 
+/** Stored images are encrypted on disk; the app's `clipimg` protocol
+ * (src-tauri/src/imageproto.rs) decrypts them for the webview. */
+const IMAGE_SCHEME = "clipimg";
+
 let convert: ((p: string) => string) | null = null;
 if (isTauri) {
   void import("@tauri-apps/api/core").then((m) => {
-    convert = (p) => m.convertFileSrc(p);
+    convert = (p) => m.convertFileSrc(p, IMAGE_SCHEME);
   });
 }
 
-/** URL for an image path on disk (asset protocol) or a mock data URL. */
+/** URL for a stored image or thumbnail path, or a mock data URL. */
 export function assetUrl(path: string | null | undefined): string | undefined {
   if (!path) return undefined;
   if (path.startsWith("data:") || path.startsWith("http")) return path;
@@ -144,8 +148,8 @@ export function assetUrl(path: string | null | undefined): string | undefined {
   // Before the dynamic import settles; build the URL the way Tauri does.
   const enc = encodeURIComponent(path);
   return /Windows|Android/.test(navigator.userAgent)
-    ? `http://asset.localhost/${enc}`
-    : `asset://localhost/${enc}`;
+    ? `http://${IMAGE_SCHEME}.localhost/${enc}`
+    : `${IMAGE_SCHEME}://localhost/${enc}`;
 }
 
 export function errorMessage(e: unknown): string {

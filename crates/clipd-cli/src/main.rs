@@ -72,6 +72,15 @@ enum Command {
         #[arg(long)]
         reveal: bool,
     },
+    /// Save an image clip as a PNG file (stored images are encrypted).
+    ExportImage {
+        id: String,
+        /// Where to write the PNG.
+        out: std::path::PathBuf,
+        /// Save the thumbnail instead of the full image.
+        #[arg(long)]
+        thumb: bool,
+    },
     /// Totals by kind and source app.
     Stats,
     /// Pin a clip so it's never pruned.
@@ -186,6 +195,24 @@ fn run(cli: Cli) -> Result<()> {
             let id = resolve_id(&pipeline, &id)?;
             store.set_pinned(&id, false)?;
             println!("unpinned {id}");
+        }
+        Command::ExportImage { id, out, thumb } => {
+            let id = resolve_id(&pipeline, &id)?;
+            let clip = store.get(&id)?.context("clip vanished")?;
+            let src = if thumb {
+                clip.summary.thumb_path.clone()
+            } else {
+                clip.image_path.clone()
+            };
+            let Some(src) = src else {
+                bail!(
+                    "clip {id} has no {} on this device",
+                    if thumb { "thumbnail" } else { "full image" }
+                );
+            };
+            let png = clipd_core::read_image(&src)?;
+            std::fs::write(&out, png).with_context(|| format!("write {}", out.display()))?;
+            println!("saved {}", out.display());
         }
         Command::Delete { id } => {
             let id = resolve_id(&pipeline, &id)?;

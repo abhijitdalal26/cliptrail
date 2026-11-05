@@ -8,6 +8,7 @@
 
 pub mod classify;
 pub mod dbkey;
+pub mod imagefile;
 pub mod model;
 pub mod pipeline;
 pub mod store;
@@ -15,6 +16,7 @@ pub mod synced;
 pub mod transform;
 
 pub use classify::classify_text;
+pub use imagefile::{read_image, write_image};
 pub use model::*;
 pub use pipeline::{ClearScope, Pipeline, PipelineConfig};
 pub use store::Store;

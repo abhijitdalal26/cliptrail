@@ -40,7 +40,7 @@ impl Drop for Restore {
                 let path = std::env::temp_dir().join("cliptrail-restore.png");
                 if image::save_buffer(&path, &rgba, width, height, image::ColorType::Rgba8).is_ok()
                 {
-                    let _ = write_clip(WriteContent::ImagePng(path.to_str().unwrap()));
+                    let _ = write_clip(WriteContent::ImagePng(&std::fs::read(&path).unwrap()));
                     let _ = std::fs::remove_file(path);
                 }
             }
@@ -172,7 +172,7 @@ fn png_image_round_trips_with_alpha() {
     let rgba: Vec<u8> = (0..w * h * 4).map(|i| (i * 11 + 5) as u8).collect();
     let path = std::env::temp_dir().join(format!("{}.png", unique("img")));
     image::save_buffer(&path, &rgba, w, h, image::ColorType::Rgba8).unwrap();
-    write_clip(WriteContent::ImagePng(path.to_str().unwrap())).unwrap();
+    write_clip(WriteContent::ImagePng(&std::fs::read(&path).unwrap())).unwrap();
     let clip =
         wait_for(&rx, |c| matches!(c.content, RawContent::Image { .. })).expect("no image clip");
     let RawContent::Image {

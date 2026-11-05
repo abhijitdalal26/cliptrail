@@ -19,3 +19,6 @@ image.workspace = true
 dirs.workspace = true
 tracing.workspace = true
 url = "2"
+chacha20poly1305 = { version = "0.11", default-features = false, features = ["alloc"] }
+hkdf = "0.13"
+getrandom = "0.4"

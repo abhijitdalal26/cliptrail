@@ -150,6 +150,16 @@ impl Pipeline {
         }
         create_data_dirs(&config.data_dir)?;
         let store = Store::open(&config.data_dir.join(DB_FILE))?;
+        // Image files from before at-rest encryption, encrypted off the
+        // startup path (readers handle both forms meanwhile).
+        if crate::dbkey::has_db_key(&config.data_dir) {
+            let dir = config.data_dir.clone();
+            let _ = std::thread::Builder::new()
+                .name("clipd-encrypt-images".into())
+                .spawn(move || {
+                    crate::imagefile::encrypt_existing(&dir, &[IMAGES_DIR, THUMBS_DIR]);
+                });
+        }
         Ok(Pipeline {
             config,
             store: Arc::new(store),
@@ -521,33 +531,14 @@ pub(crate) fn encode_png(img: &RgbaImage) -> Result<Vec<u8>> {
     Ok(buf)
 }
 
-/// Write to `<path>.tmp`, then rename into place so readers never see a
-/// half-written file.
+/// Atomic, and encrypted when the data dir is unlocked.
 fn write_bytes_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
-    let mut tmp = path.as_os_str().to_owned();
-    tmp.push(".tmp");
-    let tmp = PathBuf::from(tmp);
-    let written = fs::write(&tmp, bytes).and_then(|()| fs::rename(&tmp, path));
-    if written.is_err() {
-        let _ = fs::remove_file(&tmp);
-    }
-    written.with_context(|| format!("write {}", path.display()))
+    crate::imagefile::write_image(path, bytes)
 }
 
-/// Encode to `<path>.tmp`, then rename into place so readers never see a
-/// half-written PNG.
+/// Encode as PNG and write like [`write_bytes_atomic`].
 pub(crate) fn write_png(img: &RgbaImage, path: &Path) -> Result<()> {
-    let mut tmp = path.as_os_str().to_owned();
-    tmp.push(".tmp");
-    let tmp = PathBuf::from(tmp);
-    let written = img
-        .save_with_format(&tmp, ImageFormat::Png)
-        .map_err(anyhow::Error::from)
-        .and_then(|()| fs::rename(&tmp, path).map_err(anyhow::Error::from));
-    if written.is_err() {
-        let _ = fs::remove_file(&tmp);
-    }
-    written.with_context(|| format!("write {}", path.display()))
+    crate::imagefile::write_image(path, &encode_png(img)?)
 }
 
 pub(crate) fn remove_files<P: AsRef<Path>>(paths: impl IntoIterator<Item = P>) {

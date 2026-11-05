@@ -188,11 +188,10 @@ pub fn write_clip(content: WriteContent<'_>) -> Result<()> {
                     bail!("NSPasteboard refused the text write");
                 }
             }
-            WriteContent::ImagePng(path) => {
-                let png = std::fs::read(path).with_context(|| format!("reading {path}"))?;
-                image::load_from_memory_with_format(&png, image::ImageFormat::Png)
-                    .with_context(|| format!("decoding PNG {path}"))?;
-                if !write_item(&[(t_png(), ItemData::Bytes(png))]) {
+            WriteContent::ImagePng(png) => {
+                image::load_from_memory_with_format(png, image::ImageFormat::Png)
+                    .context("decoding PNG")?;
+                if !write_item(&[(t_png(), ItemData::Bytes(png.to_vec()))]) {
                     bail!("NSPasteboard refused the image write");
                 }
             }
