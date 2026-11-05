@@ -34,7 +34,7 @@
     "shortDescription": "Clipboard history that remembers everything you copy",
     "longDescription": "ClipTrail keeps a searchable, local-first history of everything you copy: links, code, text, images and files, grouped by day.",
     "copyright": "ClipTrail contributors",
-    "license": "MIT OR Apache-2.0",
+    "license": "MIT",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

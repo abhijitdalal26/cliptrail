@@ -462,6 +462,8 @@ impl Pipeline {
                 .quiet(|conn| crate::store::clear_rows(conn, keep_pinned))?,
         };
         remove_files(&files);
+        // Clearing history empties the trash too.
+        self.empty_trash()?;
         tracing::debug!(count, ?scope, keep_pinned, "history cleared");
         Ok(count)
     }

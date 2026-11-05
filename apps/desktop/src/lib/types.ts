@@ -46,6 +46,8 @@ export interface ClipSummary {
   pinned: boolean;
   masked: boolean;
   expires_at: Millis | null;
+  /** Set on clips listed from the Trash (desktop). */
+  deleted_at?: Millis;
 }
 
 export interface Clip extends ClipSummary {
@@ -73,6 +75,8 @@ export interface Stats {
   by_kind: [Kind, number][];
   pinned: number;
   top_apps: [string, number][];
+  /** Clips in the trash. */
+  trashed?: number;
 }
 
 export interface DayCount {

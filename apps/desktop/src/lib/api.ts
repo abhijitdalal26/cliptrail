@@ -40,7 +40,16 @@ export const api = {
   dayCounts: (from: number, to: number) => call<DayCount[]>("day_counts", { from, to }),
   sourceApps: () => call<string[]>("source_apps"),
   setPinned: (id: string, pinned: boolean) => call<void>("set_pinned", { id, pinned }),
+  /** Desktop: moves the clip to the trash. Android: deletes it. */
   deleteClip: (id: string) => call<void>("delete_clip", { id }),
+  /** Trashed clips, most recently deleted first (desktop). */
+  listTrash: (limit: number, before: number | null) => call<ClipSummary[]>("list_trash", { limit, before }),
+  restoreClip: (id: string) => call<boolean>("restore_clip", { id }),
+  /** Delete a trashed clip for good. */
+  purgeClip: (id: string) => call<void>("purge_clip", { id }),
+  emptyTrash: () => call<number>("empty_trash"),
+  /** Save an image clip to Downloads (decrypted) and show it in the folder. Returns the path. */
+  saveImage: (id: string) => call<string>("save_image", { id }),
   /** How many clips "Clear history" would delete. */
   clearCount: (keepPinned: boolean) => call<number>("clear_count", { keepPinned }),
   /** Delete the history (and image files). By default this device only;

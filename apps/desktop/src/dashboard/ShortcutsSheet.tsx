@@ -30,7 +30,7 @@ export function ShortcutsSheet({ onClose }: { onClose: () => void }) {
     ["Move selection", [["↑"], ["↓"]]],
     ["Copy selected clip", [["Enter"]]],
     ["Copy as plain text", [["Shift", "Enter"]]],
-    ["Pin / unpin", [k("Ctrl+P")]],
+    ["Add to / remove from favorites", [k("Ctrl+P")]],
     ["Delete (with undo)", [["Del"]]],
     ["Undo delete", [k("Ctrl+Z")]],
     ["Clear search / filters", [["Esc"]]],
@@ -46,7 +46,7 @@ export function ShortcutsSheet({ onClose }: { onClose: () => void }) {
     ["Quick-paste item 1–9", [k("Ctrl+1"), ["…"], k("Ctrl+9")]],
     ["Next / previous kind", [["Tab"], ["Shift", "Tab"]]],
     ["Move selection", [["↑"], ["↓"]]],
-    ["Pin / unpin", [k("Ctrl+P")]],
+    ["Add to / remove from favorites", [k("Ctrl+P")]],
     ["Open the dashboard", [k("Ctrl+D")]],
     ["Close", [["Esc"]]],
   ];

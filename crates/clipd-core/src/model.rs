@@ -165,6 +165,9 @@ pub struct Stats {
     pub pinned: i64,
     /// Top source apps by clip count: (app, count), max 10.
     pub top_apps: Vec<(String, i64)>,
+    /// Clips in the trash.
+    #[serde(default)]
+    pub trashed: i64,
 }
 
 /// Clip count for one local calendar day, for the heatmap.

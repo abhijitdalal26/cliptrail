@@ -161,7 +161,7 @@ export function MobileSettings({
               </Section>
 
               <Section title="Storage">
-                <Row title="Keep history" desc="Pinned clips are always kept." error={errors.retention}>
+                <Row title="Keep history" desc="Favorites are always kept." error={errors.retention}>
                   <Select
                     value={s.retention_days == null ? "forever" : String(s.retention_days)}
                     onChange={(v) => void save({ retention_days: v === "forever" ? null : Number(v) }, "retention")}
@@ -191,7 +191,7 @@ export function MobileSettings({
               <div className="text-[13px] font-semibold text-fg">ClipTrail {view?.version ?? ""}</div>
               <div className="text-[12px] leading-[1.45] text-fg-3">
                 Your clips stay on this phone, and go only to computers you pair, end-to-end encrypted. No
-                telemetry. MIT / Apache-2.0.
+                telemetry. MIT license.
               </div>
             </div>
           </div>

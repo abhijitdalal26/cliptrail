@@ -79,4 +79,4 @@ One Rust core shared by every client · Tauri 2 + React desktop · encrypted syn
 
 ## License
 
-Dual-licensed under [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE) — pick whichever works for you.
+[MIT](LICENSE).

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, Keyboard, Layers, Pause, Pin, Play, Settings } from "lucide-react";
+import { ChevronDown, Clock, Keyboard, LayoutDashboard, Layers, Pause, Play, Settings, Star, Trash2 } from "lucide-react";
 import { appName } from "../lib/apps";
 import { cx } from "../lib/cx";
 import { compact } from "../lib/format";
@@ -32,6 +32,12 @@ export function Sidebar(p: Props) {
     <nav className="flex h-full min-h-0 w-[232px] shrink-0 flex-col">
       <div className="scroll-y no-scrollbar min-h-0 flex-1 px-2.5 pt-1 pb-3">
         <Item
+          icon={<LayoutDashboard size={15} strokeWidth={1.9} />}
+          label="Dashboard"
+          active={sameView(p.view, { type: "dashboard" })}
+          onClick={() => p.onView({ type: "dashboard" })}
+        />
+        <Item
           icon={<Layers size={15} strokeWidth={1.9} />}
           label="All clips"
           count={p.stats?.total}
@@ -39,14 +45,27 @@ export function Sidebar(p: Props) {
           onClick={() => p.onView({ type: "all" })}
         />
         <Item
-          icon={<Pin size={15} strokeWidth={1.9} />}
-          label="Pinned"
+          icon={<Star size={15} strokeWidth={1.9} />}
+          label="Favorites"
           count={p.stats?.pinned}
-          active={sameView(p.view, { type: "pinned" })}
-          onClick={() => p.onView({ type: "pinned" })}
+          active={sameView(p.view, { type: "favorites" })}
+          onClick={() => p.onView({ type: "favorites" })}
+        />
+        <Item
+          icon={<Clock size={15} strokeWidth={1.9} />}
+          label="Recent"
+          active={sameView(p.view, { type: "recent" })}
+          onClick={() => p.onView({ type: "recent" })}
+        />
+        <Item
+          icon={<Trash2 size={15} strokeWidth={1.9} />}
+          label="Trash"
+          count={p.stats?.trashed}
+          active={sameView(p.view, { type: "trash" })}
+          onClick={() => p.onView({ type: "trash" })}
         />
 
-        <SectionLabel>Kinds</SectionLabel>
+        <SectionLabel>Categories</SectionLabel>
         {ALL_KINDS.map((k) => {
           const Icon = KIND_META[k].icon;
           const n = byKind.get(k) ?? 0;

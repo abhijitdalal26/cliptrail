@@ -12,7 +12,16 @@ const MAX_DIFF = 20_000;
 /** Type-aware actions for a clip: pills that copy the text transformed
  *  (clean link, color as RGB, prettify JSON, ...). Hover or focus a pill to
  *  see exactly what it will copy. */
-export function Actions({ summary, original }: { summary: ClipSummary; original: string | null }) {
+export function Actions({
+  summary,
+  original,
+  bare,
+}: {
+  summary: ClipSummary;
+  original: string | null;
+  /** In the clip panel's Actions tab: no heading, and a note when there's nothing to offer. */
+  bare?: boolean;
+}) {
   const id = summary.id;
   const eligible = !summary.masked && !["sensitive", "image", "file"].includes(summary.kind);
   const [actions, setActions] = useState<Transform[]>([]);
@@ -55,7 +64,9 @@ export function Actions({ summary, original }: { summary: ClipSummary; original:
     };
   }, [menu]);
 
-  if (actions.length === 0) return null;
+  if (actions.length === 0) {
+    return bare ? <div className="px-5 py-2 text-[12.5px] text-fg-3">No quick actions for this clip.</div> : null;
+  }
 
   const show = (t: Transform) => {
     setActive(t);
@@ -84,7 +95,7 @@ export function Actions({ summary, original }: { summary: ClipSummary; original:
 
   return (
     <div ref={wrap} className="relative -mt-1 px-5 pb-4">
-      <div className="mb-1.5 text-[11px] font-semibold tracking-[0.05em] text-fg-3 uppercase">Actions</div>
+      {!bare && <div className="mb-1.5 text-[11px] font-semibold tracking-[0.05em] text-fg-3 uppercase">Actions</div>}
       <div className="flex flex-wrap gap-1.5">
         {inline.map((t) => (
           <ActionPill key={t} t={t} on={active === t} onRun={run} onShow={show} onHide={hide} />

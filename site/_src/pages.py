@@ -304,7 +304,7 @@ INDEX = r"""
       <h2 class="h2">Questions, answered.</h2>
     </div>
     <div class="faq">
-      <details><summary>Is {{B}} free?</summary><div class="a"><p>Yes. It's open source under MIT or Apache-2.0, with no account and no paid tier.</p></div></details>
+      <details><summary>Is {{B}} free?</summary><div class="a"><p>Yes. It's open source under the MIT license, with no account and no paid tier.</p></div></details>
       <details><summary>Does my clipboard leave my computer?</summary><div class="a"><p>Only if you pair another device, and then only as ciphertext to that device over your local network. There is no {{B}} server and no telemetry.</p></div></details>
       <details><summary>Is there an Android app?</summary><div class="a"><p>Yes, since v0.1.0. It captures copies through an accessibility service plus a Quick Settings tile and the share menu. It isn't on the Play Store: download the APK from this site and install it yourself. See <a href="{{R}}docs/android.html">Android setup</a>.</p></div></details>
       <details><summary>Do I need two devices?</summary><div class="a"><p>No. Every app is fully useful on one device: history, search, the picker and smart actions all work offline. Pairing only adds devices when you have them.</p></div></details>
@@ -505,6 +505,8 @@ CHANGELOG = r"""
             <li>Your history is encrypted on every device: the databases with ChaCha20-Poly1305 (SQLite3 Multiple Ciphers), copied images and thumbnails with XChaCha20-Poly1305. The key stays in the OS keychain (Windows Credential Manager) or the app's private storage on Android.</li>
             <li>Optional relay for syncing when your devices aren't on the same network ("Sync anywhere" in Settings → Devices); it only ever sees ciphertext.</li>
             <li>Opt-in update check on the desktop app; updates are signed and never installed without asking.</li>
+            <li>A cleaner dashboard: Dashboard, All clips, Favorites (star any clip), Recent and Trash in the sidebar; a clip panel with the content on top, details and one-click Copy.</li>
+            <li>Trash: deleted clips can be restored for 30 days.</li>
             <li><code>clipd export-image</code> saves an image clip as a PNG.</li>
           </ul>
         </div>

@@ -525,6 +525,7 @@ function generate(): Clip[] {
 }
 
 const db: Clip[] = generate();
+const trash: Clip[] = [];
 
 // ---------- event bus ----------
 type Cb = (p: unknown) => void;
@@ -594,6 +595,7 @@ function stats(): Stats {
     by_kind: [...byKind.entries()],
     pinned: db.filter((c) => c.pinned).length,
     top_apps: [...apps.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10),
+    trashed: trash.length,
   };
 }
 
@@ -640,7 +642,7 @@ export async function handle(cmd: string, a: Record<string, unknown>): Promise<u
     case "list_clips":
       return list(a.query as ListQuery);
     case "get_clip":
-      return db.find((c) => c.id === a.id) ?? null;
+      return db.find((c) => c.id === a.id) ?? trash.find((c) => c.id === a.id) ?? null;
     case "stats":
       return stats();
     case "day_counts": {
@@ -662,9 +664,34 @@ export async function handle(cmd: string, a: Record<string, unknown>): Promise<u
     }
     case "delete_clip": {
       const i = db.findIndex((x) => x.id === a.id);
-      if (i >= 0) db.splice(i, 1);
+      if (i >= 0) trash.unshift({ ...db.splice(i, 1)[0], deleted_at: Date.now() });
       return null;
     }
+    case "list_trash":
+      return trash.filter((c) => a.before == null || c.deleted_at! < (a.before as number)).slice(0, a.limit as number);
+    case "restore_clip": {
+      const i = trash.findIndex((x) => x.id === a.id);
+      if (i < 0) return false;
+      const { deleted_at: _d, ...c } = trash.splice(i, 1)[0];
+      db.push(c);
+      db.sort((x, y) => y.last_seen_at - x.last_seen_at);
+      publish("clips-updated", null);
+      return true;
+    }
+    case "purge_clip": {
+      const i = trash.findIndex((x) => x.id === a.id);
+      if (i >= 0) trash.splice(i, 1);
+      publish("clips-updated", null);
+      return null;
+    }
+    case "empty_trash": {
+      const n = trash.length;
+      trash.length = 0;
+      publish("clips-updated", null);
+      return n;
+    }
+    case "save_image":
+      return "C:\\Users\\you\\Downloads\\ClipTrail.png";
     case "clear_count":
       return db.filter((c) => !(a.keepPinned && c.pinned)).length;
     case "clear_history": {

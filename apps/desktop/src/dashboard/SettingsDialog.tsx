@@ -188,7 +188,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
         </Section>
 
         <Section title="Storage">
-          <Row title="Keep history" desc="Older clips are deleted automatically. Pinned clips are always kept." error={errors.retention}>
+          <Row title="Keep history" desc="Older clips are deleted automatically. Favorites are always kept." error={errors.retention}>
             <Select
               value={s.retention_days == null ? "forever" : String(s.retention_days)}
               onChange={(v) => void save({ retention_days: v === "forever" ? null : Number(v) }, "retention")}
@@ -253,7 +253,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
               Local-first. Clips only go to devices you pair, end-to-end encrypted. No telemetry.
             </div>
           </div>
-          <span className="text-[11.5px] text-fg-3">MIT / Apache-2.0</span>
+          <span className="text-[11.5px] text-fg-3">MIT license</span>
         </div>
       </div>
     </Modal>

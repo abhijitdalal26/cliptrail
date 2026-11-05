@@ -55,7 +55,14 @@ pub async fn list_clips(app: AppHandle, query: ListQuery) -> CmdResult<Vec<ClipS
 #[tauri::command]
 pub async fn get_clip(app: AppHandle, id: String) -> CmdResult<Option<Clip>> {
     let p = pipeline(&app)?;
-    blocking(move || guard("reading clip", || p.store().get(&id))).await
+    // A clip in the trash still previews (desktop Trash view).
+    blocking(move || {
+        guard("reading clip", || match p.store().get(&id)? {
+            Some(c) => Ok(Some(c)),
+            None => p.store().get_trashed(&id),
+        })
+    })
+    .await
 }
 
 #[tauri::command]
@@ -87,9 +94,92 @@ pub async fn set_pinned(app: AppHandle, id: String, pinned: bool) -> CmdResult<(
 #[tauri::command]
 pub async fn delete_clip(app: AppHandle, id: String) -> CmdResult<()> {
     let p = pipeline(&app)?;
+    // Desktop has a Trash view; Android deletes for good.
+    #[cfg(desktop)]
+    blocking(move || guard("deleting", || p.trash(&id).map(|_| ()))).await?;
+    #[cfg(mobile)]
     blocking(move || guard("deleting", || p.delete(&id))).await?;
     notify_updated(&app);
     Ok(())
+}
+
+/// Clips in the trash, most recently deleted first.
+#[cfg(desktop)]
+#[tauri::command]
+pub async fn list_trash(
+    app: AppHandle,
+    limit: u32,
+    before: Option<Millis>,
+) -> CmdResult<Vec<clipd_core::TrashedClip>> {
+    let p = pipeline(&app)?;
+    blocking(move || guard("listing trash", || p.store().list_trash(limit, before))).await
+}
+
+#[cfg(desktop)]
+#[tauri::command]
+pub async fn restore_clip(app: AppHandle, id: String) -> CmdResult<bool> {
+    let p = pipeline(&app)?;
+    let ok = blocking(move || guard("restoring", || p.restore(&id))).await?;
+    notify_updated(&app);
+    Ok(ok)
+}
+
+/// Delete a trashed clip for good.
+#[cfg(desktop)]
+#[tauri::command]
+pub async fn purge_clip(app: AppHandle, id: String) -> CmdResult<()> {
+    let p = pipeline(&app)?;
+    blocking(move || guard("deleting", || p.purge(&id))).await?;
+    notify_updated(&app);
+    Ok(())
+}
+
+#[cfg(desktop)]
+#[tauri::command]
+pub async fn empty_trash(app: AppHandle) -> CmdResult<usize> {
+    let p = pipeline(&app)?;
+    let n = blocking(move || guard("emptying trash", || p.empty_trash())).await?;
+    notify_updated(&app);
+    Ok(n)
+}
+
+/// Save an image clip (decrypted) to the Downloads folder and show it there.
+#[cfg(desktop)]
+#[tauri::command]
+pub async fn save_image(app: AppHandle, id: String) -> CmdResult<String> {
+    let p = pipeline(&app)?;
+    let dir = app
+        .path()
+        .download_dir()
+        .map_err(|_| "Couldn't find your Downloads folder".to_string())?;
+    let out = blocking(move || {
+        guard("saving image", || {
+            let clip = match p.store().get(&id)? {
+                Some(c) => c,
+                None => p
+                    .store()
+                    .get_trashed(&id)?
+                    .ok_or_else(|| anyhow::anyhow!("clip not found"))?,
+            };
+            let src = clip
+                .image_path
+                .or(clip.summary.thumb_path)
+                .ok_or_else(|| anyhow::anyhow!("no image on this device"))?;
+            let png = clipd_core::read_image(&src)?;
+            let stamp = chrono::Local::now().format("%Y-%m-%d %H.%M.%S");
+            let mut out = dir.join(format!("ClipTrail {stamp}.png"));
+            let mut n = 2;
+            while out.exists() {
+                out = dir.join(format!("ClipTrail {stamp} ({n}).png"));
+                n += 1;
+            }
+            std::fs::write(&out, png)?;
+            Ok(out)
+        })
+    })
+    .await?;
+    let _ = app.opener().reveal_item_in_dir(&out);
+    Ok(out.to_string_lossy().into_owned())
 }
 
 /// How many clips "Clear history" would remove (for the confirm dialog).
