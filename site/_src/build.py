@@ -209,12 +209,12 @@ def footer(R):
           <li><a href="{REPO}/issues/new">Report an issue</a></li>
           <li><a href="{R}security.html">Security</a></li>
           <li><a href="{R}privacy.html">Privacy</a></li>
-          <li><a href="{REPO}/blob/main/LICENSE-MIT">License: MIT / Apache-2.0</a></li>
+          <li><a href="{REPO}/blob/main/LICENSE">License: MIT</a></li>
         </ul>
       </div>
     </div>
     <div class="footer-bottom">
-      <span>© 2026 {BRAND} contributors · Dual-licensed <a href="{REPO}/blob/main/LICENSE-MIT">MIT</a> / <a href="{REPO}/blob/main/LICENSE-APACHE">Apache-2.0</a></span>
+      <span>© 2026 {BRAND} contributors · MIT licensed (<a href="{REPO}/blob/main/LICENSE">license</a>)</span>
       <span>No cookies, analytics or trackers on this site.</span>
     </div>
   </div>

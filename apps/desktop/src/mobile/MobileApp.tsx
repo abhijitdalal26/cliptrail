@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, ArrowLeft, ChevronRight, ClipboardPlus, Layers, Pin, Search, Settings, X, Zap } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ChevronRight, ClipboardPlus, Layers, Search, Settings, Star, X, Zap } from "lucide-react";
 import { api, errorMessage, isTauri, onClipsChanged } from "../lib/api";
 import { androidApi, type AndroidStatus } from "../lib/android";
 import { cx } from "../lib/cx";
@@ -186,7 +186,7 @@ export function MobileApp() {
     api
       .setPinned(c.id, pinned)
       .then(() => {
-        toast(pinned ? "Pinned" : "Unpinned");
+        toast(pinned ? "Added to favorites" : "Removed from favorites");
         refreshMeta();
         if (filter === "pinned") void clips.refresh();
       })
@@ -251,7 +251,7 @@ export function MobileApp() {
   const byKind = new Map(stats?.by_kind ?? []);
   const chips: { f: Filter; label: string; count?: number; icon: React.ReactNode }[] = [
     { f: "all", label: "All", count: stats?.total, icon: <Layers size={14} strokeWidth={2} /> },
-    { f: "pinned", label: "Pinned", count: stats?.pinned, icon: <Pin size={14} strokeWidth={2} /> },
+    { f: "pinned", label: "Favorites", count: stats?.pinned, icon: <Star size={14} strokeWidth={2} /> },
     ...ALL_KINDS.filter((k) => (byKind.get(k) ?? 0) > 0 || filter === k).map((k) => {
       const Icon = KIND_META[k].icon;
       return {

@@ -47,6 +47,9 @@ fn prune(app: &AppHandle) {
     let Ok(p) = app.state::<AppState>().pipeline() else {
         return;
     };
+    if let Err(e) = guard("trash", || p.purge_old_trash()) {
+        tracing::warn!("{e}");
+    }
     match guard("prune", || p.prune()) {
         Ok(0) => {}
         Ok(n) => {

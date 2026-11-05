@@ -14,6 +14,7 @@ pub mod pipeline;
 pub mod store;
 pub mod synced;
 pub mod transform;
+pub mod trash;
 
 pub use classify::classify_text;
 pub use imagefile::{read_image, write_image};
@@ -25,6 +26,7 @@ pub use transform::{
     Transform, apply as apply_transform, apply_for as apply_transform_for,
     available as available_transforms,
 };
+pub use trash::{TrashOutcome, TrashedClip};
 
 use std::path::PathBuf;
 

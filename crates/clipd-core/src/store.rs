@@ -48,7 +48,7 @@ pub const DEFAULT_LIST_LIMIT: u32 = 100;
 pub const MAX_LIST_LIMIT: u32 = 1000;
 
 /// Ordered schema migrations; entry `i` upgrades `user_version` i → i+1.
-const MIGRATIONS: &[&str] = &[SCHEMA_V1, SCHEMA_V2];
+const MIGRATIONS: &[&str] = &[SCHEMA_V1, SCHEMA_V2, crate::trash::SCHEMA_V3];
 
 const SCHEMA_V1: &str = r#"
 CREATE TABLE clips (
@@ -435,11 +435,13 @@ impl Store {
             )?
             .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?
             .collect::<rusqlite::Result<Vec<_>>>()?;
+        let trashed = conn.query_row("SELECT count(*) FROM trash", [], |r| r.get(0))?;
         Ok(Stats {
             total,
             by_kind,
             pinned,
             top_apps,
+            trashed,
         })
     }
 

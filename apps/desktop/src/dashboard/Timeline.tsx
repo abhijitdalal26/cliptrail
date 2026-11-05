@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, type ReactNode } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ClipboardCopy, SearchX } from "lucide-react";
+import { ClipboardCopy, SearchX, Trash2 } from "lucide-react";
 import { dayKey, dayLabel, plural } from "../lib/format";
 import { MOD } from "../lib/hooks";
 import type { ClipSummary } from "../lib/types";
@@ -33,6 +33,8 @@ interface Props {
   onSelect: (id: string) => void;
   onCopy: (id: string) => void;
   onTogglePin: (c: ClipSummary) => void;
+  /** Trash: group by deletion day, no copy/favorite controls, trash empty state. */
+  trash?: boolean;
 }
 
 export const Timeline = forwardRef<TimelineHandle, Props>(function Timeline(p, ref) {
@@ -42,12 +44,13 @@ export const Timeline = forwardRef<TimelineHandle, Props>(function Timeline(p, r
     const out: Row[] = [{ type: "top" }];
     let last = "";
     for (const c of p.items) {
-      const k = dayKey(c.last_seen_at);
+      const at = p.trash ? (c.deleted_at ?? c.last_seen_at) : c.last_seen_at;
+      const k = dayKey(at);
       if (k !== last) {
         out.push({
           type: "header",
           key: k,
-          label: dayLabel(c.last_seen_at),
+          label: (p.trash ? "Deleted " : "") + dayLabel(at),
           count: p.dayCounts?.get(k) ?? null,
           first: last === "",
         });
@@ -57,7 +60,7 @@ export const Timeline = forwardRef<TimelineHandle, Props>(function Timeline(p, r
     }
     if (p.hasMore && p.items.length > 0) out.push({ type: "more" });
     return out;
-  }, [p.items, p.hasMore, p.dayCounts]);
+  }, [p.items, p.hasMore, p.dayCounts, p.trash]);
 
   const v = useVirtualizer({
     count: rows.length,
@@ -116,7 +119,7 @@ export const Timeline = forwardRef<TimelineHandle, Props>(function Timeline(p, r
               {r.type === "top" && (
                 <>
                   {p.top}
-                  {empty && <Empty filtered={p.filtered} shortcut={p.shortcut} mobile={p.mobile} />}
+                  {empty && (p.trash ? <TrashEmpty /> : <Empty filtered={p.filtered} shortcut={p.shortcut} mobile={p.mobile} />)}
                   {p.loading && p.items.length === 0 && <Skeleton />}
                 </>
               )}
@@ -134,6 +137,7 @@ export const Timeline = forwardRef<TimelineHandle, Props>(function Timeline(p, r
                     onSelect={p.onSelect}
                     onCopy={p.onCopy}
                     onTogglePin={p.onTogglePin}
+                    readOnly={p.trash}
                   />
                 </div>
               )}
@@ -150,6 +154,20 @@ export const Timeline = forwardRef<TimelineHandle, Props>(function Timeline(p, r
     </div>
   );
 });
+
+function TrashEmpty() {
+  return (
+    <div className="anim-fade flex flex-col items-center px-8 pt-16 pb-10 text-center">
+      <div className="mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-hover text-fg-3">
+        <Trash2 size={22} strokeWidth={1.8} />
+      </div>
+      <div className="text-[14px] font-semibold text-fg">Trash is empty</div>
+      <div className="mt-1 max-w-[320px] text-[12.5px] text-fg-3">
+        Deleted clips stay here for 30 days, so you can restore them. Sensitive clips are deleted right away.
+      </div>
+    </div>
+  );
+}
 
 function Skeleton() {
   return (

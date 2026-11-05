@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { Copy, Pin, PinOff } from "lucide-react";
+import { Copy, Star } from "lucide-react";
 import { assetUrl } from "../lib/api";
 import { appName } from "../lib/apps";
 import { cx } from "../lib/cx";
@@ -17,15 +17,17 @@ interface Props {
   onSelect: (id: string) => void;
   onCopy: (id: string) => void;
   onTogglePin: (clip: ClipSummary) => void;
+  /** Trash: no copy / favorite controls. */
+  readOnly?: boolean;
 }
 
-export const ClipCard = memo(function ClipCard({ clip, selected, onSelect, onCopy, onTogglePin }: Props) {
+export const ClipCard = memo(function ClipCard({ clip, selected, onSelect, onCopy, onTogglePin, readOnly }: Props) {
   return (
     <div
       role="option"
       aria-selected={selected}
       onMouseDown={() => onSelect(clip.id)}
-      onDoubleClick={() => onCopy(clip.id)}
+      onDoubleClick={() => !readOnly && onCopy(clip.id)}
       className={cx(
         "group relative flex gap-3 rounded-[11px] px-3 py-2.5 transition-colors duration-150",
         selected
@@ -34,38 +36,56 @@ export const ClipCard = memo(function ClipCard({ clip, selected, onSelect, onCop
       )}
     >
       <Leading clip={clip} />
-      <div className="min-w-0 flex-1">
+      <div className={cx("min-w-0 flex-1", !readOnly && "pr-16")}>
         <Body clip={clip} />
         <Meta clip={clip} />
       </div>
-      <div
-        className={cx(
-          "hover-tools absolute top-2 right-2 flex items-center gap-0.5 rounded-lg border border-line bg-elevated p-0.5 shadow-card",
-          "pointer-events-none opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100",
-        )}
-      >
-        <MiniAction label="Copy" onClick={() => onCopy(clip.id)}>
-          <Copy size={13} strokeWidth={2} />
-        </MiniAction>
-        <MiniAction label={clip.pinned ? "Unpin" : "Pin"} onClick={() => onTogglePin(clip)}>
-          {clip.pinned ? <PinOff size={13} strokeWidth={2} /> : <Pin size={13} strokeWidth={2} />}
-        </MiniAction>
-      </div>
+      {!readOnly && (
+        <div className="absolute top-2 right-2 flex items-center gap-0.5">
+          <RowButton label="Copy" onClick={() => onCopy(clip.id)}>
+            <Copy size={15} strokeWidth={2} />
+          </RowButton>
+          <RowButton
+            label={clip.pinned ? "Remove from favorites" : "Add to favorites"}
+            pressed={clip.pinned}
+            onClick={() => onTogglePin(clip)}
+            className={clip.pinned ? "text-[#f5b301] hover:text-[#f5b301]" : undefined}
+          >
+            <Star size={15} strokeWidth={2} className={cx(clip.pinned && "fill-current")} />
+          </RowButton>
+        </div>
+      )}
     </div>
   );
 });
 
-function MiniAction({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
+function RowButton({
+  label,
+  onClick,
+  pressed,
+  className,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  pressed?: boolean;
+  className?: string;
+  children: React.ReactNode;
+}) {
   return (
     <button
       aria-label={label}
+      aria-pressed={pressed}
       title={label}
       onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => {
         e.stopPropagation();
         onClick();
       }}
-      className="grid h-6 w-6 place-items-center rounded-md text-fg-3 transition-colors hover:bg-hover hover:text-fg"
+      className={cx(
+        "grid h-7 w-7 place-items-center rounded-lg text-fg-3 transition-colors hover:bg-hover hover:text-fg",
+        className,
+      )}
     >
       {children}
     </button>
@@ -208,7 +228,6 @@ function Meta({ clip }: { clip: ClipSummary }) {
           <span className="shrink-0 tabular-nums">×{clip.copy_count}</span>
         </>
       )}
-      {clip.pinned && <Pin size={11} strokeWidth={2.4} className="ml-0.5 shrink-0 fill-current text-accent-text" />}
       {clip.kind === "code" && clip.line_count > 1 && (
         <span className="ml-auto shrink-0 tabular-nums">{clip.line_count} lines</span>
       )}

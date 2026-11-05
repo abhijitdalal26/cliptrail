@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "license": "MIT OR Apache-2.0",
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && eslint . --max-warnings 0 && vite build",

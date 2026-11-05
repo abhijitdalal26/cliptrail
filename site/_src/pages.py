@@ -304,7 +304,7 @@ INDEX = r"""
       <h2 class="h2">Questions, answered.</h2>
     </div>
     <div class="faq">
-      <details><summary>Is {{B}} free?</summary><div class="a"><p>Yes. It's open source under MIT or Apache-2.0, with no account and no paid tier.</p></div></details>
+      <details><summary>Is {{B}} free?</summary><div class="a"><p>Yes. It's open source under the MIT license, with no account and no paid tier.</p></div></details>
       <details><summary>Does my clipboard leave my computer?</summary><div class="a"><p>Only if you pair another device, and then only as ciphertext to that device over your local network. There is no {{B}} server and no telemetry.</p></div></details>
       <details><summary>Is there an Android app?</summary><div class="a"><p>Yes, since v0.1.0. It captures copies through an accessibility service plus a Quick Settings tile and the share menu. It isn't on the Play Store: download the APK from this site and install it yourself. See <a href="{{R}}docs/android.html">Android setup</a>.</p></div></details>
       <details><summary>Do I need two devices?</summary><div class="a"><p>No. Every app is fully useful on one device: history, search, the picker and smart actions all work offline. Pairing only adds devices when you have them.</p></div></details>

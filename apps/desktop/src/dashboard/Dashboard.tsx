@@ -10,7 +10,7 @@ import { KIND_META } from "../lib/kinds";
 import { dismiss, toast } from "../lib/toast";
 import type { CaptureState, ClipSummary, ListQuery, Stats } from "../lib/types";
 import { useClips } from "../lib/useClips";
-import type { View } from "../lib/view";
+import { RECENT_DAYS, type View } from "../lib/view";
 import { Button, Chip, Segmented } from "../components/ui";
 import { Toasts } from "../components/Toasts";
 import { Heatmap, HeatLegend } from "./Heatmap";
@@ -29,7 +29,7 @@ const UNDO_MS = 5000;
 export function Dashboard() {
   useTick(60_000); // keep relative times fresh
 
-  const [view, setView] = useState<View>({ type: "all" });
+  const [view, setView] = useState<View>({ type: "dashboard" });
   const [app, setApp] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const debounced = useDebounced(search.trim(), 160);
@@ -54,17 +54,21 @@ export function Dashboard() {
     const now = Date.now();
     const from =
       range === "today" ? startOfDay(now).getTime() : range === "7d" ? now - 7 * DAY : range === "30d" ? now - 30 * DAY : null;
+    const recentFrom = view.type === "recent" ? now - RECENT_DAYS * DAY : null;
     return {
       kind: view.type === "kind" ? view.kind : null,
-      pinned_only: view.type === "pinned",
+      pinned_only: view.type === "favorites",
       source_app: app,
       search: debounced || null,
-      from,
+      from: from ?? recentFrom,
       before: jump?.before ?? null,
     };
   }, [view, app, debounced, range, jump]);
 
-  const clips = useClips(query);
+  const inTrash = view.type === "trash";
+  const live = useClips(query);
+  const trash = useTrash(inTrash);
+  const clips = inTrash ? trash : live;
 
   // A new filter starts at the newest matching clip.
   useEffect(() => setSelectedId(null), [query]);
@@ -168,9 +172,9 @@ export function Dashboard() {
     api
       .setPinned(c.id, pinned)
       .then(() => {
-        toast(pinned ? "Pinned" : "Unpinned");
+        toast(pinned ? "Added to favorites" : "Removed from favorites");
         refreshMeta();
-        if (view.type === "pinned") void clips.refresh();
+        if (view.type === "favorites") void clips.refresh();
       })
       .catch((e) => {
         clips.patch(c.id, { pinned: !pinned });
@@ -221,9 +225,53 @@ export function Dashboard() {
     timers.current.set(c.id, t);
     undoToasts.current.set(
       c.id,
-      toast({ message: "Clip deleted", action: { label: "Undo", run: () => undoDelete(c.id) }, duration: UNDO_MS }),
+      toast({ message: "Moved to Trash", action: { label: "Undo", run: () => undoDelete(c.id) }, duration: UNDO_MS }),
     );
   });
+
+  // ---------- trash ----------
+  const selectNeighbour = (c: ClipSummary) => {
+    const idx = visible.findIndex((x) => x.id === c.id);
+    setSelectedId((visible[idx + 1] ?? visible[idx - 1] ?? null)?.id ?? null);
+  };
+
+  const restore = useEvent((c: ClipSummary) => {
+    selectNeighbour(c);
+    api
+      .restoreClip(c.id)
+      .then(() => {
+        toast("Restored");
+        void clips.refresh();
+        refreshMeta();
+      })
+      .catch((e) => toast({ message: errorMessage(e), tone: "error" }));
+  });
+
+  const purge = useEvent((c: ClipSummary) => {
+    selectNeighbour(c);
+    api
+      .purgeClip(c.id)
+      .then(() => {
+        toast("Deleted forever");
+        void clips.refresh();
+        refreshMeta();
+      })
+      .catch((e) => toast({ message: errorMessage(e), tone: "error" }));
+  });
+
+  const [confirmEmpty, setConfirmEmpty] = useState(false);
+  const emptyTrash = useEvent(() => {
+    setConfirmEmpty(false);
+    api
+      .emptyTrash()
+      .then((n) => {
+        toast(n === 1 ? "Deleted 1 clip forever" : `Deleted ${n} clips forever`);
+        void clips.refresh();
+        refreshMeta();
+      })
+      .catch((e) => toast({ message: errorMessage(e), tone: "error" }));
+  });
+  useEffect(() => setConfirmEmpty(false), [view]);
 
   const select = useCallback((id: string) => setSelectedId(id), []);
   const copyById = useCallback((id: string) => copy(id, false), [copy]);
@@ -237,9 +285,10 @@ export function Dashboard() {
     if (i + delta >= visible.length - 3) void clips.loadMore();
   };
 
-  const filtered = view.type !== "all" || !!app || !!debounced || range !== "any" || !!jump;
+  const filtered =
+    !["dashboard", "all", "trash"].includes(view.type) || !!app || !!debounced || range !== "any" || !!jump;
   const clearFilters = () => {
-    setView({ type: "all" });
+    setView({ type: view.type === "dashboard" ? "dashboard" : "all" });
     setApp(null);
     setRange("any");
     setJump(null);
@@ -266,13 +315,13 @@ export function Dashboard() {
     } else if ((e.key === "ArrowDown" || e.key === "ArrowUp") && (!typing || inSearch)) {
       e.preventDefault();
       move(e.key === "ArrowDown" ? 1 : -1);
-    } else if (e.key === "Enter" && (!typing || inSearch) && selected) {
+    } else if (e.key === "Enter" && (!typing || inSearch) && selected && !inTrash) {
       e.preventDefault();
       copy(selected.id, e.shiftKey);
-    } else if (mod && e.key.toLowerCase() === "p") {
+    } else if (mod && e.key.toLowerCase() === "p" && !inTrash) {
       e.preventDefault();
       if (selected) togglePin(selected);
-    } else if (e.key === "Delete" && !typing && selected) {
+    } else if (e.key === "Delete" && !typing && selected && !inTrash) {
       e.preventDefault();
       remove(selected);
     } else if (mod && e.key.toLowerCase() === "z" && !typing && lastDeleted.current) {
@@ -291,11 +340,33 @@ export function Dashboard() {
   }, [onKey]);
 
   // ---------- derived ----------
-  const title =
-    view.type === "all" ? "All clips" : view.type === "pinned" ? "Pinned" : KIND_META[view.kind].plural;
+  const TITLES: Record<Exclude<View["type"], "kind">, string> = {
+    dashboard: "Dashboard",
+    all: "All clips",
+    favorites: "Favorites",
+    recent: "Recent",
+    trash: "Trash",
+  };
+  const SUBTITLES: Partial<Record<View["type"], string>> = {
+    dashboard: "Your clipboard activity at a glance",
+    recent: `Copied in the last ${RECENT_DAYS} days`,
+    favorites: "Starred clips are kept until you remove them",
+    trash: "Deleted clips are removed for good after 30 days",
+  };
+  const title = view.type === "kind" ? KIND_META[view.kind].plural : TITLES[view.type];
+  const subtitle = SUBTITLES[view.type];
   const byKind = new Map(stats?.by_kind ?? []);
   const titleCount =
-    view.type === "all" ? stats?.total : view.type === "pinned" ? stats?.pinned : byKind.get(view.kind);
+    view.type === "all"
+      ? stats?.total
+      : view.type === "favorites"
+        ? stats?.pinned
+        : view.type === "trash"
+          ? stats?.trashed
+          : view.type === "kind"
+            ? byKind.get(view.kind)
+            : undefined;
+  const showRange = view.type === "all" || view.type === "kind" || view.type === "favorites";
 
   const heat = useMemo(() => {
     if (!dayCounts) return null;
@@ -370,10 +441,33 @@ export function Dashboard() {
           {/* Timeline column */}
           <section className="flex min-w-0 flex-1 flex-col">
             <div className="flex items-center gap-3 px-6 pt-4 pb-2">
-              <div className="flex min-w-0 flex-1 items-baseline gap-2">
-                <h1 className="truncate text-[17px] font-semibold tracking-[-0.02em] text-fg">{title}</h1>
-                {titleCount != null && <span className="text-[12.5px] text-fg-3 tabular-nums">{titleCount.toLocaleString()}</span>}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline gap-2">
+                  <h1 className="truncate text-[17px] font-semibold tracking-[-0.02em] text-fg">{title}</h1>
+                  {titleCount != null && (
+                    <span className="text-[12.5px] text-fg-3 tabular-nums">{titleCount.toLocaleString()}</span>
+                  )}
+                </div>
+                {subtitle && <div className="truncate text-[12px] text-fg-3">{subtitle}</div>}
               </div>
+              {inTrash &&
+                visible.length > 0 &&
+                (confirmEmpty ? (
+                  <div className="anim-fade flex items-center gap-1.5">
+                    <span className="text-[12px] text-fg-2">Delete all forever?</span>
+                    <Button size="sm" variant="danger" onClick={emptyTrash}>
+                      Empty trash
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setConfirmEmpty(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <Button size="sm" variant="ghost" onClick={() => setConfirmEmpty(true)}>
+                    Empty trash
+                  </Button>
+                ))}
+              {showRange && (
               <Segmented<Range>
                 size="sm"
                 value={range}
@@ -388,6 +482,7 @@ export function Dashboard() {
                   { value: "30d", label: "30 days" },
                 ]}
               />
+              )}
             </div>
             {(app || jump || debounced) && (
               <div className="anim-drop flex flex-wrap items-center gap-1.5 px-6 pb-2">
@@ -437,8 +532,9 @@ export function Dashboard() {
                 filtered={filtered}
                 shortcut={pickerKey}
                 selectedId={selected?.id ?? null}
-                dayCounts={filtered ? null : dayCounts}
-                top={!debounced ? top : null}
+                dayCounts={filtered || inTrash ? null : dayCounts}
+                top={view.type === "dashboard" && !debounced ? top : null}
+                trash={inTrash}
                 onLoadMore={clips.loadMore}
                 onSelect={select}
                 onCopy={copyById}
@@ -449,7 +545,16 @@ export function Dashboard() {
 
           {/* Preview column */}
           <aside className="w-[400px] shrink-0 border-l border-line bg-panel xl:w-[440px]">
-            <Preview summary={selected} onCopy={copy} onTogglePin={togglePin} onDelete={remove} toast={(m) => toast(m)} />
+            <Preview
+              summary={selected}
+              trash={inTrash}
+              onCopy={copy}
+              onTogglePin={togglePin}
+              onDelete={remove}
+              onRestore={restore}
+              onPurge={purge}
+              toast={(m) => toast(m)}
+            />
           </aside>
         </main>
       </div>
@@ -459,6 +564,52 @@ export function Dashboard() {
       <Toasts />
     </div>
   );
+}
+
+const TRASH_PAGE = 80;
+
+/** The trash list, shaped like `useClips` so the timeline can show it. */
+function useTrash(enabled: boolean) {
+  const [items, setItems] = useState<ClipSummary[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const gen = useRef(0);
+
+  const refresh = useCallback(async () => {
+    if (!enabled) return;
+    const g = ++gen.current;
+    setLoading(true);
+    try {
+      const rows = await api.listTrash(TRASH_PAGE, null);
+      if (g !== gen.current) return;
+      setItems(rows);
+      setHasMore(rows.length === TRASH_PAGE);
+    } catch {
+      if (g === gen.current) setItems([]);
+    } finally {
+      if (g === gen.current) setLoading(false);
+    }
+  }, [enabled]);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  const loadMore = useCallback(async () => {
+    const last = items[items.length - 1];
+    if (!enabled || !hasMore || !last?.deleted_at) return;
+    const g = gen.current;
+    const rows = await api.listTrash(TRASH_PAGE, last.deleted_at).catch(() => [] as ClipSummary[]);
+    if (g !== gen.current) return;
+    setItems((prev) => [...prev, ...rows.filter((r) => !prev.some((x) => x.id === r.id))]);
+    setHasMore(rows.length === TRASH_PAGE);
+  }, [enabled, hasMore, items]);
+
+  const patch = useCallback((id: string, change: Partial<ClipSummary>) => {
+    setItems((prev) => prev.map((c) => (c.id === id ? { ...c, ...change } : c)));
+  }, []);
+
+  return { items, loading, hasMore, refresh, loadMore, patch };
 }
 
 function Stat({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) {

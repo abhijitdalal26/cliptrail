@@ -83,7 +83,7 @@ export function ClearHistoryDialog({ onClose }: { onClose: () => void }) {
           )}
         </p>
         <div className="space-y-1 rounded-xl border border-line bg-panel-2 px-3.5 py-2.5">
-          <Checkbox label="Keep pinned clips" checked={keepPinned} onChange={setKeepPinned} disabled={busy} />
+          <Checkbox label="Keep favorites" checked={keepPinned} onChange={setKeepPinned} disabled={busy} />
           {paired && (
             <Checkbox
               label="Also clear on my other devices"

@@ -1,6 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ClipboardCheck, CornerDownLeft, Layers, LayoutDashboard, Pin, Search } from "lucide-react";
+import { ClipboardCheck, CornerDownLeft, Layers, LayoutDashboard, Search, Star } from "lucide-react";
 import { api, assetUrl, errorMessage, isTauri, listen, onClipsChanged } from "../lib/api";
 import { ACTION_META } from "../lib/actions";
 import { appName } from "../lib/apps";
@@ -27,7 +27,7 @@ type Tab = { id: string; label: string; kind?: Kind; pinned?: boolean };
 
 const TABS: Tab[] = [
   { id: "all", label: "All" },
-  { id: "pinned", label: "Pinned", pinned: true },
+  { id: "pinned", label: "Favorites", pinned: true },
   { id: "link", label: "Links", kind: "link" },
   { id: "code", label: "Code", kind: "code" },
   { id: "text", label: "Text", kind: "text" },
@@ -271,7 +271,7 @@ export function Picker() {
         className="no-scrollbar flex shrink-0 gap-1 overflow-x-auto border-b border-line px-3 pb-2.5 [mask-image:linear-gradient(to_right,#000_92%,transparent)]"
       >
         {TABS.map((tb, i) => {
-          const Icon = tb.kind ? KIND_META[tb.kind].icon : tb.pinned ? Pin : Layers;
+          const Icon = tb.kind ? KIND_META[tb.kind].icon : tb.pinned ? Star : Layers;
           const on = i === tab;
           return (
             <button
@@ -462,7 +462,7 @@ const PickerRow = memo(function PickerRow({
         <RowText clip={clip} />
       </div>
       <div className="flex shrink-0 items-center gap-2 text-[11.5px] text-fg-3">
-        {clip.pinned && <Pin size={11} strokeWidth={2.4} className="fill-current text-accent-text" />}
+        {clip.pinned && <Star size={11} strokeWidth={2.4} className="fill-current text-[#f5b301]" />}
         <span className="max-w-[110px] truncate">{appName(clip.source_app)}</span>
         <span className="w-[60px] text-right whitespace-nowrap tabular-nums">{shortTime(clip.last_seen_at)}</span>
         {index < 9 ? (
