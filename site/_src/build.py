@@ -209,6 +209,7 @@ def footer(R):
           <li><a href="{REPO}/issues/new">Report an issue</a></li>
           <li><a href="{R}security.html">Security</a></li>
           <li><a href="{R}privacy.html">Privacy</a></li>
+          <li><a href="{R}code-signing.html">Code signing policy</a></li>
           <li><a href="{REPO}/blob/main/LICENSE">License: MIT</a></li>
         </ul>
       </div>

@@ -590,7 +590,7 @@ PRIVACY = r"""
     <article class="prose">
       <span class="eyebrow">Privacy policy</span>
       <h1>Privacy</h1>
-      <p class="updated">Last updated 1 November 2026</p>
+      <p class="updated">Last updated 7 November 2026</p>
       <p class="doc-lede">Short version: the {{B}} app collects nothing, and this website doesn't track you.</p>
 
       <h2 id="app">The {{B}} app</h2>
@@ -599,10 +599,11 @@ PRIVACY = r"""
         <li><strong>Update checks are optional and off until you choose.</strong> On the desktop app, {{B}} can look for a new version, but only if you turn on <em>Check for updates automatically</em> (it asks once, and you can say no) or click <em>Check for updates</em> in Settings. A check is a plain request for a small file on GitHub Releases (<code>github.com</code>), so GitHub sees your IP address like any download; no information about you, your device or your clips is sent. Updates are signed, verified before they run, and never installed without your confirmation. The Android app never checks.</li>
         <li><strong>Your history stays on your devices.</strong> Clips are stored in a data folder on each device (see <a href="docs/data.html">Data, backup &amp; uninstall</a>). You can delete any clip, or the whole folder, at any time.</li>
         <li><strong>Sync is between your own devices.</strong> If you pair devices, clips travel directly between them over your local network, encrypted end to end. Only devices you paired can read them.</li>
+        <li><strong>The relay is optional and blind.</strong> If you turn on "Sync anywhere", encrypted clips pass through a relay server you choose so your devices can sync across networks. The relay only ever sees ciphertext and can't read your clips.</li>
         <li><strong>No account.</strong> There is nothing to sign up for and no personal information to give.</li>
         <li><strong>Sensitive clips</strong> (one-time codes, keys, card numbers) are masked, kept out of search and sync, and deleted after a short time. Copies from password managers are not saved at all.</li>
       </ul>
-      <p>The Android app, when it ships, uses an accessibility service only to notice that you copied something and read the clipboard at that moment. It doesn't read screen content for any other purpose.</p>
+      <p>The Android app uses an accessibility service only to notice that you copied something and read the clipboard at that moment. It doesn't read screen content for any other purpose.</p>
 
       <h2 id="website">This website</h2>
       <ul>
@@ -627,7 +628,7 @@ SECURITY = r"""
       <h1>Security</h1>
       <p class="doc-lede">A clipboard manager sits in the most sensitive data path on your machine. This is what {{B}} promises today, what it doesn't yet, and how to report a problem.</p>
 
-      <div class="callout warn">{{i:warn}}<div><p><strong>Pre-release software.</strong> {{B}} hasn't had an independent security audit. Sync is end-to-end encrypted; on-device database encryption is on the roadmap.</p></div></div>
+      <div class="callout warn">{{i:warn}}<div><p><strong>Pre-release software.</strong> {{B}} hasn't had an independent security audit yet.</p></div></div>
 
       <h2 id="model">The model in brief</h2>
       <div class="table-wrap">
@@ -664,6 +665,51 @@ SECURITY = r"""
 </section>
 """
 
+SIGNING = r"""
+<section class="legal">
+  <div class="wrap">
+    <article class="prose">
+      <span class="eyebrow">Code signing policy</span>
+      <h1>Code signing policy</h1>
+      <p class="updated">Last updated 7 November 2026</p>
+      <p class="doc-lede">How {{B}}'s installers are signed, who can sign them, and what the signature promises.</p>
+
+      <div class="callout info">{{i:info}}<div><p><strong>Status:</strong> Windows code signing through SignPath Foundation has been applied for. Until it is approved, Windows installers are unsigned and Windows shows "Windows protected your PC" (click <strong>More info → Run anyway</strong>). This page will say when signed builds start.</p></div></div>
+
+      <h2 id="windows">Windows</h2>
+      <p>Free code signing provided by <a href="https://signpath.io">SignPath.io</a>, certificate by <a href="https://signpath.org">SignPath Foundation</a>.</p>
+      <ul>
+        <li>Only the Windows installers (<code>-setup.exe</code> and <code>.msi</code>) built from this repository's source are signed.</li>
+        <li>They are built by GitHub Actions from a tagged commit on <code>main</code>, with the <a href="{{REPO}}/blob/main/.github/workflows/release.yml">release workflow</a>. Nothing is built or signed on a personal machine.</li>
+        <li>Every release is approved by hand in SignPath before it is signed.</li>
+      </ul>
+
+      <h2 id="team">Team roles</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">Role</th><th scope="col">Who</th><th scope="col">What they do</th></tr></thead>
+          <tbody>
+            <tr><td>Committers and reviewers</td><td><a href="https://github.com/abhijitdalal26">abhijitdalal26</a> (<a href="{{REPO}}/graphs/contributors">all contributors</a>)</td><td>Changes reach <code>main</code> only through reviewed pull requests that pass CI. Contributions from anyone else are reviewed before they are merged.</td></tr>
+            <tr><td>Approvers</td><td><a href="https://github.com/abhijitdalal26">abhijitdalal26</a></td><td>Approves each signing request in SignPath.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Everyone with these roles uses multi-factor authentication on GitHub and SignPath.</p>
+
+      <h2 id="privacy">Privacy</h2>
+      <p>This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it. Sync between your own devices, the optional relay and the optional update check only run when you turn them on. See the <a href="{{R}}privacy.html">privacy policy</a> for details.</p>
+
+      <h2 id="other">Other platforms</h2>
+      <ul>
+        <li><strong>Android:</strong> the APK is signed with the project's release key, so updates install over each other.</li>
+        <li><strong>macOS:</strong> the app is ad-hoc signed but not notarized yet; see <a href="{{R}}download.html#install-notes">install notes</a>.</li>
+        <li><strong>Desktop updates</strong> are additionally signed with the {{B}} updater key and verified before they install.</li>
+      </ul>
+    </article>
+  </div>
+</section>
+"""
+
 NOTFOUND = r"""
 <section class="notfound">
   <div class="wrap">
@@ -689,6 +735,7 @@ def build(b):
     b.page("changelog.html", "Changelog", "What's new in {{B}}, release by release.", CHANGELOG, active="changelog")
     b.page("privacy.html", "Privacy policy", "{{B}} collects nothing. No telemetry, no account, and no cookies or analytics on this website.", PRIVACY)
     b.page("security.html", "Security", "{{B}}'s security model and how to report a vulnerability privately.", SECURITY)
+    b.page("code-signing.html", "Code signing policy", "How {{B}}'s installers are signed and who approves each signed release.", SIGNING)
     # 404 is served at any depth, so it uses absolute links.
     nf_root = "/cliptrail/"
     doc = b.head("Page not found", "This page doesn't exist.", "404.html", nf_root) + "<body>\n" + b.header(nf_root, None) + \
@@ -696,7 +743,7 @@ def build(b):
     doc = doc.replace('<meta name="viewport"', '<meta name="robots" content="noindex">\n<meta name="viewport"')
     b.write("404.html", doc)
     # robots + sitemap
-    pages = ["", "download.html", "changelog.html", "privacy.html", "security.html"] + \
+    pages = ["", "download.html", "changelog.html", "privacy.html", "security.html", "code-signing.html"] + \
             ["docs/" + (f if f != "index.html" else "") for _, items in b.DOCS for f, _, _ in items]
     import datetime
     today = datetime.date.today().isoformat()

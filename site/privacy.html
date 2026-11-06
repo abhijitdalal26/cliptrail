@@ -51,7 +51,7 @@
     <article class="prose">
       <span class="eyebrow">Privacy policy</span>
       <h1>Privacy</h1>
-      <p class="updated">Last updated 1 November 2026</p>
+      <p class="updated">Last updated 7 November 2026</p>
       <p class="doc-lede">Short version: the ClipTrail app collects nothing, and this website doesn't track you.</p>
 
       <h2 id="app">The ClipTrail app</h2>
@@ -60,10 +60,11 @@
         <li><strong>Update checks are optional and off until you choose.</strong> On the desktop app, ClipTrail can look for a new version, but only if you turn on <em>Check for updates automatically</em> (it asks once, and you can say no) or click <em>Check for updates</em> in Settings. A check is a plain request for a small file on GitHub Releases (<code>github.com</code>), so GitHub sees your IP address like any download; no information about you, your device or your clips is sent. Updates are signed, verified before they run, and never installed without your confirmation. The Android app never checks.</li>
         <li><strong>Your history stays on your devices.</strong> Clips are stored in a data folder on each device (see <a href="docs/data.html">Data, backup &amp; uninstall</a>). You can delete any clip, or the whole folder, at any time.</li>
         <li><strong>Sync is between your own devices.</strong> If you pair devices, clips travel directly between them over your local network, encrypted end to end. Only devices you paired can read them.</li>
+        <li><strong>The relay is optional and blind.</strong> If you turn on "Sync anywhere", encrypted clips pass through a relay server you choose so your devices can sync across networks. The relay only ever sees ciphertext and can't read your clips.</li>
         <li><strong>No account.</strong> There is nothing to sign up for and no personal information to give.</li>
         <li><strong>Sensitive clips</strong> (one-time codes, keys, card numbers) are masked, kept out of search and sync, and deleted after a short time. Copies from password managers are not saved at all.</li>
       </ul>
-      <p>The Android app, when it ships, uses an accessibility service only to notice that you copied something and read the clipboard at that moment. It doesn't read screen content for any other purpose.</p>
+      <p>The Android app uses an accessibility service only to notice that you copied something and read the clipboard at that moment. It doesn't read screen content for any other purpose.</p>
 
       <h2 id="website">This website</h2>
       <ul>
@@ -114,6 +115,7 @@
           <li><a href="https://github.com/abhijitdalal26/cliptrail/issues/new">Report an issue</a></li>
           <li><a href="security.html">Security</a></li>
           <li><a href="privacy.html">Privacy</a></li>
+          <li><a href="code-signing.html">Code signing policy</a></li>
           <li><a href="https://github.com/abhijitdalal26/cliptrail/blob/main/LICENSE">License: MIT</a></li>
         </ul>
       </div>

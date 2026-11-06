@@ -81,6 +81,10 @@ site/                  the project website (GitHub Pages)
 
 One Rust core shared by every client · Tauri 2 + React desktop · encrypted sync with QR pairing (in progress) · no telemetry.
 
+## Code signing policy
+
+Windows code signing through [SignPath Foundation](https://signpath.org) has been applied for (free code signing provided by SignPath.io, certificate by SignPath Foundation). Installers are built from this repository by GitHub Actions and every signed release is approved by the maintainer. Roles, privacy statement and status: [code signing policy](https://abhijitdalal26.github.io/cliptrail/code-signing.html).
+
 ## License
 
 [MIT](LICENSE).
