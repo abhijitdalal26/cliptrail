@@ -13,8 +13,9 @@ pub const DEFAULT_PICKER_SHORTCUT: &str = "Cmd+Shift+Space";
 #[cfg(not(target_os = "macos"))]
 pub const DEFAULT_PICKER_SHORTCUT: &str = "Ctrl+Shift+Space";
 /// Default global hotkey for the dashboard (rarely bound by other apps).
+/// Not Cmd+Alt+H on macOS: that is "Hide Others" in nearly every app.
 #[cfg(target_os = "macos")]
-pub const DEFAULT_DASHBOARD_SHORTCUT: &str = "Cmd+Alt+H";
+pub const DEFAULT_DASHBOARD_SHORTCUT: &str = "Cmd+Ctrl+H";
 #[cfg(not(target_os = "macos"))]
 pub const DEFAULT_DASHBOARD_SHORTCUT: &str = "Ctrl+Alt+H";
 

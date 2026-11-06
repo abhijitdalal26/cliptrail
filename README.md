@@ -13,7 +13,11 @@
 
 ## Try it (from source)
 
-Installers will be attached to [Releases](https://github.com/abhijitdalal26/cliptrail/releases) from v0.1.0. Until then:
+Installers are attached to [Releases](https://github.com/abhijitdalal26/cliptrail/releases) and linked from the [download page](https://abhijitdalal26.github.io/cliptrail/download.html).
+
+**macOS (experimental, universal `.dmg`):** the build is not notarized. Drag ClipTrail to Applications, then on first launch go to System Settings → Privacy & Security → **Open Anyway** (macOS 14 and earlier: right-click the app → **Open**). If macOS says the app "is damaged", run `xattr -dr com.apple.quarantine /Applications/ClipTrail.app`.
+
+To build from source instead:
 
 ```sh
 # Requirements: Rust (pinned via rust-toolchain.toml), Node 22 + pnpm, and on Windows the

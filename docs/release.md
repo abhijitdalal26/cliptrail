@@ -28,3 +28,14 @@ new one. Keep an offline backup of both files.
 Local signed build: `apps/desktop/src-tauri/gen/android/keystore.properties`
 (gitignored) with `storeFile`, `storePassword`, `keyAlias`, `keyPassword`;
 then `pnpm tauri android build --apk --target aarch64` in `apps/desktop`.
+
+## macOS
+
+The `.dmg` is a universal build (`--target universal-apple-darwin`) that is
+ad-hoc signed (`bundle.macOS.signingIdentity: "-"`) but **not** signed with a
+Developer ID or notarized, so Gatekeeper asks users to confirm on first launch
+(Privacy & Security → Open Anyway, or `xattr -dr com.apple.quarantine`). To ship a
+notarized build later, add the `APPLE_CERTIFICATE`,
+`APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`,
+`APPLE_PASSWORD` and `APPLE_TEAM_ID` secrets, pass them to tauri-action in
+`release.yml`, and drop the ad-hoc `signingIdentity`.
