@@ -708,7 +708,7 @@ checksum = "1c133bc6a41be0d194c306b5506d15e6feeea7b1d6604bd3f8310dfb2ca96486"
 
 [[package]]
 name = "clipd-capture"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "clipd-core",
@@ -726,7 +726,7 @@ dependencies = [
 
 [[package]]
 name = "clipd-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -744,7 +744,7 @@ dependencies = [
 
 [[package]]
 name = "clipd-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "chacha20poly1305",
@@ -765,7 +765,7 @@ dependencies = [
 
 [[package]]
 name = "clipd-mcp"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -782,7 +782,7 @@ dependencies = [
 
 [[package]]
 name = "clipd-relay"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "axum",
@@ -802,7 +802,7 @@ dependencies = [
 
 [[package]]
 name = "clipd-sync"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "apple-native-keyring-store",
@@ -838,7 +838,7 @@ dependencies = [
 
 [[package]]
 name = "cliptrail-desktop"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "chrono",

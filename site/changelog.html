@@ -57,12 +57,21 @@
   <div class="wrap">
     <div class="changelog-entry">
       <div class="changelog-meta">
-        <div class="ver">v0.1.0</div>
-        <div class="date">2026-11-05</div>
+        <div class="ver">v0.1.1</div>
+        <div class="date">2026-11-06</div>
         <span class="chip chip-accent">Alpha</span>
       </div>
       <div class="prose">
         <p>The first alpha: the Windows desktop app and the Android app, on the same core, with end-to-end encrypted sync between them. Also: Linux, an experimental macOS build and the <code>clipd</code> CLI.</p>
+
+        <div class="cl-group">
+          <h3>Release fixes</h3>
+          <ul>
+            <li>macOS: a universal <code>.dmg</code> (Apple silicon and Intel), ad-hoc signed so Gatekeeper offers Open Anyway instead of calling it damaged. The dashboard hotkey is now <kbd>Cmd</kbd> <kbd>Ctrl</kbd> <kbd>H</kbd> (<kbd>Cmd</kbd> <kbd>Option</kbd> <kbd>H</kbd> is the system's Hide Others).</li>
+            <li>Windows: the app icon is sharp on the desktop, Start menu and taskbar (the icon file now has every size).</li>
+            <li>v0.1.0 was never published; this is the first public build.</li>
+          </ul>
+        </div>
 
         <div class="cl-group">
           <h3>Android app and encryption at rest</h3>
