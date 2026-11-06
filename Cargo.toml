@@ -10,7 +10,7 @@ exclude = ["third_party"]
 libsqlite3-sys = { path = "third_party/libsqlite3-sys" }
 
 [workspace.package]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/abhijitdalal26/cliptrail"
