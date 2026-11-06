@@ -1,5 +1,5 @@
 title: FAQ
-desc: Frequently asked questions about {{B}}: price, privacy, platforms, Android and iOS, sync, and how it compares with built-in clipboard history.
+desc: Frequently asked questions about {{B}}: price, privacy, platforms, Android, sync, and how it compares with built-in clipboard history.
 ---
 <h1>Frequently asked questions</h1>
 <p class="doc-lede">Short answers, with links to the details.</p>
@@ -8,7 +8,7 @@ desc: Frequently asked questions about {{B}}: price, privacy, platforms, Android
 <h3 id="free">Is it free?</h3>
 <p>Yes. {{B}} is open source under the MIT license. No account, no paid tier, no ads.</p>
 <h3 id="status">Is it ready to use?</h3>
-<p>It's an alpha. v0.1.1 has installers for Windows and Linux, the Android app (APK), an experimental macOS build and the <code>clipd</code> CLI. Get them on the <a href="{{R}}download.html">download page</a>. See the <a href="{{R}}changelog.html">changelog</a>.</p>
+<p>It's an alpha. v0.1.2 has installers for Windows and Linux, the Android app (APK), an experimental macOS build and the <code>clipd</code> CLI. Get them on the <a href="{{R}}download.html">download page</a>. See the <a href="{{R}}changelog.html">changelog</a>.</p>
 <h3 id="vs-winv">How is it different from Win+V?</h3>
 <p>Windows' built-in history keeps a limited number of recent items, and unpinned items are cleared when you restart. {{B}} keeps everything you choose, sorts it by kind, searches it instantly, has a timeline and smart actions, and syncs with Linux and Android, without a Microsoft account.</p>
 <h3 id="name">Why does it need to run all the time?</h3>
@@ -25,10 +25,8 @@ desc: Frequently asked questions about {{B}}: price, privacy, platforms, Android
 <h2 id="platforms">Platforms</h2>
 <h3 id="android">Is there an Android app?</h3>
 <p>Yes. It captures copies through an accessibility service plus a Quick Settings tile and the share menu. It isn't on the Play Store: it ships as an APK you download and install yourself. See <a href="android.html">Android setup</a>.</p>
-<h3 id="ios">What about iOS?</h3>
-<p>Later. iOS doesn't let apps read the clipboard in the background, so it will start with a share extension and Shortcuts.</p>
 <h3 id="mac">Does it work on macOS?</h3>
-<p>An experimental universal build is produced by CI. Clipboard capture (text, rich text, images, file URLs) works; paste-back needs Accessibility permission, and first launch needs <em>System Settings → Privacy &amp; Security → Open Anyway</em> because the build isn't signed. It hasn't been tested on real Mac hardware yet — <a href="{{REPO}}/issues">report what you find</a>.</p>
+<p>Yes, experimentally: the <code>.dmg</code> is a universal build (Apple silicon and Intel). Clipboard capture (text, rich text, images, file URLs) works; paste-back needs Accessibility permission, and first launch needs <em>System Settings → Privacy &amp; Security → Open Anyway</em> because the build isn't notarized. It has been tested on Apple silicon; Intel Macs are untested — <a href="{{REPO}}/issues">report what you find</a>.</p>
 <h3 id="wayland">Does it work on Wayland?</h3>
 <p>Capture works on compositors with the data-control protocol (KDE Plasma, Sway, Hyprland). GNOME is limited. Paste-back needs X11; on Wayland you press <kbd>Ctrl</kbd> <kbd>V</kbd> yourself. See <a href="troubleshooting.html#capture">Troubleshooting</a>.</p>
 
