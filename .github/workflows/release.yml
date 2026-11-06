@@ -83,6 +83,109 @@ jobs:
           includeUpdaterJson: true
           updaterJsonPreferNsis: true
           args: ${{ matrix.args }}
+      # Code signing (docs/code-signing.md): hand the unsigned Windows
+      # installers to the windows-sign job. Only runs once the SignPath
+      # repository variables are set; until then releases stay unsigned.
+      - name: Keep unsigned Windows installers for SignPath
+        if: runner.os == 'Windows' && vars.SIGNPATH_ORGANIZATION_ID != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-unsigned
+          path: |
+            target/release/bundle/nsis/*-setup.exe
+            target/release/bundle/msi/*.msi
+          if-no-files-found: error
+          retention-days: 3
+
+  # Signs the Windows installers through SignPath Foundation, then replaces
+  # them in the draft release. Authenticode signing changes the files, so the
+  # Tauri updater signatures (.sig and latest.json) are recomputed afterwards,
+  # or installed apps would refuse the update.
+  windows-sign:
+    name: Windows code signing (SignPath)
+    needs: desktop
+    if: vars.SIGNPATH_ORGANIZATION_ID != ''
+    runs-on: ubuntu-latest
+    # Each signing request waits for a manual approval in SignPath.
+    timeout-minutes: 120
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Find the unsigned artifact
+        id: unsigned
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          id=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
+            -q '.artifacts[] | select(.name == "windows-unsigned") | .id')
+          test -n "$id" || { echo "::error::windows-unsigned artifact not found"; exit 1; }
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+          echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+      - name: Sign with SignPath
+        id: sign
+        # Pinned to the v3 commit: this step sees the SignPath token.
+        uses: signpath/github-action-submit-signing-request@f6d04783b4569d051e0c80105fe66e82819d0092 # v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'cliptrail' }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG || 'release-signing' }}
+          artifact-configuration-slug: ${{ vars.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG || 'windows-installers' }}
+          github-artifact-id: ${{ steps.unsigned.outputs.id }}
+          wait-for-completion: true
+          # Time for the approver to approve the request in SignPath.
+          wait-for-completion-timeout-in-seconds: 6000
+          output-artifact-directory: signed
+          # SignPath checks that the files carry this ProductVersion.
+          parameters: |
+            version: ${{ toJSON(steps.unsigned.outputs.version) }}
+      - name: Check the signatures
+        run: |
+          sudo apt-get install -y osslsigncode >/dev/null
+          for f in signed/nsis/*-setup.exe signed/msi/*.msi; do
+            test -f "$f" || { echo "::error::missing signed file: $f"; exit 1; }
+            osslsigncode verify -in "$f" | grep -q "Signature verification: ok" \
+              || { echo "::error::$f is not validly signed"; osslsigncode verify -in "$f"; exit 1; }
+            echo "signed: $f"
+          done
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: apps/desktop/package.json
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/desktop/pnpm-lock.yaml
+      - name: Install the Tauri CLI
+        working-directory: apps/desktop
+        run: pnpm install --frozen-lockfile
+      - name: Recompute updater signatures
+        working-directory: apps/desktop
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          for f in ../../signed/nsis/*-setup.exe ../../signed/msi/*.msi; do
+            pnpm tauri signer sign "$f"
+          done
+          ls -la ../../signed/nsis ../../signed/msi
+      - name: Replace the installers in the draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release upload "$TAG" signed/nsis/* signed/msi/* --clobber
+          # Point the Windows entries of latest.json at the new signatures.
+          gh release download "$TAG" -p latest.json -D before --clobber
+          python3 .github/scripts/update_latest_json.py before/latest.json signed latest.json
+          gh release upload "$TAG" latest.json --clobber
+          # Drop the "not code-signed" note from the release text.
+          gh release view "$TAG" --json body -q .body \
+            | sed 's/^Builds are not code-signed yet: Windows shows "Windows protected your PC" → More info → Run anyway\.$/Windows installers are code-signed (free code signing provided by SignPath.io, certificate by SignPath Foundation)./' > body.md
+          gh release edit "$TAG" --notes-file body.md
 
   android:
     name: Android (arm64 APK)

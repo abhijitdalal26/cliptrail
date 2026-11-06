@@ -39,3 +39,9 @@ notarized build later, add the `APPLE_CERTIFICATE`,
 `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`,
 `APPLE_PASSWORD` and `APPLE_TEAM_ID` secrets, pass them to tauri-action in
 `release.yml`, and drop the ad-hoc `signingIdentity`.
+
+## Windows code signing
+
+See `docs/code-signing.md`. Once SignPath is set up, every release waits
+for you to approve the signing request in SignPath before the draft gets the
+signed installers.
