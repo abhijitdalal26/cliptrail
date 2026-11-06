@@ -125,7 +125,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
                 label="Dashboard shortcut"
                 checked={s.dashboard_shortcut != null}
                 onChange={(on) =>
-                  void save({ dashboard_shortcut: on ? (isMac ? "Cmd+Alt+H" : "Ctrl+Alt+H") : null }, "dashboard")
+                  void save({ dashboard_shortcut: on ? (isMac ? "Cmd+Ctrl+H" : "Ctrl+Alt+H") : null }, "dashboard")
                 }
               />
             </div>

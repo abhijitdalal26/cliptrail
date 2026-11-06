@@ -85,7 +85,8 @@
 
 <h2 id="macos">macOS</h2>
 <ul>
-  <li><strong>"ClipTrail can't be opened"</strong> on first launch: the build isn't code-signed. Open <em>System Settings → Privacy &amp; Security</em> and click <strong>Open Anyway</strong>, then launch it again.</li>
+  <li><strong>"ClipTrail can't be opened"</strong> on first launch: the build isn't notarized by Apple. Open <em>System Settings → Privacy &amp; Security</em> and click <strong>Open Anyway</strong>, then launch it again (on macOS 14 and earlier, right-click ClipTrail in Applications → <strong>Open</strong> also works).</li>
+  <li><strong>"ClipTrail is damaged and can't be opened":</strong> that's the download quarantine flag on an unnotarized app, not a broken file. In Terminal run <code>xattr -dr com.apple.quarantine /Applications/ClipTrail.app</code>, then open it again.</li>
   <li><strong>Picking a clip copies it but doesn't paste:</strong> paste-back needs Accessibility permission. Open <em>System Settings → Privacy &amp; Security → Accessibility</em> and allow ClipTrail (Settings in the app has a button that jumps straight there). Until then, press <kbd>Cmd</kbd> <kbd>V</kbd> yourself.</li>
   <li><strong>The picker doesn't open:</strong> the default hotkey is <kbd>Cmd</kbd> <kbd>Shift</kbd> <kbd>Space</kbd>. If you changed it or it clashes with another app, rebind it in Settings → Shortcuts.</li>
   <li><strong>No Dock icon:</strong> that's intended — ClipTrail is a menu-bar app. Use the menu-bar icon or the hotkeys.</li>

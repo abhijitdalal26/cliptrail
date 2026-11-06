@@ -33,6 +33,14 @@ jobs:
         with:
           targets: ${{ matrix.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
       - uses: Swatinem/rust-cache@v2
+      # rust-toolchain.toml pins channel "1.96", which rustup treats as a
+      # different toolchain from the "1.96.1" the step above installed, so
+      # the targets added there are not visible to cargo. Add them to the
+      # toolchain the repo actually selects (v0.1.0 failed here with
+      # "Target x86_64-apple-darwin is not installed").
+      - name: macOS targets for the universal build
+        if: runner.os == 'macOS'
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
       - name: Linux system deps
         if: runner.os == 'Linux'
         run: |
@@ -62,8 +70,9 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: "ClipTrail ${{ github.ref_name }}"
           releaseBody: |
-            Install: Windows → the `-setup.exe` (or `.msi`); Android → the `.apk` (sideload; setup guide: https://abhijitdalal26.github.io/cliptrail/docs/android.html); Linux → `.deb` or `.AppImage`; macOS (experimental, untested) → `.dmg`.
+            Install: Windows → the `-setup.exe` (or `.msi`); Android → the `.apk` (sideload; setup guide: https://abhijitdalal26.github.io/cliptrail/docs/android.html); Linux → `.deb` or `.AppImage`; macOS (experimental, universal: Apple silicon + Intel) → `.dmg`.
             Builds are not code-signed yet: Windows shows "Windows protected your PC" → More info → Run anyway.
+            macOS: drag ClipTrail to Applications, then on first launch System Settings → Privacy & Security → Open Anyway (or run `xattr -dr com.apple.quarantine /Applications/ClipTrail.app`).
           releaseDraft: true
           prerelease: true
           # Uploads latest.json (+ .sig files) next to the installers; the app's
@@ -171,6 +180,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          for i in 1 2 3 4 5 6; do gh release view "${{ github.ref_name }}" >/dev/null 2>&1 && break; sleep 30; done
+          # tauri-action creates the draft release once a desktop build
+          # finishes (~10 min); v0.1.0's CLI jobs gave up after 3 min.
+          for i in $(seq 1 40); do gh release view "${{ github.ref_name }}" >/dev/null 2>&1 && break; sleep 45; done
           # install.sh downloads a tarball and its .sha256.
           gh release upload "${{ github.ref_name }}" $(ls clipd-*.zip clipd-*.tar.gz clipd-*.sha256 2>/dev/null) --clobber

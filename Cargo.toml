@@ -35,3 +35,10 @@ windows-sys = "0.61"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 ctrlc = "3"
+
+# Build scripts and proc-macros only; shipped binaries are unchanged. On macOS
+# 27, dyld refuses proc-macro dylibs that were stripped with a deployment target
+# of 12.0+ (Tauri sets MACOSX_DEPLOYMENT_TARGET from minimumSystemVersion):
+# "mis-aligned LINKEDIT string pool", which surfaces as E0463 for serde_derive.
+[profile.release.build-override]
+strip = "none"

@@ -451,7 +451,8 @@ DOWNLOAD = r"""
         <h3>{{i:apple}}macOS: Gatekeeper</h3>
         <ol>
           <li>Open the <code>.dmg</code> and drag {{B}} to Applications.</li>
-          <li>On first launch macOS blocks the unsigned app. Open <strong>System Settings → Privacy &amp; Security</strong> and click <strong>Open Anyway</strong>.</li>
+          <li>On first launch macOS blocks the app because it isn't notarized by Apple. Open <strong>System Settings → Privacy &amp; Security</strong> and click <strong>Open Anyway</strong> (on macOS 14 and earlier you can also right-click {{B}} in Applications and choose <strong>Open</strong>).</li>
+          <li>If macOS says the app "is damaged and can't be opened", clear the download quarantine flag: <code>xattr -dr com.apple.quarantine /Applications/{{B}}.app</code></li>
           <li>For paste-back, allow {{B}} under <strong>Privacy &amp; Security → Accessibility</strong> (Settings in the app links straight there).</li>
         </ol>
       </div>
