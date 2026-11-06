@@ -17,7 +17,7 @@ INDEX = r"""
 <section class="hero">
   <div class="wrap">
     <div class="hero-copy">
-      <a class="badge" href="{{R}}changelog.html"><span class="dot"></span>v0.1.1 alpha is out: Windows + Android <span class="arrow">→</span></a>
+      <a class="badge" href="{{R}}changelog.html"><span class="dot"></span>v0.1.2 alpha is out: Windows + Android <span class="arrow">→</span></a>
       <h1 class="h1">Your clipboard,<br><span class="grad">everywhere, forever.</span></h1>
       <p class="lede">{{B}} remembers everything you copy, knows what each thing is, and puts it one keystroke away. Pair your devices and your history follows you, end-to-end encrypted. Open source, no account, no tracking.</p>
       <div class="hero-cta">
@@ -29,7 +29,6 @@ INDEX = r"""
         <span class="pill"><span class="status-dot ok"></span><b>Linux</b></span>
         <span class="pill"><span class="status-dot"></span><b>Android</b> APK</span>
         <span class="pill"><span class="status-dot exp"></span><b>macOS</b> experimental</span>
-        <span class="pill"><span class="status-dot"></span><b>iOS</b> later</span>
       </div>
     </div>
     <div class="showcase">
@@ -238,7 +237,6 @@ INDEX = r"""
           <tr><th scope="row">Linux</th><td><span class="status-dot ok"></span>Supported</td><td>X11; Wayland with data-control (KDE, Sway, Hyprland). GNOME Wayland only sees X11 apps.</td><td>X11 only</td><td>Hub or client</td></tr>
           <tr><th scope="row">Android</th><td><span class="status-dot"></span>Available (APK)</td><td>Automatic via accessibility, plus tile and share menu</td><td>Tap to copy</td><td>Client</td></tr>
           <tr><th scope="row">macOS</th><td><span class="status-dot exp"></span>Experimental</td><td>Capture works (text, rich text, images, file URLs); tested on Apple silicon</td><td>Needs Accessibility permission; untested</td><td>Hub or client (untested)</td></tr>
-          <tr><th scope="row">iOS</th><td><span class="status-dot"></span>Later</td><td colspan="3" class="m">Share extension and shortcuts are on the roadmap.</td></tr>
         </tbody>
       </table>
     </div>
@@ -306,7 +304,7 @@ INDEX = r"""
     <div class="faq">
       <details><summary>Is {{B}} free?</summary><div class="a"><p>Yes. It's open source under the MIT license, with no account and no paid tier.</p></div></details>
       <details><summary>Does my clipboard leave my computer?</summary><div class="a"><p>Only if you pair another device, and then only as ciphertext to that device over your local network. There is no {{B}} server and no telemetry.</p></div></details>
-      <details><summary>Is there an Android app?</summary><div class="a"><p>Yes, since v0.1.1. It captures copies through an accessibility service plus a Quick Settings tile and the share menu. It isn't on the Play Store: download the APK from this site and install it yourself. See <a href="{{R}}docs/android.html">Android setup</a>.</p></div></details>
+      <details><summary>Is there an Android app?</summary><div class="a"><p>Yes, since v0.1.2. It captures copies through an accessibility service plus a Quick Settings tile and the share menu. It isn't on the Play Store: download the APK from this site and install it yourself. See <a href="{{R}}docs/android.html">Android setup</a>.</p></div></details>
       <details><summary>Do I need two devices?</summary><div class="a"><p>No. Every app is fully useful on one device: history, search, the picker and smart actions all work offline. Pairing only adds devices when you have them.</p></div></details>
       <details><summary>Is it safe to copy passwords?</summary><div class="a"><p>Copies from password managers are ignored by default. Anything that looks like a one-time code, API key, private key or card number is masked, never searchable, never synced, and deleted after an hour (you can change that).</p></div></details>
     </div>
@@ -370,17 +368,13 @@ DOWNLOAD = r"""
         <span class="chip chip-accent detected-tag">Your system</span>
         <div class="os-head"><span class="os-logo">{{i:apple}}</span><div><h2>macOS <span class="chip chip-warn">Experimental</span></h2><span class="os-sub">Universal (Apple silicon and Intel)</span></div></div>
         <p>Built by CI and not yet tested on real hardware: clipboard capture works, paste-back needs <strong>Accessibility</strong> permission. A menu-bar app; <kbd>Cmd</kbd> <kbd>Shift</kbd> <kbd>Space</kbd> opens the picker.</p>
-        <div class="assets">""" + slot("mac-dmg", "Disk image (.dmg)", soon="Arrives with v0.1.1 (experimental)") + r"""</div>
+        <div class="assets">""" + slot("mac-dmg", "Disk image (.dmg)", soon="Arrives with v0.1.2 (experimental)") + r"""</div>
       </article>
       <article class="os-card" data-os="android" id="android">
         <span class="chip chip-accent detected-tag">Your system</span>
         <div class="os-head"><span class="os-logo">{{i:android}}</span><div><h2>Android <span class="chip chip-ok">New</span></h2><span class="os-sub">Sideloaded APK · Android 10+</span></div></div>
         <p>Automatic capture through an accessibility service, a Quick Settings tile and the share menu. Pairs with your computer by QR. Not on the Play Store: install the APK directly (Android asks you to allow installs from your browser).</p>
         <div class="assets">""" + slot("android-apk", "Android app (.apk)", primary=True, missing="Not in this release") + r"""<a class="asset" href="{{R}}docs/android.html">{{i:book}}<span class="a-main"><span class="a-name">Android setup guide</span><span class="a-meta">Samsung and other phones, step by step</span></span></a></div>
-      </article>
-      <article class="os-card" data-os="ios" id="ios" style="grid-column:1/-1">
-        <div class="os-head"><span class="os-logo">{{i:ios}}</span><div><h2>iOS <span class="chip chip-muted">Later</span></h2><span class="os-sub">Not available yet</span></div></div>
-        <p style="margin-bottom:0">iOS doesn't let apps read the clipboard in the background, so it will start with a share extension and Shortcuts. It's on the <a href="{{REPO}}/blob/main/ROADMAP.md">roadmap</a> after Android.</p>
       </article>
     </div>
   </div>
@@ -404,7 +398,7 @@ DOWNLOAD = r"""
         <p>Listings for Windows and Linux package managers (such as winget and Scoop) are planned after the first stable release. Until then, use the installers above.</p>
       </div>
       <div class="install-card">
-        <h3>{{i:download}}Installers <span class="chip chip-accent">v0.1.1</span></h3>
+        <h3>{{i:download}}Installers <span class="chip chip-accent">v0.1.2</span></h3>
         <p>Every release attaches the desktop installers, the Android APK and prebuilt <code>clipd</code> archives. Use the buttons above or the <a href="{{REPO}}/releases">Releases page</a>.</p>
       </div>
     </div>
@@ -492,8 +486,8 @@ CHANGELOG = r"""
   <div class="wrap">
     <div class="changelog-entry">
       <div class="changelog-meta">
-        <div class="ver">v0.1.1</div>
-        <div class="date">2026-11-06</div>
+        <div class="ver">v0.1.2</div>
+        <div class="date">2026-11-07</div>
         <span class="chip chip-accent">Alpha</span>
       </div>
       <div class="prose">
@@ -503,8 +497,8 @@ CHANGELOG = r"""
           <h3>Release fixes</h3>
           <ul>
             <li>macOS: a universal <code>.dmg</code> (Apple silicon and Intel), ad-hoc signed so Gatekeeper offers Open Anyway instead of calling it damaged. The dashboard hotkey is now <kbd>Cmd</kbd> <kbd>Ctrl</kbd> <kbd>H</kbd> (<kbd>Cmd</kbd> <kbd>Option</kbd> <kbd>H</kbd> is the system's Hide Others).</li>
-            <li>Windows: the app icon is sharp on the desktop, Start menu and taskbar (the icon file now has every size).</li>
-            <li>v0.1.0 was never published; this is the first public build.</li>
+            <li>Windows: the app icon is sharp on the desktop, Start menu and taskbar (the icon file now has every size), and the installer and uninstaller use the {{B}} icon.</li>
+            <li>v0.1.0 and v0.1.1 were never published; this is the first public build.</li>
           </ul>
         </div>
 

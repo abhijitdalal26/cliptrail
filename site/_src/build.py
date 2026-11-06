@@ -260,7 +260,7 @@ DOCS = [
   ]),
   ("Help", [
     ("troubleshooting.html", "Troubleshooting", "problem fix not working wayland firewall samsung"),
-    ("faq.html", "FAQ", "questions price free ios"),
+    ("faq.html", "FAQ", "questions price free"),
   ]),
 ]
 BADGES = {"android.html": '<span class="chip chip-accent">v0.1</span>'}

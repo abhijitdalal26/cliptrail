@@ -65,7 +65,7 @@
   window.siteOS = os;
   root.setAttribute("data-os", os);
   var BRAND = root.getAttribute("data-brand") || "";
-  var OS_LABEL = { windows: "Windows", macos: "macOS", linux: "Linux", android: "Android", ios: "iOS" };
+  var OS_LABEL = { windows: "Windows", macos: "macOS", linux: "Linux", android: "Android" };
   var CTA = {
     windows: "Download for Windows",
     linux: "Download for Linux",
