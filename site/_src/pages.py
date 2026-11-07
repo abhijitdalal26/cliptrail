@@ -427,6 +427,7 @@ DOWNLOAD = r"""
       <div class="note-card">
         <h3>{{i:windows}}Windows: SmartScreen</h3>
         <p>Because the installer isn't signed yet, Windows shows <strong>"Windows protected your PC"</strong>.</p>
+        <p>{{B}} has applied to <a href="https://signpath.org">SignPath Foundation</a> for free code signing. Once approved, Windows installers will be signed by SignPath Foundation (<a href="{{R}}code-signing.html">code signing policy</a>).</p>
         <ol>
           <li>Click <strong>More info</strong>.</li>
           <li>Click <strong>Run anyway</strong>.</li>
@@ -469,7 +470,7 @@ DOWNLOAD = r"""
         </tbody>
       </table>
     </div>
-    <p class="muted" style="font-size:14px;margin-top:16px">Checksums: the Android APK and the CLI archives come with a <code>.sha256</code> file; the APK is signed with the project's release key. Desktop installers aren't code-signed yet. Every release is built by GitHub Actions from the tagged source (<a href="{{REPO}}/blob/main/.github/workflows/release.yml">release workflow</a>).</p>
+    <p class="muted" style="font-size:14px;margin-top:16px">Checksums: the Android APK and the CLI archives come with a <code>.sha256</code> file; the APK is signed with the project's release key. Desktop installers aren't code-signed yet; Windows signing through SignPath Foundation has been applied for. Every release is built by GitHub Actions from the tagged source (<a href="{{REPO}}/blob/main/.github/workflows/release.yml">release workflow</a>).</p>
   </div>
 </section>
 """

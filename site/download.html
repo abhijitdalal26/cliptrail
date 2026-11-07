@@ -139,6 +139,7 @@
       <div class="note-card">
         <h3><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.5 10.5 4.4v7.1H3zM12 4.2 21 3v8.5h-9zM3 12.5h7.5v7.1L3 18.5zM12 12.5h9V21l-9-1.2z"/></svg>Windows: SmartScreen</h3>
         <p>Because the installer isn't signed yet, Windows shows <strong>"Windows protected your PC"</strong>.</p>
+        <p>ClipTrail has applied to <a href="https://signpath.org">SignPath Foundation</a> for free code signing. Once approved, Windows installers will be signed by SignPath Foundation (<a href="code-signing.html">code signing policy</a>).</p>
         <ol>
           <li>Click <strong>More info</strong>.</li>
           <li>Click <strong>Run anyway</strong>.</li>
@@ -181,7 +182,7 @@
         </tbody>
       </table>
     </div>
-    <p class="muted" style="font-size:14px;margin-top:16px">Checksums: the Android APK and the CLI archives come with a <code>.sha256</code> file; the APK is signed with the project's release key. Desktop installers aren't code-signed yet. Every release is built by GitHub Actions from the tagged source (<a href="https://github.com/abhijitdalal26/cliptrail/blob/main/.github/workflows/release.yml">release workflow</a>).</p>
+    <p class="muted" style="font-size:14px;margin-top:16px">Checksums: the Android APK and the CLI archives come with a <code>.sha256</code> file; the APK is signed with the project's release key. Desktop installers aren't code-signed yet; Windows signing through SignPath Foundation has been applied for. Every release is built by GitHub Actions from the tagged source (<a href="https://github.com/abhijitdalal26/cliptrail/blob/main/.github/workflows/release.yml">release workflow</a>).</p>
   </div>
 </section>
 
