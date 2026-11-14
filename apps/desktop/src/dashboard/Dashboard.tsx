@@ -20,6 +20,7 @@ import { ShortcutsSheet } from "./ShortcutsSheet";
 import { Sidebar } from "./Sidebar";
 import { Timeline, type TimelineHandle } from "./Timeline";
 import { UpdateNotices } from "./Updates";
+import { Welcome } from "./Welcome";
 import { TitleBar } from "./TitleBar";
 
 type Range = "any" | "today" | "7d" | "30d";
@@ -559,6 +560,7 @@ export function Dashboard() {
         </main>
       </div>
 
+      <Welcome />
       {modal === "settings" && <SettingsDialog onClose={() => setModal(null)} />}
       {modal === "shortcuts" && <ShortcutsSheet onClose={() => setModal(null)} />}
       <Toasts />

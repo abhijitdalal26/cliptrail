@@ -38,9 +38,19 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
     {
         builder = builder.icon_as_template(true);
     }
-    builder.build(app)?;
+    let tray = builder.build(app)?;
+    if !app.state::<AppState>().settings().show_tray_icon {
+        let _ = tray.set_visible(false);
+    }
     refresh(app);
     Ok(())
+}
+
+/// Show or hide the icon ("Show tray icon" setting). Capture keeps running.
+pub fn set_visible(app: &AppHandle, visible: bool) {
+    if let Some(tray) = app.tray_by_id(TRAY_ID) {
+        let _ = tray.set_visible(visible);
+    }
 }
 
 fn on_tray(tray: &TrayIcon, event: TrayIconEvent) {

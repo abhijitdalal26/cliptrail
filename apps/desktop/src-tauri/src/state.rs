@@ -55,6 +55,8 @@ pub struct Core {
     pub default_excluded: Mutex<Vec<String>>,
     pause: Mutex<Pause>,
     init_once: Once,
+    /// No settings file existed when this process started: a fresh install.
+    first_run: std::sync::atomic::AtomicBool,
     /// Holds the key of the encrypted local databases. `None`: the
     /// platform default for this data dir (OS keychain on desktop).
     keystore: Option<Arc<dyn KeyStore>>,
@@ -166,6 +168,7 @@ impl Core {
             default_excluded: Mutex::new(Vec::new()),
             pause: Mutex::new(Pause::Off),
             init_once: Once::new(),
+            first_run: std::sync::atomic::AtomicBool::new(false),
         }
     }
 
@@ -192,6 +195,8 @@ impl Core {
         let settings = match (&base, settings) {
             (Ok(cfg), None) => {
                 // First run: seed settings from the core defaults.
+                self.first_run
+                    .store(true, std::sync::atomic::Ordering::Relaxed);
                 let s = Settings {
                     excluded_apps: cfg.excluded_apps.clone(),
                     sensitive_ttl_minutes: (cfg.sensitive_ttl_ms / 60_000).max(1) as u32,
@@ -266,6 +271,11 @@ impl Core {
 
     pub fn init_error(&self) -> Option<String> {
         lock(&self.init_error).clone()
+    }
+
+    /// True when this launch created the settings (fresh install).
+    pub fn is_first_run(&self) -> bool {
+        self.first_run.load(std::sync::atomic::Ordering::Relaxed)
     }
 
     pub fn settings(&self) -> Settings {

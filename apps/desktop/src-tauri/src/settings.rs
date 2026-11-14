@@ -53,6 +53,11 @@ pub struct Settings {
     /// Background update check (contacts GitHub). None = never asked yet,
     /// the dashboard offers it once; Some(false) = declined.
     pub auto_update_check: Option<bool>,
+    /// Show the notification-area / menu-bar icon. Off: ClipTrail keeps
+    /// running and opens from its hotkeys or by launching it again.
+    pub show_tray_icon: bool,
+    /// The first-launch welcome card was dismissed.
+    pub welcome_seen: bool,
 }
 
 impl Default for Settings {
@@ -69,6 +74,8 @@ impl Default for Settings {
             sync_enabled: true,
             sync_port: clipd_sync::DEFAULT_PORT,
             auto_update_check: None,
+            show_tray_icon: true,
+            welcome_seen: false,
         }
     }
 }
@@ -122,5 +129,19 @@ impl Settings {
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty());
         self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn settings_from_older_versions_get_new_defaults() {
+        // v0.1.2 wrote neither field: keep the tray icon, show the welcome once.
+        let s: Settings = serde_json::from_str(r#"{"picker_shortcut":"Ctrl+Shift+V"}"#).unwrap();
+        assert_eq!(s.picker_shortcut, "Ctrl+Shift+V");
+        assert!(s.show_tray_icon);
+        assert!(!s.welcome_seen);
     }
 }
