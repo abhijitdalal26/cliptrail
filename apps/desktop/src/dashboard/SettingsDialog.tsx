@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { ChevronDown, FolderOpen, Monitor, Moon, Plus, RefreshCw, RotateCcw, ShieldCheck, Sun, Trash2, X } from "lucide-react";
+import { ChevronDown, FolderOpen, Monitor, Moon, Plus, Power, RefreshCw, RotateCcw, ShieldCheck, Sun, Trash2, X } from "lucide-react";
 import { api, errorMessage, listen } from "../lib/api";
 import { cx } from "../lib/cx";
 import { useEvent } from "../lib/hooks";
@@ -71,6 +71,23 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
               }
             />
           </Row>
+          {view.platform !== "android" && (
+            <Row
+              title={isMac ? "Show menu bar icon" : "Show tray icon"}
+              desc={
+                s.show_tray_icon !== false
+                  ? `Quick access to recent clips, pause and quit${isWin ? " (Windows may tuck it under ^)" : ""}.`
+                  : "Hidden. ClipTrail keeps running; open it with the shortcuts or by launching it again."
+              }
+              error={errors.tray}
+            >
+              <Switch
+                label="Show tray icon"
+                checked={s.show_tray_icon !== false}
+                onChange={(v) => void save({ show_tray_icon: v }, "tray")}
+              />
+            </Row>
+          )}
           <Row
             title="Clipboard capture"
             desc={
@@ -233,6 +250,16 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
               onAuto={(on) => void save({ auto_update_check: on }, "autoUpdate")}
               error={errors.autoUpdate}
             />
+          </Section>
+        )}
+
+        {view.platform !== "android" && (
+          <Section title="Quit">
+            <Row title="Quit ClipTrail" desc="Stops saving what you copy until you open ClipTrail again.">
+              <Button size="sm" icon={Power} onClick={() => void api.quitApp().catch(() => undefined)}>
+                Quit
+              </Button>
+            </Row>
           </Section>
         )}
 

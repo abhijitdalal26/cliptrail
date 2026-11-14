@@ -75,6 +75,8 @@ export const api = {
   openDataDir: () => call<void>("open_data_dir"),
   getAutostart: () => call<boolean>("get_autostart"),
   setAutostart: (enabled: boolean) => call<void>("set_autostart", { enabled }),
+  /** Quit the app (desktop); the way out when the tray icon is hidden. */
+  quitApp: () => call<void>("quit_app"),
   captureState: () => call<CaptureState>("capture_state"),
   /** minutes = null: until resumed. */
   pauseCapture: (minutes: number | null) => call<void>("pause_capture", { minutes }),

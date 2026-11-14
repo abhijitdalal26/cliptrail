@@ -111,6 +111,10 @@ export interface Settings {
   sync_port?: number;
   /** Check GitHub for new versions in the background (desktop). null = not asked yet. */
   auto_update_check?: boolean | null;
+  /** Show the tray / menu-bar icon (desktop). Off: open with the hotkeys or by launching again. */
+  show_tray_icon?: boolean;
+  /** The first-launch welcome card was dismissed (desktop). */
+  welcome_seen?: boolean;
 }
 
 export interface CaptureState {

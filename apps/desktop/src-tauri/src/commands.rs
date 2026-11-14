@@ -413,6 +413,13 @@ pub fn get_autostart(app: AppHandle) -> bool {
     app.autolaunch().is_enabled().unwrap_or(false)
 }
 
+/// Quit from the dashboard (the only way when the tray icon is hidden).
+#[cfg(desktop)]
+#[tauri::command]
+pub fn quit_app(app: AppHandle) {
+    app.exit(0);
+}
+
 #[cfg(desktop)]
 #[tauri::command]
 pub fn set_autostart(app: AppHandle, enabled: bool) -> CmdResult<()> {
@@ -574,6 +581,10 @@ pub async fn update_settings(app: AppHandle, settings: Settings) -> CmdResult<Se
     if new.retention_days != old.retention_days && new.retention_days.is_some() {
         let app2 = app.clone();
         std::thread::spawn(move || crate::maintenance::apply_retention(&app2));
+    }
+
+    if new.show_tray_icon != old.show_tray_icon {
+        tray::set_visible(&app, new.show_tray_icon);
     }
 
     let _ = app.emit("settings-changed", ());

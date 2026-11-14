@@ -611,6 +611,8 @@ const mockSettings: SettingsView = {
     excluded_apps: [...DEFAULT_EXCLUDED],
     clean_links: false,
     auto_update_check: null,
+    show_tray_icon: true,
+    welcome_seen: new URLSearchParams(location.search).get("welcome") !== "1",
   },
   default_excluded_apps: DEFAULT_EXCLUDED,
   autostart: true,
@@ -725,6 +727,8 @@ export async function handle(cmd: string, a: Record<string, unknown>): Promise<u
     case "set_autostart":
       mockSettings.autostart = a.enabled as boolean;
       publish("settings-changed", null);
+      return null;
+    case "quit_app":
       return null;
     case "capture_state":
       return captureState();

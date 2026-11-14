@@ -27,6 +27,7 @@ mod windows;
 #[cfg(mobile)]
 mod tray {
     pub fn refresh(_app: &tauri::AppHandle) {}
+    pub fn set_visible(_app: &tauri::AppHandle, _visible: bool) {}
 }
 
 #[cfg(desktop)]
@@ -99,6 +100,16 @@ pub fn run() {
             let state = app.state::<AppState>();
             state.init();
 
+            // Fresh install: start with the OS, as other clipboard managers
+            // do. The welcome card shows the toggle so it's one click to undo.
+            // Not in dev builds, which would register the debug binary.
+            if state.is_first_run() && !cfg!(debug_assertions) {
+                use tauri_plugin_autostart::ManagerExt as _;
+                if let Err(e) = app.autolaunch().enable() {
+                    tracing::warn!("couldn't enable start at login: {e}");
+                }
+            }
+
             windows::create_windows(&handle, start_hidden && !want_picker)?;
             tray::create(&handle)?;
 
@@ -140,6 +151,7 @@ pub fn run() {
             commands::open_data_dir,
             commands::get_autostart,
             commands::set_autostart,
+            commands::quit_app,
             commands::capture_state,
             commands::pause_capture,
             commands::resume_capture,
@@ -165,8 +177,16 @@ pub fn run() {
             updater::update_pending,
             updater::update_install,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running ClipTrail");
+        .build(tauri::generate_context!())
+        .expect("error while building ClipTrail")
+        .run(|_app, _event| {
+            // Launching ClipTrail again from Finder/Launchpad reopens the
+            // dashboard (the way back when the menu-bar icon is hidden).
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Reopen { .. } = _event {
+                windows::show_dashboard(_app);
+            }
+        });
 }
 
 #[cfg(desktop)]
