@@ -91,7 +91,7 @@
       return '<a class="asset' + (primary ? " primary" : "") + '" href="' + esc(asset.url) + '" download>' + ICON.down +
         '<span class="a-main"><span class="a-name">' + label + '</span><span class="a-meta">' + meta + "</span></span></a>";
     }
-    var why = state === "none" ? (slot.getAttribute("data-soon") || "Arrives with v0.1.2")
+    var why = state === "none" ? (slot.getAttribute("data-soon") || "Arrives with v0.1.3")
       : state === "error" ? "Couldn't reach GitHub · see the Releases page"
       : (slot.getAttribute("data-missing") || "Not in " + esc(release ? release.tag : "this release"));
     var href = state === "error" ? RELEASES : null;
@@ -114,7 +114,7 @@
       slot.outerHTML = slotHTML(slot, asset, release, state);
     });
     document.querySelectorAll("[data-release-version]").forEach(function (el) {
-      el.textContent = release ? release.tag : "v0.1.2";
+      el.textContent = release ? release.tag : "v0.1.3";
     });
   }
 
@@ -122,7 +122,7 @@
     var r = pick(list);
     if (!r) {
       setStatus("info", ICON.clock, "First release coming soon",
-        "v0.1.2 (alpha) is being prepared. Watch the repository to hear when it lands, or build from source today.",
+        "v0.1.3 (alpha) is being prepared. Watch the repository to hear when it lands, or build from source today.",
         '<a class="btn btn-sm btn-primary" href="https://github.com/' + REPO + '/subscription">' + ICON.eye + "Watch releases</a>" +
         '<a class="btn btn-sm" href="https://github.com/' + REPO + '">' + ICON.star + "Star</a>" +
         '<a class="btn btn-sm btn-ghost" href="docs/index.html#build-from-source">Build from source</a>');

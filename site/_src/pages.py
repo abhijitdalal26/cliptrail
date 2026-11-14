@@ -17,7 +17,7 @@ INDEX = r"""
 <section class="hero">
   <div class="wrap">
     <div class="hero-copy">
-      <a class="badge" href="{{R}}changelog.html"><span class="dot"></span>v0.1.2 alpha is out: Windows + Android <span class="arrow">→</span></a>
+      <a class="badge" href="{{R}}changelog.html"><span class="dot"></span>v0.1.3: starts with your computer, new welcome screen <span class="arrow">→</span></a>
       <h1 class="h1">Your clipboard,<br><span class="grad">everywhere, forever.</span></h1>
       <p class="lede">{{B}} remembers everything you copy, knows what each thing is, and puts it one keystroke away. Pair your devices and your history follows you, end-to-end encrypted. Open source, no account, no tracking.</p>
       <div class="hero-cta">
@@ -368,7 +368,7 @@ DOWNLOAD = r"""
         <span class="chip chip-accent detected-tag">Your system</span>
         <div class="os-head"><span class="os-logo">{{i:apple}}</span><div><h2>macOS <span class="chip chip-warn">Experimental</span></h2><span class="os-sub">Universal (Apple silicon and Intel)</span></div></div>
         <p>Built by CI and not yet tested on real hardware: clipboard capture works, paste-back needs <strong>Accessibility</strong> permission. A menu-bar app; <kbd>Cmd</kbd> <kbd>Shift</kbd> <kbd>Space</kbd> opens the picker.</p>
-        <div class="assets">""" + slot("mac-dmg", "Disk image (.dmg)", soon="Arrives with v0.1.2 (experimental)") + r"""<span class="assets-label">{{i:terminal}}Command line</span><a class="asset" href="#cli">{{i:package}}<span class="a-main"><span class="a-name">clipd CLI</span><span class="a-meta">Install with Cargo (no prebuilt binary yet)</span></span></a></div>
+        <div class="assets">""" + slot("mac-dmg", "Disk image (.dmg)", soon="Arrives with v0.1.3 (experimental)") + r"""<span class="assets-label">{{i:terminal}}Command line</span><a class="asset" href="#cli">{{i:package}}<span class="a-main"><span class="a-name">clipd CLI</span><span class="a-meta">Install with Cargo (no prebuilt binary yet)</span></span></a></div>
       </article>
       <article class="os-card" data-os="android" id="android">
         <span class="chip chip-accent detected-tag">Your system</span>
@@ -474,6 +474,28 @@ CHANGELOG = r"""
 </section>
 <section style="padding:16px 0 96px">
   <div class="wrap">
+    <div class="changelog-entry">
+      <div class="changelog-meta">
+        <div class="ver">v0.1.3</div>
+        <div class="date">2026-11-14</div>
+        <span class="chip chip-accent">Alpha</span>
+      </div>
+      <div class="prose">
+        <p>{{B}} now starts with your computer and works quietly in the background, like the clipboard history built into Windows.</p>
+
+        <div class="cl-group">
+          <h3>Desktop</h3>
+          <ul>
+            <li>A welcome screen the first time you open {{B}}: the two shortcuts, and one-click toggles for starting at login and the tray icon.</li>
+            <li>New installs start with Windows (or at login on Linux and macOS) by default, so no copy is missed after a restart. Turn it off on the welcome screen, in Settings or in the tray menu. Existing installs keep their choice.</li>
+            <li>New setting: <strong>Show tray icon</strong>. Turned off, {{B}} keeps saving; open it with the shortcuts or by launching it again.</li>
+            <li><strong>Quit {{B}}</strong> is now in Settings too.</li>
+            <li>macOS: opening {{B}} again from Finder or Launchpad shows the dashboard.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
     <div class="changelog-entry">
       <div class="changelog-meta">
         <div class="ver">v0.1.2</div>
