@@ -355,20 +355,20 @@ DOWNLOAD = r"""
       <article class="os-card" data-os="windows" id="windows">
         <span class="chip chip-accent detected-tag">Your system</span>
         <div class="os-head"><span class="os-logo">{{i:windows}}</span><div><h2>Windows</h2><span class="os-sub">Windows 10 and 11 · x64</span></div></div>
-        <p>Installs for your user only, no admin rights needed. Starts in the tray; the picker opens with <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Space</kbd>.</p>
-        <div class="assets">""" + slot("win-exe", "Installer (.exe)", primary=True) + slot("win-msi", "MSI package (.msi)") + r"""</div>
+        <p>Installs for your user only, no admin rights needed. Runs in the background and can start with Windows; the picker opens with <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Space</kbd>.</p>
+        <div class="assets">""" + slot("win-exe", "Installer (.exe)", primary=True) + slot("win-msi", "MSI package (.msi)") + r"""<span class="assets-label">{{i:terminal}}Command line</span>""" + slot("cli-win", "clipd CLI (.zip)") + r"""</div>
       </article>
       <article class="os-card" data-os="linux" id="linux">
         <span class="chip chip-accent detected-tag">Your system</span>
         <div class="os-head"><span class="os-logo">{{i:linux}}</span><div><h2>Linux <span class="chip chip-ok">Supported</span></h2><span class="os-sub">x86_64 · Debian/Ubuntu or any distro</span></div></div>
         <p>Use the <code>.deb</code> on Debian, Ubuntu and derivatives; the AppImage runs almost anywhere. Paste-back works on X11 only.</p>
-        <div class="assets">""" + slot("linux-deb", "Debian / Ubuntu (.deb)", primary=True) + slot("linux-appimage", "AppImage") + r"""</div>
+        <div class="assets">""" + slot("linux-deb", "Debian / Ubuntu (.deb)", primary=True) + slot("linux-appimage", "AppImage") + r"""<span class="assets-label">{{i:terminal}}Command line</span>""" + slot("cli-linux", "clipd CLI (.tar.gz)") + r"""</div>
       </article>
       <article class="os-card" data-os="macos" id="macos">
         <span class="chip chip-accent detected-tag">Your system</span>
         <div class="os-head"><span class="os-logo">{{i:apple}}</span><div><h2>macOS <span class="chip chip-warn">Experimental</span></h2><span class="os-sub">Universal (Apple silicon and Intel)</span></div></div>
         <p>Built by CI and not yet tested on real hardware: clipboard capture works, paste-back needs <strong>Accessibility</strong> permission. A menu-bar app; <kbd>Cmd</kbd> <kbd>Shift</kbd> <kbd>Space</kbd> opens the picker.</p>
-        <div class="assets">""" + slot("mac-dmg", "Disk image (.dmg)", soon="Arrives with v0.1.2 (experimental)") + r"""</div>
+        <div class="assets">""" + slot("mac-dmg", "Disk image (.dmg)", soon="Arrives with v0.1.2 (experimental)") + r"""<span class="assets-label">{{i:terminal}}Command line</span><a class="asset" href="#cli">{{i:package}}<span class="a-main"><span class="a-name">clipd CLI</span><span class="a-meta">Install with Cargo (no prebuilt binary yet)</span></span></a></div>
       </article>
       <article class="os-card" data-os="android" id="android">
         <span class="chip chip-accent detected-tag">Your system</span>
@@ -385,7 +385,7 @@ DOWNLOAD = r"""
     <div class="section-head" style="margin-bottom:32px">
       <span class="eyebrow">Command line</span>
       <h2 class="h2" style="font-size:clamp(26px,3.4vw,38px)">Install from the terminal</h2>
-      <p class="lede">The <code>clipd</code> CLI captures, searches and syncs from a terminal or script. Package managers come later.</p>
+      <p class="lede">The <code>clipd</code> CLI captures, searches and syncs from a terminal or script. Prebuilt binaries for Windows and Linux are in each system's card above; here are the other ways to get it.</p>
     </div>
     <div class="install-grid">
       <div class="install-card">
@@ -398,20 +398,9 @@ DOWNLOAD = r"""
         <p>Listings for Windows and Linux package managers (such as winget and Scoop) are planned after the first stable release. Until then, use the installers above.</p>
       </div>
       <div class="install-card">
-        <h3>{{i:download}}Installers <span class="chip chip-accent">v0.1.2</span></h3>
-        <p>Every release attaches the desktop installers, the Android APK and prebuilt <code>clipd</code> archives. Use the buttons above or the <a href="{{REPO}}/releases">Releases page</a>.</p>
+        <h3>{{i:code}}Build from source</h3>
+        <p>Everything builds from the repository, including the desktop app (Rust 1.96, Node 22 and pnpm). See the <a href="{{R}}docs/index.html#build-from-source">build instructions</a> or the <a href="{{REPO}}">source on GitHub</a>.</p>
       </div>
-    </div>
-    <div class="os-grid" style="margin-top:16px">
-      <article class="os-card">
-        <div class="os-head"><span class="os-logo">{{i:terminal}}</span><div><h2>CLI binaries</h2><span class="os-sub">Prebuilt <code>clipd</code>, attached to each release</span></div></div>
-        <div class="assets" style="margin-top:16px">""" + slot("cli-win", "clipd for Windows x64 (.zip)") + slot("cli-linux", "clipd for Linux x86_64 (.tar.gz)") + r"""</div>
-      </article>
-      <article class="os-card">
-        <div class="os-head"><span class="os-logo">{{i:code}}</span><div><h2>Build from source</h2><span class="os-sub">Rust 1.96, Node 22 and pnpm</span></div></div>
-        <p>Everything builds from the repository today, including the desktop app. Step by step in the docs.</p>
-        <div class="assets"><a class="asset" href="{{R}}docs/index.html#build-from-source">{{i:book}}<span class="a-main"><span class="a-name">Build instructions</span><span class="a-meta">Windows, Linux and the CLI</span></span></a><a class="asset" href="{{REPO}}">{{i:github}}<span class="a-main"><span class="a-name">Source on GitHub</span><span class="a-meta">abhijitdalal26/cliptrail</span></span></a></div>
-      </article>
     </div>
   </div>
 </section>
