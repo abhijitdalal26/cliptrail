@@ -1,10 +1,22 @@
-import { useState } from "react";
-import { ChevronDown, Clock, Keyboard, LayoutDashboard, Layers, Pause, Play, Settings, Star, Trash2 } from "lucide-react";
+import { useRef, useState } from "react";
+import {
+  ChevronDown,
+  Clock,
+  Keyboard,
+  LayoutDashboard,
+  Layers,
+  Pause,
+  Play,
+  Settings,
+  Star,
+  Trash2,
+} from "lucide-react";
 import { appName } from "../lib/apps";
 import { cx } from "../lib/cx";
 import { compact } from "../lib/format";
+import { moveKind, useKindOrder } from "../lib/kindOrder";
 import { KIND_META } from "../lib/kinds";
-import { ALL_KINDS, type CaptureState, type Stats } from "../lib/types";
+import type { CaptureState, Kind, Stats } from "../lib/types";
 import { sameView, type View } from "../lib/view";
 import { AppAvatar, IconButton } from "../components/ui";
 import { SyncStatusPill } from "./SyncStatusPill";
@@ -27,6 +39,50 @@ export function Sidebar(p: Props) {
   const byKind = new Map(p.stats?.by_kind ?? []);
   const appCounts = new Map(p.stats?.top_apps ?? []);
   const apps = allApps ? p.apps : p.apps.slice(0, 6);
+  const [kinds, saveKinds] = useKindOrder();
+  // Drag to reorder: `drag.to` is where the dragged kind would land.
+  const [drag, setDrag] = useState<{ kind: Kind; to: number } | null>(null);
+  const list = useRef<HTMLDivElement>(null);
+  const dragged = useRef(false);
+  const shown = drag ? moveKind(kinds, drag.kind, drag.to) : kinds;
+
+  /** Index (in the list without the dragged row) the pointer is over. */
+  const slotAt = (y: number, kind: Kind) => {
+    const rows = Array.from(list.current?.children ?? []).filter((el) => (el as HTMLElement).dataset.kind !== kind);
+    return rows.filter((el) => {
+      const r = el.getBoundingClientRect();
+      return r.top + r.height / 2 < y;
+    }).length;
+  };
+
+  const startDrag = (e: React.PointerEvent, kind: Kind) => {
+    if (e.button !== 0) return;
+    const startY = e.clientY;
+    let to: number | null = null;
+    dragged.current = false;
+    const move = (ev: PointerEvent) => {
+      if (to == null && Math.abs(ev.clientY - startY) < 5) return;
+      to = slotAt(ev.clientY, kind);
+      dragged.current = true;
+      setDrag({ kind, to });
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      setDrag(null);
+      if (to != null) saveKinds(moveKind(kinds, kind, to));
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
+
+  /** Alt+↑ / Alt+↓ moves the focused category. */
+  const keyMove = (e: React.KeyboardEvent, kind: Kind) => {
+    if (!e.altKey || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return;
+    e.preventDefault();
+    const i = kinds.indexOf(kind);
+    saveKinds(moveKind(kinds, kind, e.key === "ArrowUp" ? i - 1 : i + 1));
+  };
 
   return (
     <nav className="flex h-full min-h-0 w-[232px] shrink-0 flex-col">
@@ -66,25 +122,39 @@ export function Sidebar(p: Props) {
         />
 
         <SectionLabel>Categories</SectionLabel>
-        {ALL_KINDS.map((k) => {
-          const Icon = KIND_META[k].icon;
-          const n = byKind.get(k) ?? 0;
-          return (
-            <Item
-              key={k}
-              icon={
-                <span className={`k-${k} k-fg`}>
-                  <Icon size={15} strokeWidth={1.9} />
-                </span>
-              }
-              label={KIND_META[k].plural}
-              count={n}
-              dim={n === 0}
-              active={sameView(p.view, { type: "kind", kind: k })}
-              onClick={() => p.onView({ type: "kind", kind: k })}
-            />
-          );
-        })}
+        <div ref={list}>
+          {shown.map((k) => {
+            const Icon = KIND_META[k].icon;
+            const n = byKind.get(k) ?? 0;
+            return (
+              <Item
+                key={k}
+                kind={k}
+                lifted={drag?.kind === k}
+                title="Drag to reorder (or Alt+↑ / Alt+↓)"
+                onPointerDown={(e) => startDrag(e, k)}
+                onKeyDown={(e) => keyMove(e, k)}
+                icon={
+                  <span className={`k-${k} k-fg`}>
+                    <Icon size={15} strokeWidth={1.9} />
+                  </span>
+                }
+                label={KIND_META[k].plural}
+                count={n}
+                dim={n === 0}
+                active={sameView(p.view, { type: "kind", kind: k })}
+                onClick={() => {
+                  // The click that ends a drag isn't a selection.
+                  if (dragged.current) {
+                    dragged.current = false;
+                    return;
+                  }
+                  p.onView({ type: "kind", kind: k });
+                }}
+              />
+            );
+          })}
+        </div>
 
         {p.apps.length > 0 && (
           <>
@@ -104,10 +174,7 @@ export function Sidebar(p: Props) {
                 onClick={() => setAllApps((v) => !v)}
                 className="flex h-7 w-full items-center gap-2 rounded-lg px-2.5 text-[12px] text-fg-3 hover:text-fg"
               >
-                <ChevronDown
-                  size={13}
-                  className={cx("transition-transform duration-150", allApps && "rotate-180")}
-                />
+                <ChevronDown size={13} className={cx("transition-transform duration-150", allApps && "rotate-180")} />
                 {allApps ? "Show less" : `${p.apps.length - 6} more`}
               </button>
             )}
@@ -170,6 +237,11 @@ function Item({
   active,
   dim,
   onClick,
+  kind,
+  lifted,
+  title,
+  onPointerDown,
+  onKeyDown,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -177,15 +249,26 @@ function Item({
   active: boolean;
   dim?: boolean;
   onClick: () => void;
+  /** Reorderable category rows. */
+  kind?: Kind;
+  lifted?: boolean;
+  title?: string;
+  onPointerDown?: (e: React.PointerEvent) => void;
+  onKeyDown?: (e: React.KeyboardEvent) => void;
 }) {
   return (
     <button
       onClick={onClick}
       onMouseDown={(e) => e.preventDefault()}
+      onPointerDown={onPointerDown}
+      onKeyDown={onKeyDown}
+      data-kind={kind}
+      title={title}
       className={cx(
         "flex h-[30px] w-full items-center gap-2.5 rounded-lg px-2.5 text-[13px] transition-colors duration-150",
         active ? "bg-active font-medium text-fg" : "text-fg-2 hover:bg-hover hover:text-fg",
-        dim && !active && "opacity-55",
+        dim && !active && !lifted && "opacity-55",
+        lifted && "relative z-10 bg-panel shadow-soft ring-1 ring-[var(--border-strong)] select-none",
       )}
     >
       <span className="grid w-4 shrink-0 place-items-center">{icon}</span>
