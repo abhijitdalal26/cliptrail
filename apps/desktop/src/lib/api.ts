@@ -144,11 +144,30 @@ export async function emitAll(event: string, payload: unknown): Promise<void> {
  * (src-tauri/src/imageproto.rs) decrypts them for the webview. */
 const IMAGE_SCHEME = "clipimg";
 
+/** Copied files (images, videos) are previewed from where they live through
+ * the `clipfile` protocol (src-tauri/src/fileproto.rs). */
+const FILE_SCHEME = "clipfile";
+
+let convertFileSrc: ((p: string, scheme: string) => string) | null = null;
 let convert: ((p: string) => string) | null = null;
 if (isTauri) {
   void import("@tauri-apps/api/core").then((m) => {
+    convertFileSrc = m.convertFileSrc;
     convert = (p) => m.convertFileSrc(p, IMAGE_SCHEME);
   });
+}
+
+function schemeUrl(path: string, scheme: string): string {
+  if (convertFileSrc) return convertFileSrc(path, scheme);
+  const enc = encodeURIComponent(path);
+  return /Windows|Android/.test(navigator.userAgent)
+    ? `http://${scheme}.localhost/${enc}`
+    : `${scheme}://localhost/${enc}`;
+}
+
+/** URL to preview a copied file from its real location. */
+export function fileUrl(path: string): string {
+  return schemeUrl(path, FILE_SCHEME);
 }
 
 /** URL for a stored image or thumbnail path, or a mock data URL. */
