@@ -1,31 +1,35 @@
 import { useEffect, useState } from "react";
 import { Bot, Check, ChevronDown, Copy } from "lucide-react";
 import { api, errorMessage, type AiClient } from "../lib/api";
+import { relative } from "../lib/format";
 import { cx } from "../lib/cx";
-import { Button } from "../components/ui";
+import { Button, Switch } from "../components/ui";
 import { Row, Section } from "./SettingsDialog";
 
 const DOCS = "https://abhijitdalal26.github.io/cliptrail/docs/ai-assistants.html";
 
-/** Settings → AI assistants: one-click MCP setup in the AI apps on this computer. */
+/** Settings → AI assistants: one switch connects every AI app found here; "Choose apps" for per-app control. */
 export function AssistantsSection() {
   const [clients, setClients] = useState<AiClient[] | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [all, setAll] = useState(false);
+  const [choose, setChoose] = useState(false);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     void api.aiClients().then(setClients).catch((e) => setError(errorMessage(e)));
   }, []);
 
-  const run = (id: string, f: (id: string) => Promise<AiClient[]>) => {
-    setBusy(id);
+  const run = (f: () => Promise<AiClient[]>) => {
+    setBusy(true);
     setError(null);
-    f(id)
+    f()
       .then(setClients)
-      .catch((e) => setError(errorMessage(e)))
-      .finally(() => setBusy(null));
+      .catch((e) => {
+        setError(errorMessage(e));
+        void api.aiClients().then(setClients).catch(() => undefined);
+      })
+      .finally(() => setBusy(false));
   };
 
   const copyConfig = () => {
@@ -39,74 +43,93 @@ export function AssistantsSection() {
       .catch((e) => setError(errorMessage(e)));
   };
 
-  const found = (clients ?? []).filter((c) => c.installed || c.connected);
-  const others = (clients ?? []).filter((c) => !c.installed && !c.connected);
-  const shown = all ? [...found, ...others] : found;
+  // Only apps that are really here (or still connected from before) are listed.
+  const list = (clients ?? []).filter((c) => c.installed || c.connected);
+  const connected = list.filter((c) => c.connected);
+  const found = list.filter((c) => c.installed);
+  const names = (cs: AiClient[]) => cs.map((c) => c.name).join(", ");
+  const lastUse = connected
+    .filter((c) => c.last_used)
+    .sort((a, b) => (b.last_used ?? 0) - (a.last_used ?? 0))[0];
+  const status = !clients
+    ? "Looking for AI apps…"
+    : connected.length > 0
+      ? `Connected: ${names(connected)}. ` +
+        (lastUse
+          ? `${lastUse.name} last used it ${relative(lastUse.last_used!)}.`
+          : "Restart an app if it was open; it shows here once it has used ClipTrail.")
+      : found.length > 0
+        ? `Found on this computer: ${names(found)}.`
+        : "No AI apps found on this computer. Use Copy config for any MCP app.";
 
   return (
     <Section title="AI assistants">
-      <div className="flex gap-3 px-4 py-3.5">
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent-text">
-          <Bot size={16} strokeWidth={2} />
-        </span>
-        <div className="text-[12.5px] leading-[1.5] text-fg-3">
-          <span className="font-medium text-fg">Ask your AI assistant to find what you copied.</span> It runs only on this
-          computer and ClipTrail sends nothing to any cloud. Sensitive clips are never shared.{" "}
-          <button className="text-accent-text hover:underline" onClick={() => void api.openUrl(DOCS).catch(() => undefined)}>
-            How it works
-          </button>
-        </div>
-      </div>
+      <Row
+        title="Let AI assistants search my history"
+        desc={
+          <>
+            {status}
+            <span className="mt-1 flex items-start gap-1.5">
+              <Bot size={13} className="mt-[2px] shrink-0 text-accent-text" />
+              <span>
+                Runs only on this computer; ClipTrail talks to no cloud. Sensitive clips are never shared.{" "}
+                <button
+                  className="text-accent-text hover:underline"
+                  onClick={() => void api.openUrl(DOCS).catch(() => undefined)}
+                >
+                  How it works
+                </button>
+              </span>
+            </span>
+          </>
+        }
+        error={error}
+      >
+        <Switch
+          label="Let AI assistants search my history"
+          checked={connected.length > 0}
+          disabled={busy || !clients || (connected.length === 0 && found.length === 0)}
+          onChange={(on) => run(on ? api.aiConnectAll : api.aiDisconnectAll)}
+        />
+      </Row>
 
-      {clients && found.length === 0 && !all && (
-        <div className="px-4 py-3 text-[12.5px] text-fg-3">No AI apps found on this computer yet.</div>
-      )}
-      {shown.map((c) => (
-        <Row
-          key={c.id}
-          title={c.name}
-          desc={
-            c.connected
-              ? "Connected. Restart the app if it's open."
-              : c.installed
-                ? "Found on this computer"
-                : "Not found on this computer"
-          }
-        >
-          {c.connected ? (
-            <Button size="sm" variant="ghost" disabled={busy === c.id} onClick={() => run(c.id, api.aiDisconnect)}>
-              Disconnect
-            </Button>
-          ) : (
-            <Button
-              size="sm"
-              variant={c.installed ? "primary" : "secondary"}
-              disabled={busy === c.id}
-              onClick={() => run(c.id, api.aiConnect)}
-            >
-              Connect
-            </Button>
-          )}
-        </Row>
-      ))}
-      {others.length > 0 && (
+      <div className="flex items-center justify-between px-4 py-2.5">
         <button
-          onClick={() => setAll((v) => !v)}
-          className="flex w-full items-center gap-1.5 px-4 py-2.5 text-[12px] font-medium text-fg-3 hover:text-fg"
+          onClick={() => setChoose((v) => !v)}
+          className="flex items-center gap-1.5 text-[12px] font-medium text-fg-3 hover:text-fg"
         >
-          <ChevronDown size={13} className={cx("transition-transform duration-150", all && "rotate-180")} />
-          {all ? "Show fewer" : `Show all (${others.length} more)`}
+          <ChevronDown size={13} className={cx("transition-transform duration-150", choose && "rotate-180")} />
+          Choose apps
         </button>
-      )}
-
-      <Row title="Another app" desc="Any MCP app, including local models: paste this into its MCP settings." error={error}>
-        <Button size="sm" icon={copied ? Check : Copy} onClick={copyConfig}>
+        <Button size="sm" variant="ghost" icon={copied ? Check : Copy} onClick={copyConfig}>
           {copied ? "Copied" : "Copy config"}
         </Button>
-      </Row>
-      <div className="px-4 py-3 text-[11.5px] leading-[1.45] text-fg-3">
-        What the assistant reads goes to its AI provider, unless it runs a local model (for example in LM Studio).
       </div>
+
+      {choose &&
+        list.map((c) => (
+          <Row
+            key={c.id}
+            title={c.name}
+            desc={
+              c.connected
+                ? c.last_used
+                  ? `Connected · used ${relative(c.last_used)}`
+                  : "Connected · not used yet (restart the app)"
+                : "Found on this computer"
+            }
+          >
+            {c.connected ? (
+              <Button size="sm" variant="ghost" disabled={busy} onClick={() => run(() => api.aiDisconnect(c.id))}>
+                Disconnect
+              </Button>
+            ) : (
+              <Button size="sm" disabled={busy} onClick={() => run(() => api.aiConnect(c.id))}>
+                Connect
+              </Button>
+            )}
+          </Row>
+        ))}
     </Section>
   );
 }

@@ -25,7 +25,9 @@ clipd-sync.workspace = true
 tokio = { version = "1", features = ["sync"] }
 anyhow.workspace = true
 serde.workspace = true
-serde_json.workspace = true
+# preserve_order: Settings → AI assistants edits other apps' config files and must
+# not reorder their keys. (Sync serializes structs, so it isn't affected.)
+serde_json = { workspace = true, features = ["preserve_order"] }
 tracing.workspace = true
 tracing-subscriber.workspace = true
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }

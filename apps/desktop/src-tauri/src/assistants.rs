@@ -35,10 +35,22 @@ struct Client {
     id: &'static str,
     name: &'static str,
     format: Format,
+    /// Lowercase pieces of the name the app gives itself over MCP
+    /// (`clientInfo.name`), to match `clipd_mcp::recent_clients`.
+    mcp_names: &'static [&'static str],
     /// The config file (may not exist yet).
     config: fn() -> Option<PathBuf>,
-    /// Something that exists once the app is installed / has been run.
-    marker: fn() -> Option<PathBuf>,
+    /// Paths the app itself creates once installed or run (never files
+    /// ClipTrail writes, so connecting can't make an app look installed).
+    markers: fn() -> Vec<PathBuf>,
+}
+
+/// `base` joined with each relative path ("a/b" works on every OS).
+fn in_dir(base: Option<PathBuf>, rels: &[&str]) -> Vec<PathBuf> {
+    let Some(base) = base else { return Vec::new() };
+    rels.iter()
+        .map(|r| r.split('/').fold(base.clone(), |p, part| p.join(part)))
+        .collect()
 }
 
 fn home() -> Option<PathBuf> {
@@ -51,45 +63,99 @@ fn app_config() -> Option<PathBuf> {
     dirs::config_dir()
 }
 
+/// The folder Claude Desktop actually reads its settings from. The Windows
+/// package (MSIX) build may keep user data outside the package in
+/// `%LOCALAPPDATA%\Claude-Data\<package>\`, or inside it in the package's
+/// redirected `LocalCache\Roaming\Claude`; the classic installer, macOS and
+/// Linux use `<config dir>/Claude`. The first one Claude has written its own
+/// `config.json` to wins.
+fn claude_desktop_dir() -> Option<PathBuf> {
+    let mut candidates = Vec::new();
+    if let Some(local) = dirs::data_local_dir() {
+        let subdirs = |dir: PathBuf, prefix: &str| -> Vec<PathBuf> {
+            let Ok(rd) = std::fs::read_dir(&dir) else {
+                return Vec::new();
+            };
+            rd.filter_map(|e| e.ok())
+                .filter(|e| {
+                    e.file_name()
+                        .to_string_lossy()
+                        .to_lowercase()
+                        .starts_with(prefix)
+                })
+                .map(|e| e.path())
+                .collect()
+        };
+        candidates.extend(subdirs(local.join("Claude-Data"), "claude_"));
+        candidates.extend(
+            subdirs(local.join("Packages"), "claude_")
+                .into_iter()
+                .map(|p| p.join("LocalCache").join("Roaming").join("Claude")),
+        );
+    }
+    let classic = app_config().map(|c| c.join("Claude"));
+    candidates.extend(classic.clone());
+    candidates
+        .into_iter()
+        .find(|d| d.join("config.json").exists())
+        .or(classic)
+}
+
 const CLIENTS: &[Client] = &[
     Client {
         id: "claude-desktop",
         name: "Claude Desktop",
         format: Format::McpServers,
-        config: || {
-            Some(
-                app_config()?
-                    .join("Claude")
-                    .join("claude_desktop_config.json"),
-            )
+        mcp_names: &["claude-ai", "claude desktop"],
+        config: || Some(claude_desktop_dir()?.join("claude_desktop_config.json")),
+        markers: || {
+            let mut v = in_dir(app_config(), &["Claude/logs", "Claude/config.json"]);
+            v.extend(in_dir(
+                dirs::data_local_dir(),
+                &["AnthropicClaude", "Claude/Logs"],
+            ));
+            v.extend(claude_desktop_dir().map(|d| d.join("config.json")));
+            v
         },
-        marker: || Some(app_config()?.join("Claude")),
     },
     Client {
         id: "claude-code",
         name: "Claude Code",
         format: Format::McpServers,
+        mcp_names: &["claude-code"],
         config: || Some(home()?.join(".claude.json")),
-        marker: || Some(home()?.join(".claude")),
+        markers: || in_dir(home(), &[".claude/settings.json", ".claude/projects"]),
     },
     Client {
         id: "cursor",
         name: "Cursor",
         format: Format::McpServers,
+        mcp_names: &["cursor"],
         config: || Some(home()?.join(".cursor").join("mcp.json")),
-        marker: || Some(home()?.join(".cursor")),
+        markers: || {
+            let mut v = in_dir(app_config(), &["Cursor/User"]);
+            v.extend(in_dir(home(), &[".cursor/extensions"]));
+            v
+        },
     },
     Client {
         id: "vscode",
         name: "VS Code (GitHub Copilot)",
         format: Format::VsCode,
+        mcp_names: &["visual studio code", "vscode"],
         config: || Some(app_config()?.join("Code").join("User").join("mcp.json")),
-        marker: || Some(app_config()?.join("Code").join("User")),
+        markers: || {
+            in_dir(
+                app_config(),
+                &["Code/User/settings.json", "Code/User/globalStorage"],
+            )
+        },
     },
     Client {
         id: "windsurf",
         name: "Windsurf",
         format: Format::McpServers,
+        mcp_names: &["windsurf", "codeium"],
         config: || {
             Some(
                 home()?
@@ -98,28 +164,44 @@ const CLIENTS: &[Client] = &[
                     .join("mcp_config.json"),
             )
         },
-        marker: || Some(home()?.join(".codeium").join("windsurf")),
+        markers: || in_dir(app_config(), &["Windsurf/User"]),
     },
     Client {
         id: "codex",
         name: "Codex CLI",
         format: Format::CodexToml,
+        mcp_names: &["codex"],
         config: || Some(home()?.join(".codex").join("config.toml")),
-        marker: || Some(home()?.join(".codex")),
+        markers: || in_dir(home(), &[".codex/auth.json", ".codex/sessions"]),
     },
     Client {
         id: "gemini",
         name: "Gemini CLI",
         format: Format::McpServers,
+        mcp_names: &["gemini"],
         config: || Some(home()?.join(".gemini").join("settings.json")),
-        marker: || Some(home()?.join(".gemini")),
+        markers: || {
+            in_dir(
+                home(),
+                &[
+                    ".gemini/oauth_creds.json",
+                    ".gemini/google_accounts.json",
+                    ".gemini/tmp",
+                ],
+            )
+        },
     },
     Client {
         id: "lmstudio",
         name: "LM Studio",
         format: Format::McpServers,
+        mcp_names: &["lm studio", "lmstudio"],
         config: || Some(home()?.join(".lmstudio").join("mcp.json")),
-        marker: || Some(home()?.join(".lmstudio")),
+        markers: || {
+            let mut v = in_dir(home(), &[".lmstudio/models", ".lmstudio/.internal"]);
+            v.extend(in_dir(app_config(), &["LM Studio"]));
+            v
+        },
     },
 ];
 
@@ -131,6 +213,9 @@ pub struct ClientView {
     pub installed: bool,
     /// Its config has a `cliptrail` server entry.
     pub connected: bool,
+    /// Last time this app actually started ClipTrail's server (ms), as
+    /// recorded by `cliptrail --mcp`: proof it's working, not just set up.
+    pub last_used: Option<i64>,
     pub config_path: Option<String>,
 }
 
@@ -141,20 +226,29 @@ fn server_command() -> Result<(String, Vec<String>)> {
 }
 
 pub fn clients() -> Vec<ClientView> {
+    let used = clipd_mcp::recent_clients(&clipd_core::default_data_dir());
     CLIENTS
         .iter()
         .map(|c| {
             let config = (c.config)();
-            let installed = (c.marker)().is_some_and(|m| m.exists())
-                || config.as_ref().is_some_and(|p| p.exists());
+            let installed = (c.markers)().iter().any(|m| m.exists());
             let connected = config
                 .as_ref()
                 .is_some_and(|p| has_entry(p, c.format).unwrap_or(false));
+            let last_used = used
+                .iter()
+                .filter(|(name, _)| {
+                    let n = name.to_lowercase();
+                    c.mcp_names.iter().any(|m| n.contains(m))
+                })
+                .map(|(_, at)| *at)
+                .max();
             ClientView {
                 id: c.id,
                 name: c.name,
                 installed,
                 connected,
+                last_used,
                 config_path: config.map(|p| p.to_string_lossy().into_owned()),
             }
         })
@@ -170,6 +264,11 @@ fn client(id: &str) -> Result<&'static Client> {
 
 pub fn connect(id: &str) -> Result<()> {
     let c = client(id)?;
+    if !(c.markers)().iter().any(|m| m.exists()) {
+        bail!("{} isn't installed on this computer", c.name);
+    }
+    // Only point an app at a server that answers.
+    self_test().context("ClipTrail's AI server didn't answer, so nothing was changed")?;
     let path = (c.config)().context("couldn't find this app's settings folder")?;
     let (command, args) = server_command()?;
     if c.id == "claude-code" {
@@ -203,6 +302,35 @@ pub fn disconnect(id: &str) -> Result<()> {
         return Ok(());
     }
     edit(&path, c.format, None)
+}
+
+/// The Settings switch: connect every assistant found on this computer.
+/// Keeps going past one that fails; the error names the ones that did.
+pub fn connect_all() -> Result<()> {
+    let failed: Vec<String> = clients()
+        .into_iter()
+        .filter(|c| c.installed && !c.connected)
+        .filter_map(|c| connect(c.id).err().map(|e| format!("{}: {e:#}", c.name)))
+        .collect();
+    if failed.is_empty() {
+        Ok(())
+    } else {
+        bail!("{}", failed.join("; "))
+    }
+}
+
+/// The Settings switch turned off: disconnect every connected assistant.
+pub fn disconnect_all() -> Result<()> {
+    let failed: Vec<String> = clients()
+        .into_iter()
+        .filter(|c| c.connected)
+        .filter_map(|c| disconnect(c.id).err().map(|e| format!("{}: {e:#}", c.name)))
+        .collect();
+    if failed.is_empty() {
+        Ok(())
+    } else {
+        bail!("{}", failed.join("; "))
+    }
 }
 
 /// Run the `claude` CLI. Ok(false) when it isn't installed; Ok(true) when it
@@ -242,6 +370,73 @@ fn claude_cli(args: &[&str]) -> Result<bool> {
         return Ok(true);
     }
     bail!("claude mcp failed: {}", err.trim())
+}
+
+/// Start `cliptrail --mcp` the way an assistant does and check it lists its
+/// tools. Returns how many.
+pub fn self_test() -> Result<usize> {
+    use std::io::{BufRead, BufReader, Write};
+    use std::process::{Command, Stdio};
+    use std::time::Duration;
+
+    let (command, args) = server_command()?;
+    let mut cmd = Command::new(&command);
+    cmd.args(&args)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    let mut child = cmd.spawn().context("starting cliptrail --mcp")?;
+    let mut stdin = child.stdin.take().context("no stdin")?;
+    let stdout = child.stdout.take().context("no stdout")?;
+    let init = json!({
+        "jsonrpc": "2.0", "id": 1, "method": "initialize",
+        "params": {
+            "protocolVersion": "2025-06-18", "capabilities": {},
+            "clientInfo": { "name": clipd_mcp::SELF_TEST_CLIENT, "version": env!("CARGO_PKG_VERSION") }
+        }
+    });
+    let list = json!({ "jsonrpc": "2.0", "id": 2, "method": "tools/list" });
+    writeln!(stdin, "{init}\n{list}")?;
+    stdin.flush()?;
+
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        for line in BufReader::new(stdout).lines().map_while(Result::ok) {
+            if tx.send(line).is_err() {
+                break;
+            }
+        }
+    });
+    let deadline = std::time::Instant::now() + Duration::from_secs(10);
+    let result = loop {
+        let left = deadline.saturating_duration_since(std::time::Instant::now());
+        match rx.recv_timeout(left) {
+            Ok(line) => {
+                let v: Value = serde_json::from_str(&line).unwrap_or(Value::Null);
+                if v["id"] == 2 {
+                    break v["result"]["tools"]
+                        .as_array()
+                        .map(Vec::len)
+                        .filter(|n| *n > 0)
+                        .context("it answered without any tools");
+                }
+                if let Some(msg) = v.pointer("/error/message").and_then(Value::as_str) {
+                    break Err(anyhow::anyhow!("{msg}"));
+                }
+            }
+            Err(_) => break Err(anyhow::anyhow!("no answer within 10 seconds")),
+        }
+    };
+    drop(stdin);
+    let _ = child.kill();
+    let _ = child.wait();
+    result
 }
 
 /// The JSON block for any other MCP app ("Copy config").
@@ -404,6 +599,30 @@ mod tests {
         let v: Value = serde_json::from_str(&removed).unwrap();
         assert!(v["mcpServers"].get("cliptrail").is_none());
         assert_eq!(v["mcpServers"]["other"]["command"], "x");
+    }
+
+    #[test]
+    fn json_connect_keeps_nested_settings_exactly() {
+        let before = "{
+  \"preferences\": {
+    \"zebra\": 1,
+    \"apple\": {\"b\": 2, \"a\": 1}
+  }
+}";
+        let a = args();
+        let out = edit_json(before, Format::McpServers, Some(("ct", &a))).unwrap();
+        // Claude Desktop's own settings keep their order, nested keys included.
+        assert!(
+            out.find("zebra").unwrap() < out.find("apple").unwrap(),
+            "{out}"
+        );
+        assert!(
+            out.find("\"b\"").unwrap() < out.find("\"a\"").unwrap(),
+            "{out}"
+        );
+        let back = edit_json(&out, Format::McpServers, None).unwrap();
+        let v: Value = serde_json::from_str(&back).unwrap();
+        assert_eq!(v["preferences"]["apple"]["b"], 2);
     }
 
     #[test]

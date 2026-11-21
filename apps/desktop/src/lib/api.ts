@@ -39,6 +39,8 @@ export interface AiClient {
   name: string;
   installed: boolean;
   connected: boolean;
+  /** Last time this app actually started ClipTrail's server (ms). */
+  last_used: number | null;
   config_path: string | null;
 }
 
@@ -87,6 +89,8 @@ export const api = {
   aiClients: () => call<AiClient[]>("ai_clients"),
   aiConnect: (id: string) => call<AiClient[]>("ai_connect", { id }),
   aiDisconnect: (id: string) => call<AiClient[]>("ai_disconnect", { id }),
+  aiConnectAll: () => call<AiClient[]>("ai_connect_all"),
+  aiDisconnectAll: () => call<AiClient[]>("ai_disconnect_all"),
   aiConfigSnippet: () => call<string>("ai_config_snippet"),
   setAutostart: (enabled: boolean) => call<void>("set_autostart", { enabled }),
   /** Quit the app (desktop); the way out when the tray icon is hidden. */

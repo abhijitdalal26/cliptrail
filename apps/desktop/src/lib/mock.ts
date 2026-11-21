@@ -601,11 +601,11 @@ function stats(): Stats {
 
 const DEFAULT_EXCLUDED = ["1password.exe", "bitwarden.exe", "keepass.exe", "keepassxc.exe", "lastpass.exe", "dashlane.exe"];
 const mockAi = [
-  { id: "claude-desktop", name: "Claude Desktop", installed: true, connected: true, config_path: null as string | null },
-  { id: "claude-code", name: "Claude Code", installed: true, connected: false, config_path: null as string | null },
-  { id: "cursor", name: "Cursor", installed: true, connected: false, config_path: null as string | null },
-  { id: "vscode", name: "VS Code (GitHub Copilot)", installed: false, connected: false, config_path: null as string | null },
-  { id: "lmstudio", name: "LM Studio", installed: false, connected: false, config_path: null as string | null },
+  { id: "claude-desktop", name: "Claude Desktop", installed: true, connected: true, last_used: Date.now() - 180_000 as number | null, config_path: null as string | null },
+  { id: "claude-code", name: "Claude Code", installed: true, connected: false, last_used: null as number | null, config_path: null as string | null },
+  { id: "cursor", name: "Cursor", installed: true, connected: false, last_used: null as number | null, config_path: null as string | null },
+  { id: "vscode", name: "VS Code (GitHub Copilot)", installed: false, connected: false, last_used: null as number | null, config_path: null as string | null },
+  { id: "lmstudio", name: "LM Studio", installed: false, connected: false, last_used: null as number | null, config_path: null as string | null },
 ];
 
 const mockSettings: SettingsView = {
@@ -739,6 +739,10 @@ export async function handle(cmd: string, a: Record<string, unknown>): Promise<u
       if (c) c.connected = cmd === "ai_connect";
       return mockAi.map((x) => ({ ...x }));
     }
+    case "ai_connect_all":
+    case "ai_disconnect_all":
+      for (const c of mockAi) if (c.installed) c.connected = cmd === "ai_connect_all";
+      return mockAi.map((x) => ({ ...x }));
     case "ai_config_snippet":
       return JSON.stringify({ mcpServers: { cliptrail: { command: "C:/Users/you/AppData/Local/ClipTrail/cliptrail.exe", args: ["--mcp"] } } }, null, 2);
     case "get_autostart":

@@ -195,6 +195,8 @@ pub fn run() {
             commands::ai_clients,
             commands::ai_connect,
             commands::ai_disconnect,
+            commands::ai_connect_all,
+            commands::ai_disconnect_all,
             commands::ai_config_snippet,
             commands::get_autostart,
             commands::set_autostart,

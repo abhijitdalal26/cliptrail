@@ -441,6 +441,20 @@ pub fn ai_disconnect(id: String) -> CmdResult<Vec<crate::assistants::ClientView>
     Ok(crate::assistants::clients())
 }
 
+#[cfg(desktop)]
+#[tauri::command]
+pub fn ai_connect_all() -> CmdResult<Vec<crate::assistants::ClientView>> {
+    crate::assistants::connect_all().map_err(|e| format!("{e:#}"))?;
+    Ok(crate::assistants::clients())
+}
+
+#[cfg(desktop)]
+#[tauri::command]
+pub fn ai_disconnect_all() -> CmdResult<Vec<crate::assistants::ClientView>> {
+    crate::assistants::disconnect_all().map_err(|e| format!("{e:#}"))?;
+    Ok(crate::assistants::clients())
+}
+
 /// The setup block for any other MCP app.
 #[cfg(desktop)]
 #[tauri::command]
