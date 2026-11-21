@@ -45,6 +45,7 @@ fn text(p: &Pipeline, s: &str) -> String {
             },
             source_app: Some("notepad.exe".into()),
             captured_at: now_millis(),
+            source_url: None,
         })
         .unwrap()
     {
@@ -67,6 +68,7 @@ fn image(p: &Pipeline, seed: u8) -> Vec<u8> {
             },
             source_app: Some("snippingtool.exe".into()),
             captured_at: now_millis(),
+            source_url: None,
         })
         .unwrap()
     {

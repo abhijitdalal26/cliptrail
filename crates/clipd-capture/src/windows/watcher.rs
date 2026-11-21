@@ -152,11 +152,12 @@ fn handle_update(hwnd: HWND, state: &State) {
     // read_content closes the clipboard before returning, so the callback
     // below never runs while we hold the clipboard lock.
     match read_content(hwnd) {
-        Ok(Some(content)) => {
+        Ok(Some((content, source_url))) => {
             let clip = RawClip {
                 content,
                 source_app: state.source_app.borrow_mut().take(),
                 captured_at: now_ms(),
+                source_url,
             };
             if catch_unwind(AssertUnwindSafe(|| (state.on_clip)(clip))).is_err() {
                 tracing::warn!("on_clip callback panicked; watcher continues");

@@ -173,6 +173,7 @@ where
                         content,
                         source_app: None,
                         captured_at: now_ms(),
+                        source_url: None,
                     };
                     if catch_unwind(AssertUnwindSafe(|| on_clip(clip))).is_err() {
                         tracing::warn!("on_clip callback panicked; watcher continues");
@@ -206,6 +207,7 @@ pub(super) fn read_current() -> Result<Option<RawClip>> {
         content,
         source_app: None,
         captured_at: now_ms(),
+        source_url: None,
     }))
 }
 

@@ -72,6 +72,9 @@ pub struct RawClip {
     /// window when the copy happened, e.g. "chrome.exe". None if unknown.
     pub source_app: Option<String>,
     pub captured_at: Millis,
+    /// Web page the content was copied from, when the source says so
+    /// (browsers' "Copy image" on Windows). Kept for images only.
+    pub source_url: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -102,7 +105,8 @@ pub struct ClipSummary {
     pub id: String,
     pub kind: Kind,
     pub subkind: Option<String>,
-    /// First ~400 chars (masked clips: "••••••"). Empty for images.
+    /// First ~400 chars (masked clips: "••••••"). Images: the web page the
+    /// image was copied from, or empty.
     pub preview: String,
     /// True when `preview` is shorter than the full text.
     pub truncated: bool,
@@ -129,6 +133,7 @@ pub struct ClipSummary {
 pub struct Clip {
     #[serde(flatten)]
     pub summary: ClipSummary,
+    /// The text. Images: the web page they were copied from, if known.
     pub text: Option<String>,
     pub html: Option<String>,
     /// Absolute path of the full-size PNG on disk (images only).

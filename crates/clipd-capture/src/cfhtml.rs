@@ -87,9 +87,87 @@ pub fn parse(data: &[u8]) -> Option<String> {
     (!s.is_empty()).then_some(s)
 }
 
+/// The optional `SourceURL:` header line: the page the HTML was copied
+/// from (browsers set it). Only http(s) addresses are returned.
+pub fn source_url(data: &[u8]) -> Option<String> {
+    let head = String::from_utf8_lossy(&data[..data.len().min(4096)]);
+    let line = head
+        .lines()
+        .take_while(|l| !l.starts_with('<'))
+        .find_map(|l| l.strip_prefix("SourceURL:"))?;
+    web_url(line.trim())
+}
+
+/// `src` of the first `<img>` in an HTML fragment, if it is an http(s) URL.
+pub fn img_src(html: &str) -> Option<String> {
+    let lower = html.to_ascii_lowercase();
+    let tag = lower.find("<img")?;
+    let end = lower[tag..].find('>').map_or(lower.len(), |e| tag + e);
+    let attrs = &lower[tag..end];
+    let mut from = 0;
+    let at = loop {
+        let i = from + attrs[from..].find("src")?;
+        // A whole attribute name, not "srcset" or "data-src".
+        let before = attrs[..i].chars().last();
+        let after = attrs[i + 3..].trim_start();
+        if before.is_some_and(char::is_whitespace) && after.starts_with('=') {
+            break tag + i + 3 + (attrs[i + 3..].len() - after.len()) + 1;
+        }
+        from = i + 3;
+    };
+    let rest = html[at..end].trim_start();
+    let value = match rest.chars().next()? {
+        q @ ('"' | '\'') => rest[1..].split(q).next()?,
+        _ => rest.split(|c: char| c.is_whitespace() || c == '>').next()?,
+    };
+    web_url(&value.replace("&amp;", "&"))
+}
+
+fn web_url(u: &str) -> Option<String> {
+    let ok = u.len() <= 2048 && (u.starts_with("https://") || u.starts_with("http://"));
+    ok.then(|| u.to_owned())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn source_url_from_the_header() {
+        let mut data = b"Version:0.9\r\nStartHTML:0000000105\r\nEndHTML:0000000200\r\n\
+            StartFragment:0000000140\r\nEndFragment:0000000180\r\n\
+            SourceURL:https://www.reddit.com/r/pics/comments/abc/\r\n<html>"
+            .to_vec();
+        assert_eq!(
+            source_url(&data).as_deref(),
+            Some("https://www.reddit.com/r/pics/comments/abc/")
+        );
+        data = build("<img src=\"https://i.redd.it/x.jpg\">");
+        assert_eq!(source_url(&data), None, "no SourceURL line");
+        assert_eq!(
+            source_url(b"Version:0.9\r\nSourceURL:file:///C:/x.html\r\n"),
+            None
+        );
+    }
+
+    #[test]
+    fn img_src_takes_the_first_image() {
+        assert_eq!(
+            img_src(r#"<img alt="cat" src="https://i.redd.it/abc.jpg?w=1&amp;s=2" srcset="x 2x">"#)
+                .as_deref(),
+            Some("https://i.redd.it/abc.jpg?w=1&s=2")
+        );
+        assert_eq!(
+            img_src("<IMG data-src='nope' SRC='https://e.com/a.png'>").as_deref(),
+            Some("https://e.com/a.png")
+        );
+        assert_eq!(
+            img_src("<img src=https://e.com/b.gif>").as_deref(),
+            Some("https://e.com/b.gif")
+        );
+        assert_eq!(img_src(r#"<img src="data:image/png;base64,AAAA">"#), None);
+        assert_eq!(img_src("<p>no image</p>"), None);
+    }
 
     #[test]
     fn round_trip_ascii_and_unicode() {

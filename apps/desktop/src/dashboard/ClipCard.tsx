@@ -131,6 +131,7 @@ function Body({ clip }: { clip: ClipSummary }) {
           <div className="min-w-0 text-[12.5px] text-fg-3">
             <div className="font-medium text-fg">{clip.subkind === "screenshot" ? "Screenshot" : "Image"}</div>
             {clip.width && clip.height ? `${clip.width} × ${clip.height}` : null}
+            {parseUrl(clip.preview) && <div className="truncate">from {parseUrl(clip.preview)?.host}</div>}
           </div>
         </div>
       );
