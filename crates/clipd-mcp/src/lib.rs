@@ -10,12 +10,11 @@ use std::io::{BufRead, Write};
 use std::path::Path;
 
 use anyhow::Result;
-use clipd_core::Store;
+use clipd_core::{Pipeline, PipelineConfig};
 
 mod protocol;
 mod tools;
 
-const DB_FILE: &str = "clips.db";
 /// Which AI apps started this server, and when (their MCP `clientInfo.name`
 /// → ms since epoch). Shown in Settings as proof an assistant really uses it.
 /// Holds app names only, never anything from the history.
@@ -28,7 +27,15 @@ pub fn serve(data_dir: &Path) -> Result<()> {
     let device_id = clipd_sync::local_device_id(data_dir)?;
     let ks = clipd_sync::default_keystore(data_dir, &device_id);
     clipd_sync::unlock_data_dir(data_dir, ks.as_ref())?;
-    let store = Store::open(&data_dir.join(DB_FILE))?;
+    let mut config = PipelineConfig::with_defaults(data_dir.to_path_buf())?;
+    config.device_id = device_id.clone();
+    let pipeline = Pipeline::open(config)?;
+    let ctx = tools::Ctx {
+        store: pipeline.store(),
+        pipeline: Some(&pipeline),
+        device_id,
+        device_names: clipd_sync::device_names(data_dir).unwrap_or_default(),
+    };
 
     let stdin = std::io::stdin();
     let stdout = std::io::stdout();
@@ -40,7 +47,7 @@ pub fn serve(data_dir: &Path) -> Result<()> {
             continue;
         }
         note_client(data_dir, &line);
-        if let Some(resp) = protocol::handle(&store, &line) {
+        if let Some(resp) = protocol::handle(&ctx, &line) {
             serde_json::to_writer(&mut out, &resp)?;
             out.write_all(b"\n")?;
             out.flush()?;

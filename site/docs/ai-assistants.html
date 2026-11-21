@@ -93,11 +93,11 @@
 <p>Without the desktop app (servers, scripts), build the standalone server instead: <code>cargo install --locked --git https://github.com/abhijitdalal26/cliptrail clipd-mcp</code>, and use <code>clipd-mcp</code> as the command. Both read the same history folder; set <code>CLIPTRAIL_DATA_DIR</code> to use another one.</p>
 
 <h2 id="tools">What the assistant can do</h2>
-<p>The server offers eight tools. Six only read; the other two are small, reversible conveniences. There is <strong>no tool to delete or edit a clip</strong>.</p>
+<p>The server offers eleven tools. Eight only read; the other three are small conveniences that change nothing you already have. There is <strong>no tool to delete or edit a clip</strong>.</p>
 <div class="table-wrap"><table>
   <thead><tr><th scope="col">Tool</th><th scope="col">What it does</th></tr></thead>
   <tbody>
-    <tr><td><code>search_clips</code></td><td>Full-text search, with optional filters for kind, source app, pinned only and a date range (<code>from</code> / <code>to</code> as <code>YYYY-MM-DD</code>). Returns summaries.</td></tr>
+    <tr><td><code>search_clips</code></td><td>Full-text search, with optional filters for kind, source app, device (your phone or this computer), pinned only and a date range (<code>from</code> / <code>to</code> as <code>YYYY-MM-DD</code>). Returns summaries.</td></tr>
     <tr><td><code>recent_clips</code></td><td>Newest clips first, same filters, no query: "what did I copy recently?"</td></tr>
     <tr><td><code>get_clip</code></td><td>One clip's full body by id or unique id prefix.</td></tr>
     <tr><td><code>clip_stats</code></td><td>Totals: clips per kind, pinned count, top source apps.</td></tr>
@@ -105,6 +105,9 @@
     <tr><td><code>day_counts</code></td><td>Clips per calendar day for the last N days (default 30, up to 365).</td></tr>
     <tr><td><code>pin_clip</code></td><td>Pin or unpin a clip so it stays at the top and is never cleaned up.</td></tr>
     <tr><td><code>copy_to_clipboard</code></td><td>Put a clip back on your system clipboard so you can paste it. Refuses sensitive clips.</td></tr>
+    <tr><td><code>get_current_clipboard</code></td><td>What's on your clipboard right now ("fix the error I just copied"). Text that looks sensitive is withheld.</td></tr>
+    <tr><td><code>save_to_history</code></td><td>Save text the assistant made for you (a command, a link) into your history, marked as from "AI assistant", so you can find it later on the laptop and the phone.</td></tr>
+    <tr><td><code>list_devices</code></td><td>Your devices (this computer, your phone) and how many clips came from each, for "what did I copy on my phone?"</td></tr>
   </tbody>
 </table></div>
 
@@ -115,13 +118,17 @@
   <li><em>"Get that link ready to paste."</em> Searches, then puts the match on your clipboard.</li>
   <li><em>"Pin the clip I copied an hour ago."</em> Looks at recent clips, then pins it.</li>
   <li><em>"How much did I copy this week?"</em> Uses the stats and per-day counts.</li>
+  <li><em>"What did I copy on my phone today?"</em> Filters by device.</li>
+  <li><em>"Explain the error I just copied."</em> Reads your clipboard right now.</li>
+  <li><em>"Save that command to my clipboard history."</em> Keeps it for later, on every device.</li>
 </ul>
+<p>ClipTrail also tells the assistant, when it connects, to look in your history whenever you mention something you copied, so you rarely need to say "use ClipTrail". Apps that support MCP prompts (Claude Desktop, Claude Code as <code>/</code> commands) also get two ready-made ones: <strong>Find something I copied</strong> and <strong>What did I copy today?</strong></p>
 
 <h2 id="privacy">Privacy and safety</h2>
 <ul>
   <li><strong>Local only.</strong> ClipTrail sends nothing anywhere for this. Clips go from your history to the assistant program running on your own computer. With a local model (LM Studio), nothing leaves your machine at all.</li>
   <li><strong>Sensitive clips are withheld.</strong> One-time codes, API keys, private keys and card numbers are masked in ClipTrail. The assistant gets metadata and <code>••••••</code>, never the body, and <code>copy_to_clipboard</code> refuses them. Copies from password managers were never saved in the first place.</li>
-  <li><strong>Read-mostly.</strong> It can search, read, pin and copy back. It can't delete or edit anything.</li>
+  <li><strong>Read-mostly.</strong> It can search, read, pin, copy back and add new text. It can't delete or edit anything.</li>
   <li><strong>What the assistant reads goes to your AI provider.</strong> The server is local, but the assistant usually isn't. Any clip it reads becomes part of your conversation with Claude, Cursor's model or whichever service you use, under that provider's terms. Ask for specific things rather than "summarise everything I copied", and remember that ordinary text can still contain private details even when it isn't flagged as sensitive.</li>
   <li><strong>You choose.</strong> Nothing is connected until you turn it on (or add the config yourself). Turning it off, or <strong>Disconnect</strong> under Choose apps, removes it again.</li>
 </ul>

@@ -464,6 +464,7 @@ CHANGELOG = r"""
           <h3>Desktop</h3>
           <ul>
             <li>New <strong>Settings → AI assistants</strong>: one switch connects {{B}} to the AI apps on your computer: Claude Desktop, Claude Code, Cursor, VS Code (GitHub Copilot), Windsurf, Codex CLI, Gemini CLI, LM Studio. <strong>Copy config</strong> covers any other MCP app. Settings shows when an assistant last used it, so you know it works.</li>
+  <li>Assistants can also read what you just copied, filter by device ("what did I copy on my phone?") and save things into your history; two ready-made prompts: <em>Find something I copied</em> and <em>What did I copy today?</em></li>
             <li>The MCP server is built into the app (<code>cliptrail --mcp</code>): nothing extra to install. It runs only on your computer and {{B}} talks to no cloud; with a local model in LM Studio nothing leaves your machine.</li>
             <li>Connect keeps a backup of each app's settings file and never rewrites a file it can't read cleanly.</li>
           </ul>
