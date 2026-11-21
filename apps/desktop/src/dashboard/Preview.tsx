@@ -4,6 +4,7 @@ import {
   Clipboard,
   ClipboardType,
   Copy,
+  Download,
   ExternalLink,
   Eye,
   EyeOff,
@@ -231,17 +232,17 @@ function SecondaryAction({
       }
       return (
         <Button
-          icon={FolderOpen}
-          title="Saves a copy to Downloads and shows it in the folder (stored images are encrypted)"
+          icon={Download}
+          title="Save a copy of this image as a PNG file"
           className={cls}
           onClick={() =>
             api
               .saveImage(s.id)
-              .then(() => toast("Saved a copy to Downloads"))
+              .then((path) => path && toast(`Saved ${splitPath(path).name}`))
               .catch(fail)
           }
         >
-          Open in folder
+          Save as…
         </Button>
       );
     case "contact": {
