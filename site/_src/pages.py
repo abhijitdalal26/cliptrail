@@ -356,19 +356,19 @@ DOWNLOAD = r"""
         <span class="chip chip-accent detected-tag">Your system</span>
         <div class="os-head"><span class="os-logo">{{i:windows}}</span><div><h2>Windows</h2><span class="os-sub">Windows 10 and 11 · x64</span></div></div>
         <p>Installs for your user only, no admin rights needed. Runs in the background and can start with Windows; the picker opens with <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Space</kbd>.</p>
-        <div class="assets">""" + slot("win-exe", "Installer (.exe)", primary=True) + slot("win-msi", "MSI package (.msi)") + r"""<span class="assets-label">{{i:terminal}}Command line</span>""" + slot("cli-win", "clipd CLI (.zip)") + r"""</div>
+        <div class="assets">""" + slot("win-exe", "Installer (.exe)", primary=True) + slot("win-msi", "MSI package (.msi)") + r"""<span class="assets-label">{{i:terminal}}Command line</span>""" + slot("cli-win", "clipd CLI (.zip)") + r"""<span class="assets-label">{{i:terminal}}Or install in PowerShell</span><pre class="oneliner"><code>irm https://abhijitdalal26.github.io/cliptrail/install.ps1 | iex</code></pre></div>
       </article>
       <article class="os-card" data-os="linux" id="linux">
         <span class="chip chip-accent detected-tag">Your system</span>
         <div class="os-head"><span class="os-logo">{{i:linux}}</span><div><h2>Linux <span class="chip chip-ok">Supported</span></h2><span class="os-sub">x86_64 · Debian/Ubuntu or any distro</span></div></div>
         <p>Use the <code>.deb</code> on Debian, Ubuntu and derivatives; the AppImage runs almost anywhere. Paste-back works on X11 only.</p>
-        <div class="assets">""" + slot("linux-deb", "Debian / Ubuntu (.deb)", primary=True) + slot("linux-appimage", "AppImage") + r"""<span class="assets-label">{{i:terminal}}Command line</span>""" + slot("cli-linux", "clipd CLI (.tar.gz)") + r"""</div>
+        <div class="assets">""" + slot("linux-deb", "Debian / Ubuntu (.deb)", primary=True) + slot("linux-appimage", "AppImage") + r"""<span class="assets-label">{{i:terminal}}Command line</span>""" + slot("cli-linux", "clipd CLI (.tar.gz)") + r"""<span class="assets-label">{{i:terminal}}Or install in a terminal</span><pre class="oneliner"><code>curl -fsSL https://abhijitdalal26.github.io/cliptrail/install.sh | sh</code></pre></div>
       </article>
       <article class="os-card" data-os="macos" id="macos">
         <span class="chip chip-accent detected-tag">Your system</span>
         <div class="os-head"><span class="os-logo">{{i:apple}}</span><div><h2>macOS <span class="chip chip-warn">Experimental</span></h2><span class="os-sub">Universal (Apple silicon and Intel)</span></div></div>
         <p>Built by CI and not yet tested on real hardware: clipboard capture works, paste-back needs <strong>Accessibility</strong> permission. A menu-bar app; <kbd>Cmd</kbd> <kbd>Shift</kbd> <kbd>Space</kbd> opens the picker.</p>
-        <div class="assets">""" + slot("mac-dmg", "Disk image (.dmg)", soon="Arrives with v0.1.3 (experimental)") + r"""<span class="assets-label">{{i:terminal}}Command line</span><a class="asset" href="#cli">{{i:package}}<span class="a-main"><span class="a-name">clipd CLI</span><span class="a-meta">Install with Cargo (no prebuilt binary yet)</span></span></a></div>
+        <div class="assets">""" + slot("mac-dmg", "Disk image (.dmg)", soon="Not in this release") + r"""<span class="assets-label">{{i:terminal}}Command line</span><a class="asset" href="{{R}}docs/cli.html">{{i:package}}<span class="a-main"><span class="a-name">clipd CLI</span><span class="a-meta">Install with Cargo (no prebuilt binary yet)</span></span></a></div>
       </article>
       <article class="os-card" data-os="android" id="android">
         <span class="chip chip-accent detected-tag">Your system</span>
@@ -376,31 +376,6 @@ DOWNLOAD = r"""
         <p>Save copies with one tap from a Quick Settings tile, an app icon shortcut, a widget or the share menu. Pairs with your computer by QR. Not on the Play Store: install the APK directly (Android asks you to allow installs from your browser).</p>
         <div class="assets">""" + slot("android-apk", "Android app (.apk)", primary=True, missing="Not in this release") + r"""<a class="asset" href="{{R}}docs/android.html">{{i:book}}<span class="a-main"><span class="a-name">Android setup guide</span><span class="a-meta">Samsung and other phones, step by step</span></span></a></div>
       </article>
-    </div>
-  </div>
-</section>
-
-<section class="section-tight section-alt" id="cli">
-  <div class="wrap">
-    <div class="section-head" style="margin-bottom:32px">
-      <span class="eyebrow">Command line</span>
-      <h2 class="h2" style="font-size:clamp(26px,3.4vw,38px)">Install from the terminal</h2>
-      <p class="lede">The <code>clipd</code> CLI captures, searches and syncs from a terminal or script. Prebuilt binaries for Windows and Linux are in each system's card above; here are the other ways to get it.</p>
-    </div>
-    <div class="install-grid">
-      <div class="install-card">
-        <h3>{{i:package}}Cargo <span class="chip chip-ok">Works now</span></h3>
-        <p>Builds the <code>clipd</code> CLI from source. Needs Rust 1.96+; on Linux also <code>libxcb1-dev</code>.</p>
-        <pre><code>cargo install --locked --git https://github.com/abhijitdalal26/cliptrail clipd-cli</code></pre>
-      </div>
-      <div class="install-card">
-        <h3>{{i:windows}}Package managers <span class="chip chip-muted">Later</span></h3>
-        <p>Listings for Windows and Linux package managers (such as winget and Scoop) are planned after the first stable release. Until then, use the installers above.</p>
-      </div>
-      <div class="install-card">
-        <h3>{{i:code}}Build from source</h3>
-        <p>Everything builds from the repository, including the desktop app (Rust 1.96, Node 22 and pnpm). See the <a href="{{R}}docs/index.html#build-from-source">build instructions</a> or the <a href="{{REPO}}">source on GitHub</a>.</p>
-      </div>
     </div>
   </div>
 </section>

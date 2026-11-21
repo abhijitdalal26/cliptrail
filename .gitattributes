@@ -1,0 +1,2 @@
+# Shell scripts run on Linux/macOS (install.sh is piped into sh): keep LF everywhere.
+*.sh text eol=lf
