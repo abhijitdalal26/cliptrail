@@ -33,6 +33,17 @@ async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> 
   return m.handle(cmd, args ?? {}) as Promise<T>;
 }
 
+/** An AI app ClipTrail can connect its MCP server to (src-tauri/src/assistants.rs). */
+export interface AiClient {
+  id: string;
+  name: string;
+  installed: boolean;
+  connected: boolean;
+  /** Last time this app actually started ClipTrail's server (ms). */
+  last_used: number | null;
+  config_path: string | null;
+}
+
 export const api = {
   listClips: (query: ListQuery) => call<ClipSummary[]>("list_clips", { query }),
   getClip: (id: string) => call<Clip | null>("get_clip", { id }),
@@ -74,6 +85,13 @@ export const api = {
   revealPath: (path: string) => call<void>("reveal_path", { path }),
   openDataDir: () => call<void>("open_data_dir"),
   getAutostart: () => call<boolean>("get_autostart"),
+  /** Settings → AI assistants (desktop). */
+  aiClients: () => call<AiClient[]>("ai_clients"),
+  aiConnect: (id: string) => call<AiClient[]>("ai_connect", { id }),
+  aiDisconnect: (id: string) => call<AiClient[]>("ai_disconnect", { id }),
+  aiConnectAll: () => call<AiClient[]>("ai_connect_all"),
+  aiDisconnectAll: () => call<AiClient[]>("ai_disconnect_all"),
+  aiConfigSnippet: () => call<string>("ai_config_snippet"),
   setAutostart: (enabled: boolean) => call<void>("set_autostart", { enabled }),
   /** Quit the app (desktop); the way out when the tray icon is hidden. */
   quitApp: () => call<void>("quit_app"),

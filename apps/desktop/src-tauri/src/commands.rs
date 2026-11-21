@@ -420,6 +420,48 @@ pub fn open_data_dir(app: AppHandle) -> CmdResult<()> {
         .map_err(|_| "Couldn't open the data folder".to_string())
 }
 
+/// Settings → AI assistants: the AI apps found here and whether ClipTrail is connected.
+#[cfg(desktop)]
+#[tauri::command]
+pub fn ai_clients() -> Vec<crate::assistants::ClientView> {
+    crate::assistants::clients()
+}
+
+#[cfg(desktop)]
+#[tauri::command]
+pub fn ai_connect(id: String) -> CmdResult<Vec<crate::assistants::ClientView>> {
+    crate::assistants::connect(&id).map_err(|e| format!("{e:#}"))?;
+    Ok(crate::assistants::clients())
+}
+
+#[cfg(desktop)]
+#[tauri::command]
+pub fn ai_disconnect(id: String) -> CmdResult<Vec<crate::assistants::ClientView>> {
+    crate::assistants::disconnect(&id).map_err(|e| format!("{e:#}"))?;
+    Ok(crate::assistants::clients())
+}
+
+#[cfg(desktop)]
+#[tauri::command]
+pub fn ai_connect_all() -> CmdResult<Vec<crate::assistants::ClientView>> {
+    crate::assistants::connect_all().map_err(|e| format!("{e:#}"))?;
+    Ok(crate::assistants::clients())
+}
+
+#[cfg(desktop)]
+#[tauri::command]
+pub fn ai_disconnect_all() -> CmdResult<Vec<crate::assistants::ClientView>> {
+    crate::assistants::disconnect_all().map_err(|e| format!("{e:#}"))?;
+    Ok(crate::assistants::clients())
+}
+
+/// The setup block for any other MCP app.
+#[cfg(desktop)]
+#[tauri::command]
+pub fn ai_config_snippet() -> CmdResult<String> {
+    crate::assistants::snippet().map_err(|e| format!("{e:#}"))
+}
+
 #[cfg(desktop)]
 #[tauri::command]
 pub fn get_autostart(app: AppHandle) -> bool {

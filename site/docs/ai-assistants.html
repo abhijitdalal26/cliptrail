@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AI assistants (MCP) · ClipTrail</title>
-<meta name="description" content="Let Claude Code, Claude Desktop, Cursor or any MCP client search your ClipTrail clipboard history locally with clipd-mcp: install, config snippets, the tool list, example questions and the privacy model.">
+<meta name="description" content="Let Claude, Cursor, VS Code Copilot, Windsurf, Codex, Gemini CLI, LM Studio or any MCP app search your ClipTrail clipboard history, locally, set up in one click.">
 <link rel="canonical" href="https://abhijitdalal26.github.io/cliptrail/docs/ai-assistants.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ClipTrail">
 <meta property="og:title" content="AI assistants (MCP) · ClipTrail">
-<meta property="og:description" content="Let Claude Code, Claude Desktop, Cursor or any MCP client search your ClipTrail clipboard history locally with clipd-mcp: install, config snippets, the tool list, example questions and the privacy model.">
+<meta property="og:description" content="Let Claude, Cursor, VS Code Copilot, Windsurf, Codex, Gemini CLI, LM Studio or any MCP app search your ClipTrail clipboard history, locally, set up in one click.">
 <meta property="og:url" content="https://abhijitdalal26.github.io/cliptrail/docs/ai-assistants.html">
 <meta property="og:image" content="https://abhijitdalal26.github.io/cliptrail/assets/og.png">
 <meta property="og:image:width" content="1200">
@@ -54,49 +54,50 @@
   <div class="docs-crumb"><a href="index.html">Docs</a> / Using ClipTrail</div>
   <article class="prose">
 <h1>AI assistants (MCP) <span class="chip chip-accent">New</span></h1>
-<p class="doc-lede"><code>clipd-mcp</code> is a small local server that lets an AI assistant search your ClipTrail history. Instead of digging through it yourself, you ask: <em>"find the Postgres connection string I copied in March"</em>, and the assistant looks it up. It speaks the <a href="https://modelcontextprotocol.io">Model Context Protocol</a> (MCP), so it works with Claude Code, Claude Desktop, Cursor and other MCP-compatible clients.</p>
+<p class="doc-lede">Ask your AI assistant for something you copied, in plain words: <em>"find the Postgres connection string I copied in March"</em>. It searches your ClipTrail history and can put the clip back on your clipboard. It works with the assistant you already use, through the <a href="https://modelcontextprotocol.io">Model Context Protocol</a> (MCP).</p>
 
-<div class="callout info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><div><p><strong>Local by design.</strong> The assistant starts <code>clipd-mcp</code> on your computer and talks to it over standard input and output. There's no network port, no account and no ClipTrail server involved. It reads the same history folder as the desktop app and the <a href="cli.html"><code>clipd</code> CLI</a>.</p></div></div>
+<div class="callout info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><div><p><strong>Only on your computer.</strong> The assistant starts ClipTrail on your laptop (<code>cliptrail --mcp</code>) and talks to it directly over standard input and output. ClipTrail itself never talks to any cloud: there's no account, no ClipTrail server and no open network port. Clips you copied on your phone are included, because they sync to the laptop.</p></div></div>
 
-<h2 id="install">Install</h2>
-<p>There's no prebuilt <code>clipd-mcp</code> binary yet, so build it from source for now (needs <a href="https://rustup.rs">Rust</a> 1.96 or newer; on Linux also <code>libxcb1-dev</code>). From a clone of the repository:</p>
-<pre><code>cargo install --path crates/clipd-mcp</code></pre>
-<p>or straight from GitHub:</p>
-<pre><code>cargo install --locked --git https://github.com/abhijitdalal26/cliptrail clipd-mcp</code></pre>
-<p>Either one puts <code>clipd-mcp</code> in <code>~/.cargo/bin</code> (<code>%USERPROFILE%\.cargo\bin</code> on Windows). Check it with <code>clipd-mcp --help</code>.</p>
-<p>The server reads <code>clips.db</code> from the ClipTrail <a href="data.html#location">data folder</a>: <code>%APPDATA%\ClipTrail</code> on Windows, <code>~/Library/Application Support/ClipTrail</code> on macOS, <code>~/.local/share/ClipTrail</code> on Linux. To point it somewhere else, pass <code>--data-dir &lt;DIR&gt;</code> or set <code>CLIPTRAIL_DATA_DIR</code>.</p>
+<h2 id="setup">Set it up in one click</h2>
+<ol class="steps-list">
+  <li>Open ClipTrail on your computer and go to <strong>Settings → AI assistants</strong>.</li>
+  <li>Turn on <strong>Let AI assistants search my history</strong>. ClipTrail checks that its server answers, then adds itself to every AI app it finds on your computer (keeping a backup of each settings file). To pick apps one by one, use <strong>Choose apps</strong>.</li>
+  <li>Restart the assistant if it was open, and ask. Once it has used ClipTrail, Settings shows <em>"… last used it 2 minutes ago"</em>, so you know it really works.</li>
+</ol>
+<p>ClipTrail only connects apps that are actually installed: it looks for the program itself, not leftover settings folders. Works with:</p>
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">App</th><th scope="col">AI models</th></tr></thead>
+  <tbody>
+    <tr><td>Claude Desktop, Claude Code</td><td>Claude</td></tr>
+    <tr><td>Cursor</td><td>Claude, GPT, Gemini and more</td></tr>
+    <tr><td>VS Code with GitHub Copilot (agent mode)</td><td>GPT, Claude, Gemini</td></tr>
+    <tr><td>Windsurf</td><td>Various</td></tr>
+    <tr><td>Codex CLI</td><td>OpenAI models</td></tr>
+    <tr><td>Gemini CLI</td><td>Gemini</td></tr>
+    <tr><td>LM Studio</td><td>Local models (Llama, Qwen, Mistral…), fully offline</td></tr>
+    <tr><td>Any other MCP app (Zed, JetBrains AI Assistant, Cline, Continue…)</td><td>Use <strong>Copy config</strong> in the same Settings section and paste it into the app's MCP settings</td></tr>
+  </tbody>
+</table></div>
 
-<h2 id="configure">Connect your assistant</h2>
-
-<h3 id="claude-code">Claude Code</h3>
-<pre><code>claude mcp add cliptrail -- clipd-mcp</code></pre>
-<p>Then start a new Claude Code session; <code>/mcp</code> should list <code>cliptrail</code> as connected.</p>
-
-<h3 id="claude-desktop">Claude Desktop</h3>
-<p>Open <strong>Settings → Developer → Edit Config</strong> (the file is <code>claude_desktop_config.json</code>), add the server, and restart the app:</p>
+<h2 id="manual">Manual setup</h2>
+<p>Every MCP app takes the same thing: start ClipTrail with <code>--mcp</code>. <strong>Copy config</strong> in Settings gives you this block with the right path for your computer:</p>
 <pre><code>{
   "mcpServers": {
     "cliptrail": {
-      "command": "clipd-mcp",
-      "args": []
+      "command": "C:\Users\you\AppData\Local\ClipTrail\cliptrail.exe",
+      "args": ["--mcp"]
     }
   }
 }</code></pre>
-
-<h3 id="cursor">Cursor</h3>
-<p>Add the same block to <code>~/.cursor/mcp.json</code> (all projects) or <code>.cursor/mcp.json</code> in a project, then enable it under <strong>Settings → MCP</strong>.</p>
-
-<h3 id="others">Any other MCP client</h3>
-<p>Run <code>clipd-mcp</code> as a stdio server: the client starts the command and exchanges JSON-RPC messages over stdin and stdout. The <code>mcpServers</code> block above is the common format.</p>
-
-<div class="callout"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><div><p><strong>"Command not found"?</strong> Desktop apps often don't see your shell's <code>PATH</code>. Put the full path in <code>command</code> instead, for example <code>C:\\Users\\you\\.cargo\\bin\\clipd-mcp.exe</code> (JSON needs the doubled backslashes) or <code>/home/you/.cargo/bin/clipd-mcp</code>.</p></div></div>
+<p>On Linux the command is <code>/usr/bin/cliptrail</code> (the .deb) or the path of your AppImage. For Claude Code from a terminal: <code>claude mcp add --scope user cliptrail -- &lt;path to cliptrail&gt; --mcp</code>.</p>
+<p>Without the desktop app (servers, scripts), build the standalone server instead: <code>cargo install --locked --git https://github.com/abhijitdalal26/cliptrail clipd-mcp</code>, and use <code>clipd-mcp</code> as the command. Both read the same history folder; set <code>CLIPTRAIL_DATA_DIR</code> to use another one.</p>
 
 <h2 id="tools">What the assistant can do</h2>
-<p>The server offers eight tools. Six only read; the other two are small, reversible conveniences. There is <strong>no tool to delete or edit a clip</strong>.</p>
+<p>The server offers eleven tools. Eight only read; the other three are small conveniences that change nothing you already have. There is <strong>no tool to delete or edit a clip</strong>.</p>
 <div class="table-wrap"><table>
   <thead><tr><th scope="col">Tool</th><th scope="col">What it does</th></tr></thead>
   <tbody>
-    <tr><td><code>search_clips</code></td><td>Full-text search, with optional filters for kind, source app, pinned only and a date range (<code>from</code> / <code>to</code> as <code>YYYY-MM-DD</code>). Returns summaries.</td></tr>
+    <tr><td><code>search_clips</code></td><td>Full-text search, with optional filters for kind, source app, device (your phone or this computer), pinned only and a date range (<code>from</code> / <code>to</code> as <code>YYYY-MM-DD</code>). Returns summaries.</td></tr>
     <tr><td><code>recent_clips</code></td><td>Newest clips first, same filters, no query: "what did I copy recently?"</td></tr>
     <tr><td><code>get_clip</code></td><td>One clip's full body by id or unique id prefix.</td></tr>
     <tr><td><code>clip_stats</code></td><td>Totals: clips per kind, pinned count, top source apps.</td></tr>
@@ -104,6 +105,9 @@
     <tr><td><code>day_counts</code></td><td>Clips per calendar day for the last N days (default 30, up to 365).</td></tr>
     <tr><td><code>pin_clip</code></td><td>Pin or unpin a clip so it stays at the top and is never cleaned up.</td></tr>
     <tr><td><code>copy_to_clipboard</code></td><td>Put a clip back on your system clipboard so you can paste it. Refuses sensitive clips.</td></tr>
+    <tr><td><code>get_current_clipboard</code></td><td>What's on your clipboard right now ("fix the error I just copied"). Text that looks sensitive is withheld.</td></tr>
+    <tr><td><code>save_to_history</code></td><td>Save text the assistant made for you (a command, a link) into your history, marked as from "AI assistant", so you can find it later on the laptop and the phone.</td></tr>
+    <tr><td><code>list_devices</code></td><td>Your devices (this computer, your phone) and how many clips came from each, for "what did I copy on my phone?"</td></tr>
   </tbody>
 </table></div>
 
@@ -114,15 +118,19 @@
   <li><em>"Get that link ready to paste."</em> Searches, then puts the match on your clipboard.</li>
   <li><em>"Pin the clip I copied an hour ago."</em> Looks at recent clips, then pins it.</li>
   <li><em>"How much did I copy this week?"</em> Uses the stats and per-day counts.</li>
+  <li><em>"What did I copy on my phone today?"</em> Filters by device.</li>
+  <li><em>"Explain the error I just copied."</em> Reads your clipboard right now.</li>
+  <li><em>"Save that command to my clipboard history."</em> Keeps it for later, on every device.</li>
 </ul>
+<p>ClipTrail also tells the assistant, when it connects, to look in your history whenever you mention something you copied, so you rarely need to say "use ClipTrail". Apps that support MCP prompts (Claude Desktop, Claude Code as <code>/</code> commands) also get two ready-made ones: <strong>Find something I copied</strong> and <strong>What did I copy today?</strong></p>
 
 <h2 id="privacy">Privacy and safety</h2>
 <ul>
-  <li><strong>Local only.</strong> ClipTrail sends nothing anywhere for this. Clips go from your history to the assistant program running on your own computer.</li>
+  <li><strong>Local only.</strong> ClipTrail sends nothing anywhere for this. Clips go from your history to the assistant program running on your own computer. With a local model (LM Studio), nothing leaves your machine at all.</li>
   <li><strong>Sensitive clips are withheld.</strong> One-time codes, API keys, private keys and card numbers are masked in ClipTrail. The assistant gets metadata and <code>••••••</code>, never the body, and <code>copy_to_clipboard</code> refuses them. Copies from password managers were never saved in the first place.</li>
-  <li><strong>Read-mostly.</strong> It can search, read, pin and copy back. It can't delete or edit anything.</li>
+  <li><strong>Read-mostly.</strong> It can search, read, pin, copy back and add new text. It can't delete or edit anything.</li>
   <li><strong>What the assistant reads goes to your AI provider.</strong> The server is local, but the assistant usually isn't. Any clip it reads becomes part of your conversation with Claude, Cursor's model or whichever service you use, under that provider's terms. Ask for specific things rather than "summarise everything I copied", and remember that ordinary text can still contain private details even when it isn't flagged as sensitive.</li>
-  <li><strong>You choose.</strong> Nothing is connected until you add the config above. Remove it (<code>claude mcp remove cliptrail</code>, or delete the block) to disconnect.</li>
+  <li><strong>You choose.</strong> Nothing is connected until you turn it on (or add the config yourself). Turning it off, or <strong>Disconnect</strong> under Choose apps, removes it again.</li>
 </ul>
 
 <h2 id="chatgpt">What about ChatGPT?</h2>
@@ -131,7 +139,8 @@
 <h2 id="troubleshooting">Troubleshooting</h2>
 <ul>
   <li><strong>The assistant finds no clips.</strong> The server reads the data folder of the user it runs as. If you use <code>CLIPTRAIL_DATA_DIR</code> or <code>--data-dir</code> for the app, set the same value in the server config (<code>"env": { "CLIPTRAIL_DATA_DIR": "..." }</code>).</li>
-  <li><strong>The server won't start.</strong> Run <code>clipd-mcp</code> in a terminal. It waits for input on stdin, so no error means it started; press <kbd>Ctrl</kbd> <kbd>C</kbd> to quit.</li>
+  <li><strong>Settings says connected but never "last used".</strong> Quit the assistant completely (also from the tray) and open it again; assistants only load their tools at start. <strong>The assistant says the server failed:</strong> restart it after connecting. If you moved or reinstalled ClipTrail in another place, click Connect again so the path is updated. To check by hand, run <code>cliptrail --mcp</code> in a terminal: it waits for input, so no error means it works (<kbd>Ctrl</kbd> <kbd>C</kbd> to quit).</li>
+  <li><strong>Connect says the settings file isn't plain JSON.</strong> Some apps allow comments in their settings file; ClipTrail won't rewrite those. Use <strong>Copy config</strong> and paste the block in yourself.</li>
   <li><strong>A clip's body is <code>••••••</code>.</strong> It's classified as sensitive; open it in the ClipTrail app instead.</li>
 </ul>
 

@@ -12,6 +12,7 @@ import { ClearHistoryDialog } from "../components/ClearHistoryDialog";
 import { Modal } from "../components/Modal";
 import { Button, Kbd, Segmented, Switch } from "../components/ui";
 import { DevicesSection } from "./DevicesSection";
+import { AssistantsSection } from "./AssistantsSection";
 
 export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const [view, setView] = useState<SettingsView | null>(null);
@@ -120,6 +121,8 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
         </Section>
 
         <DevicesSection />
+
+        <AssistantsSection />
 
         <Section title="Shortcuts">
           <Row title="Quick picker" desc="Search and paste from anywhere." error={errors.picker ?? pickerHkErr}>
