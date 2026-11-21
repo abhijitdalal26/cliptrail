@@ -153,7 +153,7 @@ INDEX = r"""
       <h2 class="h2">Ask your AI assistant what you copied.</h2>
       <p class="lede" style="margin-bottom:24px">"Find the docker command I copied yesterday." Your assistant searches your clipboard history and puts the clip back, in plain words. Works with Claude, Cursor, VS Code with Copilot, Windsurf, Codex, Gemini CLI, LM Studio and any other MCP app.</p>
       <ul class="checklist">
-        <li>""" + CHECK + r"""<span><b>One click to set up.</b> In {{B}}: <em>Settings → AI assistants → Connect</em>. Nothing extra to install and no config files to edit.</span></li>
+        <li>""" + CHECK + r"""<span><b>One switch to set up.</b> In {{B}}: <em>Settings → AI assistants</em>, turn it on. It finds your AI apps and connects them. Nothing extra to install, no config files to edit.</span></li>
         <li>""" + CHECK + r"""<span><b>Only on your computer.</b> The assistant starts {{B}} on your laptop and talks to it directly. {{B}} itself never talks to any cloud: no account, no server, no open port.</span></li>
         <li>""" + CHECK + r"""<span><b>Fully offline if you like.</b> Pair it with a local model in LM Studio and nothing leaves your machine at all.</span></li>
         <li>""" + CHECK + r"""<span><b>Sensitive clips are withheld.</b> Keys, one-time codes and card numbers are masked; the assistant never gets their body and can't copy them back.</span></li>
@@ -463,7 +463,7 @@ CHANGELOG = r"""
         <div class="cl-group">
           <h3>Desktop</h3>
           <ul>
-            <li>New <strong>Settings → AI assistants</strong>: one click connects {{B}} to Claude Desktop, Claude Code, Cursor, VS Code (GitHub Copilot), Windsurf, Codex CLI, Gemini CLI or LM Studio; <strong>Copy config</strong> covers any other MCP app.</li>
+            <li>New <strong>Settings → AI assistants</strong>: one switch connects {{B}} to the AI apps on your computer: Claude Desktop, Claude Code, Cursor, VS Code (GitHub Copilot), Windsurf, Codex CLI, Gemini CLI, LM Studio. <strong>Copy config</strong> covers any other MCP app. Settings shows when an assistant last used it, so you know it works.</li>
             <li>The MCP server is built into the app (<code>cliptrail --mcp</code>): nothing extra to install. It runs only on your computer and {{B}} talks to no cloud; with a local model in LM Studio nothing leaves your machine.</li>
             <li>Connect keeps a backup of each app's settings file and never rewrites a file it can't read cleanly.</li>
           </ul>

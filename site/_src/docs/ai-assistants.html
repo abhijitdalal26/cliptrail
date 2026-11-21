@@ -9,8 +9,8 @@ desc: Let Claude, Cursor, VS Code Copilot, Windsurf, Codex, Gemini CLI, LM Studi
 <h2 id="setup">Set it up in one click</h2>
 <ol class="steps-list">
   <li>Open {{B}} on your computer and go to <strong>Settings → AI assistants</strong>.</li>
-  <li>Click <strong>Connect</strong> next to your assistant. {{B}} adds itself to that app's settings (and keeps a backup of the file).</li>
-  <li>Restart the assistant if it was open. That's it; just ask.</li>
+  <li>Turn on <strong>Let AI assistants search my history</strong>. {{B}} checks that its server answers, then adds itself to every AI app it finds on your computer (keeping a backup of each settings file). To pick apps one by one, use <strong>Choose apps</strong>.</li>
+  <li>Restart the assistant if it was open, and ask. Once it has used {{B}}, Settings shows <em>"… last used it 2 minutes ago"</em>, so you know it really works.</li>
 </ol>
 <p>Works with:</p>
 <div class="table-wrap"><table>
@@ -71,7 +71,7 @@ desc: Let Claude, Cursor, VS Code Copilot, Windsurf, Codex, Gemini CLI, LM Studi
   <li><strong>Sensitive clips are withheld.</strong> One-time codes, API keys, private keys and card numbers are masked in {{B}}. The assistant gets metadata and <code>••••••</code>, never the body, and <code>copy_to_clipboard</code> refuses them. Copies from password managers were never saved in the first place.</li>
   <li><strong>Read-mostly.</strong> It can search, read, pin and copy back. It can't delete or edit anything.</li>
   <li><strong>What the assistant reads goes to your AI provider.</strong> The server is local, but the assistant usually isn't. Any clip it reads becomes part of your conversation with Claude, Cursor's model or whichever service you use, under that provider's terms. Ask for specific things rather than "summarise everything I copied", and remember that ordinary text can still contain private details even when it isn't flagged as sensitive.</li>
-  <li><strong>You choose.</strong> Nothing is connected until you click Connect (or add the config yourself). <strong>Disconnect</strong> in the same place removes it again.</li>
+  <li><strong>You choose.</strong> Nothing is connected until you turn it on (or add the config yourself). Turning it off, or <strong>Disconnect</strong> under Choose apps, removes it again.</li>
 </ul>
 
 <h2 id="chatgpt">What about ChatGPT?</h2>
@@ -80,7 +80,7 @@ desc: Let Claude, Cursor, VS Code Copilot, Windsurf, Codex, Gemini CLI, LM Studi
 <h2 id="troubleshooting">Troubleshooting</h2>
 <ul>
   <li><strong>The assistant finds no clips.</strong> The server reads the data folder of the user it runs as. If you use <code>CLIPTRAIL_DATA_DIR</code> or <code>--data-dir</code> for the app, set the same value in the server config (<code>"env": { "CLIPTRAIL_DATA_DIR": "..." }</code>).</li>
-  <li><strong>The assistant says the server failed.</strong> Restart the assistant after connecting. If you moved or reinstalled {{B}} in another place, click Connect again so the path is updated. To check by hand, run <code>cliptrail --mcp</code> in a terminal: it waits for input, so no error means it works (<kbd>Ctrl</kbd> <kbd>C</kbd> to quit).</li>
+  <li><strong>Settings says connected but never "last used".</strong> Quit the assistant completely (also from the tray) and open it again; assistants only load their tools at start. <strong>The assistant says the server failed:</strong> restart it after connecting. If you moved or reinstalled {{B}} in another place, click Connect again so the path is updated. To check by hand, run <code>cliptrail --mcp</code> in a terminal: it waits for input, so no error means it works (<kbd>Ctrl</kbd> <kbd>C</kbd> to quit).</li>
   <li><strong>Connect says the settings file isn't plain JSON.</strong> Some apps allow comments in their settings file; {{B}} won't rewrite those. Use <strong>Copy config</strong> and paste the block in yourself.</li>
   <li><strong>A clip's body is <code>••••••</code>.</strong> It's classified as sensitive; open it in the {{B}} app instead.</li>
 </ul>
