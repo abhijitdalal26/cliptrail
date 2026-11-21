@@ -17,7 +17,7 @@ INDEX = r"""
 <section class="hero">
   <div class="wrap">
     <div class="hero-copy">
-      <a class="badge" href="{{R}}changelog.html"><span class="dot"></span>v0.1.3: starts with your computer, new welcome screen <span class="arrow">→</span></a>
+      <a class="badge" href="{{R}}changelog.html"><span class="dot"></span>v0.1.4: Android installs cleanly, screenshots link to their file <span class="arrow">→</span></a>
       <h1 class="h1">Your clipboard,<br><span class="grad">everywhere, forever.</span></h1>
       <p class="lede">{{B}} remembers everything you copy, knows what each thing is, and puts it one keystroke away. Pair your devices and your history follows you, end-to-end encrypted. Open source, no account, no tracking.</p>
       <div class="hero-cta">
@@ -474,6 +474,39 @@ CHANGELOG = r"""
 </section>
 <section style="padding:16px 0 96px">
   <div class="wrap">
+    <div class="changelog-entry">
+      <div class="changelog-meta">
+        <div class="ver">v0.1.4</div>
+        <div class="date">2026-11-21</div>
+        <span class="chip chip-accent">Alpha</span>
+      </div>
+      <div class="prose">
+        <p>The Android app no longer uses an accessibility service, so Android stops blocking the install. On the desktop, screenshots and copied files point back to the real file, and the timeline is cleaner.</p>
+
+        <div class="cl-group">
+          <h3>Android</h3>
+          <ul>
+            <li>No accessibility service. Some phones (Play Protect in India, for example) blocked installing the APK because of it ("can request sensitive data"). {{B}} now saves a copy when you ask it to.</li>
+            <li>New one-tap ways to save: long-press the app icon → <strong>Save clipboard</strong> (drag it to the home screen as its own button), and a <strong>Save clipboard</strong> home screen widget. The Quick Settings tile, Share and the text menu still work.</li>
+            <li>The always-on notification is now optional and off by default (<em>Settings → Capture → Save button in notifications</em>).</li>
+          </ul>
+        </div>
+
+        <div class="cl-group">
+          <h3>Desktop</h3>
+          <ul>
+            <li>Screenshots that Windows or GNOME also saves to your Screenshots folder (for example <kbd>Win</kbd> <kbd>PrtScn</kbd>) are linked to that file; <strong>Open in folder</strong> shows it.</li>
+            <li>Copied image and video files show a preview from where they are; videos play when you hover them.</li>
+            <li>Images copied from a web page remember the page: <strong>From</strong> and <strong>Open page</strong>.</li>
+            <li><strong>Save as…</strong> for images, with the normal save dialog, instead of dropping a copy in Downloads.</li>
+            <li>Drag the categories in the sidebar into your own order.</li>
+            <li>The timeline shows just what you copied, with links exactly as copied; app, time and device are in the preview pane.</li>
+            <li>Fixed: screenshots copied on Windows were saved shifted 3 pixels sideways.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
     <div class="changelog-entry">
       <div class="changelog-meta">
         <div class="ver">v0.1.3</div>
