@@ -40,9 +40,57 @@ struct Client {
     mcp_names: &'static [&'static str],
     /// The config file (may not exist yet).
     config: fn() -> Option<PathBuf>,
-    /// Paths the app itself creates once installed or run (never files
-    /// ClipTrail writes, so connecting can't make an app look installed).
+    /// Paths that exist only while the app is installed: its program (in its
+    /// install folder, as a macOS bundle, or as a command on PATH). Data
+    /// folders don't count: they outlive an uninstall, and connecting writes
+    /// into some of them.
     markers: fn() -> Vec<PathBuf>,
+}
+
+/// A program on PATH (with Windows' executable extensions), resolved.
+fn on_path(name: &str) -> Option<PathBuf> {
+    let exts: Vec<String> = if cfg!(windows) {
+        std::env::var("PATHEXT")
+            .unwrap_or_else(|_| ".EXE;.CMD;.BAT".into())
+            .split(';')
+            .map(|e| e.to_lowercase())
+            .collect()
+    } else {
+        vec![String::new()]
+    };
+    std::env::split_paths(&std::env::var_os("PATH")?)
+        .flat_map(|dir| exts.iter().map(move |e| dir.join(format!("{name}{e}"))))
+        .find(|p| p.is_file())
+}
+
+/// macOS: `/Applications/<name>.app` (and the per-user Applications folder).
+fn app_bundle(name: &str) -> Vec<PathBuf> {
+    if !cfg!(target_os = "macos") {
+        return Vec::new();
+    }
+    let mut v = vec![PathBuf::from(format!("/Applications/{name}.app"))];
+    v.extend(home().map(|h| h.join("Applications").join(format!("{name}.app"))));
+    v
+}
+
+/// Windows: the package folders of an installed Claude Desktop (MSIX).
+fn claude_package_dirs() -> Vec<PathBuf> {
+    let Some(packages) = dirs::data_local_dir().map(|d| d.join("Packages")) else {
+        return Vec::new();
+    };
+    std::fs::read_dir(packages)
+        .map(|rd| {
+            rd.filter_map(|e| e.ok())
+                .filter(|e| {
+                    e.file_name()
+                        .to_string_lossy()
+                        .to_lowercase()
+                        .starts_with("claude_")
+                })
+                .map(|e| e.path())
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 /// `base` joined with each relative path ("a/b" works on every OS).
@@ -109,12 +157,13 @@ const CLIENTS: &[Client] = &[
         mcp_names: &["claude-ai", "claude desktop"],
         config: || Some(claude_desktop_dir()?.join("claude_desktop_config.json")),
         markers: || {
-            let mut v = in_dir(app_config(), &["Claude/logs", "Claude/config.json"]);
+            // The Windows package (MSIX) folder exists only while it's installed.
+            let mut v = claude_package_dirs();
             v.extend(in_dir(
                 dirs::data_local_dir(),
-                &["AnthropicClaude", "Claude/Logs"],
+                &["AnthropicClaude/claude.exe"],
             ));
-            v.extend(claude_desktop_dir().map(|d| d.join("config.json")));
+            v.extend(app_bundle("Claude"));
             v
         },
     },
@@ -124,7 +173,7 @@ const CLIENTS: &[Client] = &[
         format: Format::McpServers,
         mcp_names: &["claude-code"],
         config: || Some(home()?.join(".claude.json")),
-        markers: || in_dir(home(), &[".claude/settings.json", ".claude/projects"]),
+        markers: || on_path("claude").into_iter().collect(),
     },
     Client {
         id: "cursor",
@@ -133,8 +182,9 @@ const CLIENTS: &[Client] = &[
         mcp_names: &["cursor"],
         config: || Some(home()?.join(".cursor").join("mcp.json")),
         markers: || {
-            let mut v = in_dir(app_config(), &["Cursor/User"]);
-            v.extend(in_dir(home(), &[".cursor/extensions"]));
+            let mut v = in_dir(dirs::data_local_dir(), &["Programs/cursor/Cursor.exe"]);
+            v.extend(app_bundle("Cursor"));
+            v.extend(on_path("cursor"));
             v
         },
     },
@@ -145,10 +195,17 @@ const CLIENTS: &[Client] = &[
         mcp_names: &["visual studio code", "vscode"],
         config: || Some(app_config()?.join("Code").join("User").join("mcp.json")),
         markers: || {
-            in_dir(
-                app_config(),
-                &["Code/User/settings.json", "Code/User/globalStorage"],
-            )
+            let mut v = in_dir(
+                dirs::data_local_dir(),
+                &["Programs/Microsoft VS Code/Code.exe"],
+            );
+            v.extend(in_dir(
+                std::env::var_os("ProgramFiles").map(PathBuf::from),
+                &["Microsoft VS Code/Code.exe"],
+            ));
+            v.extend(app_bundle("Visual Studio Code"));
+            v.extend(on_path("code"));
+            v
         },
     },
     Client {
@@ -164,7 +221,12 @@ const CLIENTS: &[Client] = &[
                     .join("mcp_config.json"),
             )
         },
-        markers: || in_dir(app_config(), &["Windsurf/User"]),
+        markers: || {
+            let mut v = in_dir(dirs::data_local_dir(), &["Programs/Windsurf/Windsurf.exe"]);
+            v.extend(app_bundle("Windsurf"));
+            v.extend(on_path("windsurf"));
+            v
+        },
     },
     Client {
         id: "codex",
@@ -172,7 +234,7 @@ const CLIENTS: &[Client] = &[
         format: Format::CodexToml,
         mcp_names: &["codex"],
         config: || Some(home()?.join(".codex").join("config.toml")),
-        markers: || in_dir(home(), &[".codex/auth.json", ".codex/sessions"]),
+        markers: || on_path("codex").into_iter().collect(),
     },
     Client {
         id: "gemini",
@@ -180,16 +242,7 @@ const CLIENTS: &[Client] = &[
         format: Format::McpServers,
         mcp_names: &["gemini"],
         config: || Some(home()?.join(".gemini").join("settings.json")),
-        markers: || {
-            in_dir(
-                home(),
-                &[
-                    ".gemini/oauth_creds.json",
-                    ".gemini/google_accounts.json",
-                    ".gemini/tmp",
-                ],
-            )
-        },
+        markers: || on_path("gemini").into_iter().collect(),
     },
     Client {
         id: "lmstudio",
@@ -198,8 +251,12 @@ const CLIENTS: &[Client] = &[
         mcp_names: &["lm studio", "lmstudio"],
         config: || Some(home()?.join(".lmstudio").join("mcp.json")),
         markers: || {
-            let mut v = in_dir(home(), &[".lmstudio/models", ".lmstudio/.internal"]);
-            v.extend(in_dir(app_config(), &["LM Studio"]));
+            let mut v = in_dir(
+                dirs::data_local_dir(),
+                &["Programs/LM Studio/LM Studio.exe"],
+            );
+            v.extend(app_bundle("LM Studio"));
+            v.extend(on_path("lms"));
             v
         },
     },
@@ -623,6 +680,13 @@ mod tests {
         let back = edit_json(&out, Format::McpServers, None).unwrap();
         let v: Value = serde_json::from_str(&back).unwrap();
         assert_eq!(v["preferences"]["apple"]["b"], 2);
+    }
+
+    #[test]
+    fn programs_are_found_on_path_and_missing_ones_are_not() {
+        let present = if cfg!(windows) { "cmd" } else { "sh" };
+        assert!(on_path(present).is_some());
+        assert!(on_path("cliptrail-surely-not-a-program").is_none());
     }
 
     #[test]
