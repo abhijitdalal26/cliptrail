@@ -58,6 +58,9 @@ pub struct Settings {
     pub show_tray_icon: bool,
     /// The first-launch welcome card was dismissed.
     pub welcome_seen: bool,
+    /// The user's order of the sidebar categories (kind names). Empty =
+    /// the default order; kinds missing here are shown after these.
+    pub kind_order: Vec<String>,
 }
 
 impl Default for Settings {
@@ -76,6 +79,7 @@ impl Default for Settings {
             auto_update_check: None,
             show_tray_icon: true,
             welcome_seen: false,
+            kind_order: Vec::new(),
         }
     }
 }
@@ -128,6 +132,13 @@ impl Settings {
             .dashboard_shortcut
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty());
+        let mut seen = Vec::new();
+        for k in std::mem::take(&mut self.kind_order) {
+            if clipd_core::Kind::parse(&k).is_some() && !seen.contains(&k) {
+                seen.push(k);
+            }
+        }
+        self.kind_order = seen;
         self
     }
 }
@@ -143,5 +154,21 @@ mod tests {
         assert_eq!(s.picker_shortcut, "Ctrl+Shift+V");
         assert!(s.show_tray_icon);
         assert!(!s.welcome_seen);
+        assert!(s.kind_order.is_empty());
+    }
+
+    #[test]
+    fn kind_order_keeps_known_kinds_once() {
+        let s = Settings {
+            kind_order: vec![
+                "image".into(),
+                "bogus".into(),
+                "link".into(),
+                "image".into(),
+            ],
+            ..Settings::default()
+        }
+        .normalized();
+        assert_eq!(s.kind_order, ["image", "link"]);
     }
 }

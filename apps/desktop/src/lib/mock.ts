@@ -613,6 +613,7 @@ const mockSettings: SettingsView = {
     auto_update_check: null,
     show_tray_icon: true,
     welcome_seen: new URLSearchParams(location.search).get("welcome") !== "1",
+    kind_order: [],
   },
   default_excluded_apps: DEFAULT_EXCLUDED,
   autostart: true,

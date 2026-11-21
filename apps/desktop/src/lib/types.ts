@@ -115,6 +115,8 @@ export interface Settings {
   show_tray_icon?: boolean;
   /** The first-launch welcome card was dismissed (desktop). */
   welcome_seen?: boolean;
+  /** Sidebar category order (kind names); missing kinds follow in the default order. */
+  kind_order?: string[];
 }
 
 export interface CaptureState {
