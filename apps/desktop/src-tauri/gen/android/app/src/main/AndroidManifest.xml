@@ -14,8 +14,6 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <!-- Optional, user-granted: lets the invisible-activity fallback start from the background. -->
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <!-- QR scan for pairing (asked when you tap Scan). -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
@@ -50,7 +48,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Invisible: becomes the focused app for one frame to read the clipboard (tile, notification, fallback). -->
+        <!-- Invisible: becomes the focused app for one frame to read the clipboard (tile, notification). -->
         <activity
             android:name=".ReadClipActivity"
             android:exported="false"
@@ -87,25 +85,12 @@
         </activity>
 
         <service
-            android:name=".CaptureAccessibilityService"
-            android:exported="true"
-            android:label="@string/a11y_label"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/accessibility_service_config" />
-        </service>
-
-        <service
             android:name=".KeepAliveService"
             android:exported="false"
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Keeps the user's on-device clipboard-history capture running (accessibility-triggered capture plus a Save clipboard notification action) and the local-network connection to the user's own paired computer for clipboard sync." />
+                android:value="Shows a persistent Save clipboard notification action for the user's on-device clipboard history and keeps the local-network connection to the user's own paired computer for clipboard sync." />
         </service>
 
         <service

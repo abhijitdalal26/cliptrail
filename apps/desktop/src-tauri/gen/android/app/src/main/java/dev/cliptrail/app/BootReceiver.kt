@@ -10,7 +10,7 @@ class BootReceiver : BroadcastReceiver() {
         when (intent.action) {
             Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED -> {
                 CaptureEngine.init(context)
-                if (Prefs.autoCapture(context)) Prefs.putState(context, "fgs.from_boot", KeepAliveService.start(context))
+                if (Prefs.keepAlive(context)) Prefs.putState(context, "fgs.from_boot", KeepAliveService.start(context))
             }
         }
     }

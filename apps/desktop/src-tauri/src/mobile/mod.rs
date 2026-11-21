@@ -2,7 +2,7 @@
 //!
 //! One process, two ways in:
 //! - the UI: `run()` (Tauri's mobile entry point, started by MainActivity);
-//! - the Kotlin capture services (accessibility service, Quick Settings
+//! - the Kotlin capture components (Quick Settings
 //!   tile, share / text-selection activities, keep-alive service), which
 //!   call the JNI functions in [`jni`] while no UI may be running.
 //!
@@ -178,7 +178,7 @@ pub fn run() {
             commands::window_effects,
             commands::set_window_theme,
             commands::android_status,
-            commands::android_set_auto_capture,
+            commands::android_set_keep_alive,
             commands::android_open,
             commands::android_request_notifications,
             commands::android_scan_qr,

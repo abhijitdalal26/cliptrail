@@ -12,10 +12,14 @@ object Prefs {
     private fun sp(ctx: Context): SharedPreferences =
         ctx.applicationContext.getSharedPreferences("cliptrail", Context.MODE_PRIVATE)
 
-    /** "Automatic capture (beta)": the accessibility trigger. On by default. */
-    fun autoCapture(ctx: Context): Boolean = sp(ctx).getBoolean("autoCapture", true)
+    /**
+     * "Keep running in the background": the foreground service with the Save clipboard notification,
+     * which also keeps sync with the paired computer alive. On by default. Uses the key of the old
+     * "Automatic capture" toggle, so people who had switched that off keep the service off.
+     */
+    fun keepAlive(ctx: Context): Boolean = sp(ctx).getBoolean("autoCapture", true)
 
-    fun setAutoCapture(ctx: Context, on: Boolean) {
+    fun setKeepAlive(ctx: Context, on: Boolean) {
         sp(ctx).edit().putBoolean("autoCapture", on).apply()
     }
 
@@ -41,14 +45,8 @@ object Prefs {
         p.edit()
             .putLong("last.at", System.currentTimeMillis())
             .putString("last.signal", signal.name)
-            .putLong(if (signal.automatic) "count.auto" else "count.manual", p.getLong(if (signal.automatic) "count.auto" else "count.manual", 0) + 1)
+            .putLong("count.manual", p.getLong("count.manual", 0) + 1)
             .apply()
-    }
-
-    /** A manual path found a new clip while automatic capture was on: the trigger missed it. */
-    fun recordMiss(ctx: Context) {
-        val p = sp(ctx)
-        p.edit().putLong("count.miss", p.getLong("count.miss", 0) + 1).apply()
     }
 
     fun lastCaptureAt(ctx: Context): Long = sp(ctx).getLong("last.at", 0)

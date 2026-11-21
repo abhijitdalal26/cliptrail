@@ -7,7 +7,7 @@ import android.util.Log
 
 /**
  * JNI surface into the Rust core: the same .so the Tauri UI runs from (src-tauri/src/mobile/jni.rs).
- * Lets the accessibility service, tile and share activities save clips while no UI is running.
+ * Lets the tile, notification and share activities save clips while no UI is running.
  * Call the ingest functions off the main thread.
  */
 object NativeCore {

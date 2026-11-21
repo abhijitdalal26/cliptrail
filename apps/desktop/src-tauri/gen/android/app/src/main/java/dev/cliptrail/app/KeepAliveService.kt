@@ -14,8 +14,8 @@ import android.os.IBinder
 
 /**
  * Foreground service (type specialUse) with a quiet persistent notification and a "Save clipboard"
- * action. It keeps the process alive against OEM background killing, which keeps automatic capture and
- * the LAN sync connection to the paired computer running. Runs while automatic capture is on.
+ * action. It keeps the process alive against OEM background killing, which keeps the LAN sync
+ * connection to the paired computer running. Runs while "Keep running in the background" is on.
  */
 class KeepAliveService : Service() {
 

@@ -235,7 +235,7 @@ INDEX = r"""
         <tbody>
           <tr><th scope="row">Windows 10 / 11</th><td><span class="status-dot ok"></span>Supported</td><td>Automatic</td><td>Yes</td><td>Hub or client</td></tr>
           <tr><th scope="row">Linux</th><td><span class="status-dot ok"></span>Supported</td><td>X11; Wayland with data-control (KDE, Sway, Hyprland). GNOME Wayland only sees X11 apps.</td><td>X11 only</td><td>Hub or client</td></tr>
-          <tr><th scope="row">Android</th><td><span class="status-dot"></span>Available (APK)</td><td>Automatic via accessibility, plus tile and share menu</td><td>Tap to copy</td><td>Client</td></tr>
+          <tr><th scope="row">Android</th><td><span class="status-dot"></span>Available (APK)</td><td>One tap: notification, tile or share menu</td><td>Tap to copy</td><td>Client</td></tr>
           <tr><th scope="row">macOS</th><td><span class="status-dot exp"></span>Experimental</td><td>Capture works (text, rich text, images, file URLs); tested on Apple silicon</td><td>Needs Accessibility permission; untested</td><td>Hub or client (untested)</td></tr>
         </tbody>
       </table>
@@ -304,7 +304,7 @@ INDEX = r"""
     <div class="faq">
       <details><summary>Is {{B}} free?</summary><div class="a"><p>Yes. It's open source under the MIT license, with no account and no paid tier.</p></div></details>
       <details><summary>Does my clipboard leave my computer?</summary><div class="a"><p>Only if you pair another device, and then only as ciphertext to that device over your local network. There is no {{B}} server and no telemetry.</p></div></details>
-      <details><summary>Is there an Android app?</summary><div class="a"><p>Yes, since v0.1.2. It captures copies through an accessibility service plus a Quick Settings tile and the share menu. It isn't on the Play Store: download the APK from this site and install it yourself. See <a href="{{R}}docs/android.html">Android setup</a>.</p></div></details>
+      <details><summary>Is there an Android app?</summary><div class="a"><p>Yes, since v0.1.2. You save copies with one tap (a notification button, a Quick Settings tile or the share menu), and copies from your computer show up in its history on their own. It isn't on the Play Store: download the APK from this site and install it yourself. See <a href="{{R}}docs/android.html">Android setup</a>.</p></div></details>
       <details><summary>Do I need two devices?</summary><div class="a"><p>No. Every app is fully useful on one device: history, search, the picker and smart actions all work offline. Pairing only adds devices when you have them.</p></div></details>
       <details><summary>Is it safe to copy passwords?</summary><div class="a"><p>Copies from password managers are ignored by default. Anything that looks like a one-time code, API key, private key or card number is masked, never searchable, never synced, and deleted after an hour (you can change that).</p></div></details>
     </div>
@@ -373,7 +373,7 @@ DOWNLOAD = r"""
       <article class="os-card" data-os="android" id="android">
         <span class="chip chip-accent detected-tag">Your system</span>
         <div class="os-head"><span class="os-logo">{{i:android}}</span><div><h2>Android <span class="chip chip-ok">New</span></h2><span class="os-sub">Sideloaded APK · Android 10+</span></div></div>
-        <p>Automatic capture through an accessibility service, a Quick Settings tile and the share menu. Pairs with your computer by QR. Not on the Play Store: install the APK directly (Android asks you to allow installs from your browser).</p>
+        <p>Save copies with one tap from the notification, a Quick Settings tile or the share menu. Pairs with your computer by QR. Not on the Play Store: install the APK directly (Android asks you to allow installs from your browser).</p>
         <div class="assets">""" + slot("android-apk", "Android app (.apk)", primary=True, missing="Not in this release") + r"""<a class="asset" href="{{R}}docs/android.html">{{i:book}}<span class="a-main"><span class="a-name">Android setup guide</span><span class="a-meta">Samsung and other phones, step by step</span></span></a></div>
       </article>
     </div>
@@ -442,7 +442,7 @@ DOWNLOAD = r"""
       </div>
       <div class="note-card">
         <h3>{{i:android}}Android: sideloading</h3>
-        <p>Download the APK on your phone and open it (allow "Install unknown apps" for your browser or file manager when asked), then follow the in-app checklist: accessibility service, restricted settings, battery, tile. Samsung needs a few extra steps.</p>
+        <p>Download the APK on your phone and open it (allow "Install unknown apps" for your browser or file manager when asked), then allow notifications and unrestricted battery use, and add the Save clipboard tile. Samsung needs a few extra steps.</p>
         <p style="margin:0"><a href="{{R}}docs/android.html">Android setup guide →</a></p>
       </div>
     </div>
@@ -615,7 +615,7 @@ PRIVACY = r"""
         <li><strong>No account.</strong> There is nothing to sign up for and no personal information to give.</li>
         <li><strong>Sensitive clips</strong> (one-time codes, keys, card numbers) are masked, kept out of search and sync, and deleted after a short time. Copies from password managers are not saved at all.</li>
       </ul>
-      <p>The Android app uses an accessibility service only to notice that you copied something and read the clipboard at that moment. It doesn't read screen content for any other purpose.</p>
+      <p>The Android app reads the clipboard only when you ask it to save (its notification button, tile, share or text menu, or opening the app). It doesn't use an accessibility service and never reads screen content.</p>
 
       <h2 id="website">This website</h2>
       <ul>

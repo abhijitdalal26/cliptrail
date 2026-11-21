@@ -152,12 +152,12 @@ pub async fn android_status(app: AppHandle) -> CmdResult<Value> {
 }
 
 #[tauri::command]
-pub async fn android_set_auto_capture(app: AppHandle, enabled: bool) -> CmdResult<Value> {
-    bridge::call(&app, "setAutoCapture", json!({ "enabled": enabled })).await
+pub async fn android_set_keep_alive(app: AppHandle, enabled: bool) -> CmdResult<Value> {
+    bridge::call(&app, "setKeepAlive", json!({ "enabled": enabled })).await
 }
 
-/// Open a system screen: "accessibility" | "appInfo" | "battery" |
-/// "batteryOptimization" | "notifications" | "overlay".
+/// Open a system screen: "appInfo" | "battery" | "batteryOptimization" |
+/// "notifications".
 #[tauri::command]
 pub async fn android_open(app: AppHandle, target: String) -> CmdResult<Value> {
     bridge::call(&app, "open", json!({ "target": target })).await

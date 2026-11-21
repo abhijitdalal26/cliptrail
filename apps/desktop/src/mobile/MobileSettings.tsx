@@ -6,9 +6,7 @@ import {
   Bell,
   CircleCheck,
   ClipboardPaste,
-  Hand,
   Link2,
-  LockOpen,
   Monitor,
   Moon,
   QrCode,
@@ -37,10 +35,6 @@ function ago(t: number | null | undefined): string {
 }
 
 const SIGNALS: Record<string, string> = {
-  CLICK_COPY: "automatic (Copy tap)",
-  TOAST_COPIED: "automatic (“Copied” message)",
-  SYSUI_CLIPBOARD: "automatic (clipboard preview)",
-  CLIPBOARD_UI: "automatic (clipboard panel)",
   APP_FOREGROUND: "opening ClipTrail",
   QS_TILE: "the Quick Settings tile",
   NOTIFICATION: "the notification button",
@@ -203,7 +197,7 @@ export function MobileSettings({
 }
 
 // ---------------------------------------------------------------------------
-// Capture: automatic-capture toggle + Samsung onboarding checklist
+// Capture: the ways to save, the background service and its checklist
 
 function CaptureSection({
   status: st,
@@ -226,60 +220,66 @@ function CaptureSection({
 
   return (
     <Section title="Capture">
+      <div className="px-4 py-3.5">
+        <div className="text-[13px] font-medium text-fg">Ways to save what you copy</div>
+        <div className="mt-0.5 text-[12.5px] leading-[1.45] text-fg-3">
+          Android only lets the app you're using read the clipboard, so ClipTrail saves a copy when you ask it to.
+        </div>
+        <ul className="mt-2.5 space-y-1 text-[12.5px] leading-[1.45] text-fg-3">
+          <li>
+            Tap <span className="font-medium text-fg-2">Save clipboard</span> on the ClipTrail notification.
+          </li>
+          <li>
+            Add the <span className="font-medium text-fg-2">Save clipboard</span> tile: swipe down twice › ✎ › drag it in.
+          </li>
+          <li>
+            <span className="font-medium text-fg-2">Share › Save to ClipTrail</span> from any app (text and images).
+          </li>
+          <li>
+            Select text › ⋮ › <span className="font-medium text-fg-2">Save to ClipTrail</span>.
+          </li>
+          <li>Opening ClipTrail, or its save button, saves what's on the clipboard.</li>
+        </ul>
+        {st && st.lastCaptureAt > 0 && (
+          <div className="mt-2.5 text-[12px] text-fg-3">
+            Last saved {ago(st.lastCaptureAt)}
+            {st.lastSignal ? ` via ${SIGNALS[st.lastSignal] ?? st.lastSignal}` : ""} · {st.captures} saved on this phone
+          </div>
+        )}
+      </div>
+
       <Row
-        title="Automatic capture (beta)"
-        desc="Saves what you copy in other apps, using an accessibility service that only notices Copy taps and “Copied” messages. It never reads the screen."
+        title="Keep running in the background"
+        desc="Shows a quiet notification with a Save clipboard button, and keeps sync with your computer going while ClipTrail is closed."
         error={error}
       >
         <Switch
-          label="Automatic capture"
-          checked={st?.autoCapture ?? false}
+          label="Keep running in the background"
+          checked={st?.keepAlive ?? false}
           disabled={!st}
-          onChange={(v) => run(() => androidApi.setAutoCapture(v))}
+          onChange={(v) => run(() => androidApi.setKeepAlive(v))}
         />
       </Row>
 
-      {st?.autoCapture && (
+      {st?.keepAlive && (
         <div className="space-y-1 px-2 py-2">
           <Step
             n={1}
-            icon={Hand}
-            done={st.serviceEnabled && st.serviceConnected}
-            title={
-              st.serviceEnabled && !st.serviceConnected
-                ? "Accessibility: on but not running — switch it off and on"
-                : "Turn on ClipTrail in Accessibility"
-            }
-            detail="Accessibility › Installed apps › ClipTrail automatic capture › On › Allow."
-            action={{ label: "Open", run: () => open("accessibility") }}
-          />
-          {st.restrictedSettings && !(st.serviceEnabled && st.serviceConnected) && (
-            <Step
-              n={2}
-              icon={LockOpen}
-              done={null}
-              title="Switch greyed out? Allow restricted settings"
-              detail="Android blocks this for apps installed from a file. Try step 1 once, then here tap ⋮ (top right) › Allow restricted settings, confirm, and do step 1 again."
-              action={{ label: "App info", run: () => open("appInfo") }}
-            />
-          )}
-          <Step
-            n={st.restrictedSettings && !(st.serviceEnabled && st.serviceConnected) ? 3 : 2}
             icon={Bell}
             done={st.notificationsAllowed}
             title="Allow notifications"
-            detail="Shows a quiet “ClipTrail is saving your copies” notification with a Save clipboard button."
+            detail="The Save clipboard button lives on the ClipTrail notification."
             action={{ label: "Allow", run: () => run(() => androidApi.requestNotifications()) }}
           />
           <Step
-            n={st.restrictedSettings && !(st.serviceEnabled && st.serviceConnected) ? 4 : 3}
+            n={2}
             icon={BatteryCharging}
             done={st.batteryUnrestricted}
             title="Keep ClipTrail running"
             detail={
               st.samsung
                 ? "Allow unrestricted battery use. Then in Battery › Background usage limits: add ClipTrail to Never sleeping apps, and turn off Put unused apps to sleep."
-                : "Allow unrestricted battery use so Android doesn't stop capture in the background."
+                : "Allow unrestricted battery use so Android doesn't stop ClipTrail in the background."
             }
             action={{ label: "Allow", run: () => open("batteryOptimization") }}
             extra={st.samsung ? { label: "Battery settings", run: () => open("battery") } : undefined}
@@ -312,29 +312,6 @@ function CaptureSection({
           </div>
         )}
       </Row>
-
-      <div className="px-4 py-3.5">
-        <div className="text-[13px] font-medium text-fg">Other ways to save</div>
-        <ul className="mt-1.5 space-y-1 text-[12.5px] leading-[1.45] text-fg-3">
-          <li>
-            <span className="font-medium text-fg-2">Save clipboard</span> tile: swipe down twice › ✎ › drag it in.
-          </li>
-          <li>
-            <span className="font-medium text-fg-2">Share › Save to ClipTrail</span> from any app (text and images).
-          </li>
-          <li>
-            Select text › ⋮ › <span className="font-medium text-fg-2">Save to ClipTrail</span>.
-          </li>
-          <li>Opening ClipTrail saves what's on the clipboard.</li>
-        </ul>
-        {st && st.lastCaptureAt > 0 && (
-          <div className="mt-2.5 text-[12px] text-fg-3">
-            Last saved {ago(st.lastCaptureAt)}
-            {st.lastSignal ? ` via ${SIGNALS[st.lastSignal] ?? st.lastSignal}` : ""} · {st.autoCaptures} automatic,{" "}
-            {st.manualCaptures} manual
-          </div>
-        )}
-      </div>
     </Section>
   );
 }
@@ -349,7 +326,7 @@ function Step({
   extra,
 }: {
   n: number;
-  icon: typeof Hand;
+  icon: typeof Bell;
   /** null = informational */
   done: boolean | null;
   title: string;

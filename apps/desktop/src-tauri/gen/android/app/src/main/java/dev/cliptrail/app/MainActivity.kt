@@ -85,7 +85,7 @@ class MainActivity : TauriActivity() {
     override fun onResume() {
         super.onResume()
         readOnFocus = true
-        if (Prefs.autoCapture(this) && !KeepAliveService.running) {
+        if (Prefs.keepAlive(this) && !KeepAliveService.running) {
             Prefs.putState(this, "fgs.from_ui", KeepAliveService.start(this))
         }
     }
