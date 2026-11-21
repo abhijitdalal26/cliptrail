@@ -68,6 +68,8 @@ export function Preview({ summary, onCopy, onTogglePin, onDelete, toast, trash, 
   const clip: Clip | null = full && full.id === summary.id ? { ...full, ...summary } : null;
   const s = summary;
   const sub = subkindLabel(s.kind, s.subkind);
+  // Images copied in a browser remember the page (see clipd-capture cfhtml).
+  const page = s.kind === "image" ? parseUrl(s.preview) : null;
   const hasActions = !trash && !s.masked && !["sensitive", "image", "file"].includes(s.kind);
   const shownTab: Tab = hasActions ? tab : "details";
 
@@ -142,6 +144,17 @@ export function Preview({ summary, onCopy, onTogglePin, onDelete, toast, trash, 
                 {appName(s.source_app)}
               </span>
             </Row>
+            {page && (
+              <Row label="From">
+                <button
+                  className="truncate text-accent-text hover:underline"
+                  title={s.preview}
+                  onClick={() => void api.openUrl(s.preview).catch((e) => toast(errorMessage(e)))}
+                >
+                  {page.host}
+                </button>
+              </Row>
+            )}
             <DeviceRow deviceId={s.device_id} />
             <Row label={s.kind === "image" ? "Resolution" : "Size"}>{sizeLabel(s)}</Row>
             <Row label="Copied">
@@ -179,6 +192,16 @@ export function Preview({ summary, onCopy, onTogglePin, onDelete, toast, trash, 
               Copy
             </Button>
             <SecondaryAction summary={s} clip={clip} onCopy={onCopy} toast={toast} />
+            {page && !isAndroid && (
+              <Button
+                icon={ExternalLink}
+                className="h-9 w-full"
+                title={s.preview}
+                onClick={() => void api.openUrl(s.preview).catch((e) => toast(errorMessage(e)))}
+              >
+                Open page
+              </Button>
+            )}
           </>
         )}
       </div>

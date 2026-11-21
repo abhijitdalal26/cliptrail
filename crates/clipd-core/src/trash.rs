@@ -261,6 +261,7 @@ mod tests {
                 content,
                 source_app: Some("test.exe".into()),
                 captured_at: crate::now_millis(),
+                source_url: None,
             })
             .unwrap()
         {

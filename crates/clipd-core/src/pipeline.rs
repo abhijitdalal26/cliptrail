@@ -209,7 +209,7 @@ impl Pipeline {
                 width,
                 height,
                 rgba,
-            } => self.ingest_image(width, height, rgba, raw.source_app, at)?,
+            } => self.ingest_image(width, height, rgba, raw.source_app, raw.source_url, at)?,
             RawContent::Files(paths) => self.ingest_files(paths, raw.source_app, at)?,
         };
         match &outcome {
@@ -312,8 +312,10 @@ impl Pipeline {
         height: u32,
         rgba: Vec<u8>,
         source_app: Option<String>,
+        source_url: Option<String>,
         at: Millis,
     ) -> Result<IngestOutcome> {
+        let source_url = source_url.filter(|u| is_web_url(u));
         let expected = (width as usize)
             .checked_mul(height as usize)
             .and_then(|px| px.checked_mul(4));
@@ -334,6 +336,15 @@ impl Pipeline {
             &self.config.device_id,
             None,
         )? {
+            if let Some(url) = &source_url {
+                // A re-copy from the web: remember where, if we didn't know.
+                self.store.quiet(|conn| {
+                    Ok(conn.execute(
+                        "UPDATE clips SET text = ?2 WHERE id = ?1 AND text IS NULL",
+                        params![id, url],
+                    )?)
+                })?;
+            }
             if let Some(clip) = self.store.get(&id)?
                 && clip.image_path.is_none()
             {
@@ -396,7 +407,7 @@ impl Pipeline {
             content_hash,
             kind: Kind::Image,
             subkind: None,
-            text: None,
+            text: source_url,
             html: None,
             files: Vec::new(),
             image_path: keep_full.then(|| image_path.to_string_lossy().into_owned()),
@@ -523,6 +534,11 @@ fn hash_parts(domain: &[u8], parts: &[&[u8]]) -> Vec<u8> {
     h.finalize().to_vec()
 }
 
+/// An http(s) address short enough to be a real page URL.
+fn is_web_url(u: &str) -> bool {
+    u.len() <= 2048 && (u.starts_with("https://") || u.starts_with("http://"))
+}
+
 pub(crate) fn thumbnail(img: &RgbaImage) -> RgbaImage {
     let (w, h) = img.dimensions();
     let (tw, th) = thumb_size(w, h);
@@ -620,6 +636,7 @@ mod tests {
             content,
             source_app: app.map(str::to_owned),
             captured_at: now_millis(),
+            source_url: None,
         }
     }
 
@@ -814,6 +831,34 @@ mod tests {
 
         p.delete(&id).unwrap();
         assert!(shot.exists(), "the user's screenshot is not ours to delete");
+    }
+
+    #[test]
+    fn image_keeps_the_page_it_was_copied_from() {
+        let dir = TempDir::new();
+        let p = pipeline(&dir);
+        let from = |seed, url: &str| RawClip {
+            source_url: Some(url.into()),
+            ..image(20, 10, seed)
+        };
+        let id = stored_id(p.ingest(from(1, "https://www.reddit.com/r/pics/")).unwrap());
+        let clip = p.store().get(&id).unwrap().unwrap();
+        assert_eq!(clip.text.as_deref(), Some("https://www.reddit.com/r/pics/"));
+        assert_eq!(clip.summary.preview, "https://www.reddit.com/r/pics/");
+        assert_eq!(clip.summary.char_count, 0);
+
+        let other = stored_id(p.ingest(from(2, "javascript:alert(1)")).unwrap());
+        assert_eq!(
+            p.store().get(&other).unwrap().unwrap().text,
+            None,
+            "web pages only"
+        );
+
+        // Copied first without a source (e.g. from an app), later from the web.
+        let plain = stored_id(p.ingest(image(20, 10, 3)).unwrap());
+        p.ingest(from(3, "https://example.com/a")).unwrap();
+        let clip = p.store().get(&plain).unwrap().unwrap();
+        assert_eq!(clip.text.as_deref(), Some("https://example.com/a"));
     }
 
     #[test]
