@@ -4,6 +4,7 @@
 //! - [`write_clip`]: put a stored clip back on the OS clipboard
 //! - [`remember_foreground`] / [`paste_into`]: paste-back into the app the
 //!   user was in before our picker opened
+//! - [`screenshot`] (Windows, Linux): find the file a screenshot was saved as
 //!
 //! This file is the public API plus thin dispatch. Each OS backend lives in
 //! its own module (`windows/`, `linux/`). Backends are `cfg`-gated; on OSes
@@ -16,6 +17,9 @@ pub mod dib;
 pub mod dropfiles;
 pub mod targets;
 pub mod urilist;
+
+#[cfg(any(windows, target_os = "linux"))]
+pub mod screenshot;
 
 #[cfg(target_os = "linux")]
 mod linux;

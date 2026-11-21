@@ -420,6 +420,22 @@ impl Pipeline {
         result
     }
 
+    /// Link an image clip to the file the OS saved it as (a screenshot), so
+    /// "Open in folder" can show the real file. Local only: the path means
+    /// nothing on other devices, so the change is not journaled and sync
+    /// never sends `files` for images. Returns false when the clip is gone,
+    /// isn't an image, or is already linked.
+    pub fn link_image_file(&self, id: &str, path: &str) -> Result<bool> {
+        let files = serde_json::to_string(&[path])?;
+        let updated = self.store.quiet(|conn| {
+            Ok(conn.execute(
+                "UPDATE clips SET files = ?2, subkind = 'screenshot'                      WHERE id = ?1 AND kind = 'image' AND files = '[]'",
+                params![id, files],
+            )?)
+        })?;
+        Ok(updated > 0)
+    }
+
     fn persist(&self, clip: NewClip) -> Result<IngestOutcome> {
         let kind = clip.kind;
         let (id, inserted) = self.store.upsert(clip)?;
@@ -773,6 +789,31 @@ mod tests {
         let p2 = Pipeline::open(cfg).unwrap();
         stored_id(p2.ingest(text("482913")).unwrap());
         assert_eq!(p2.prune().unwrap(), 1);
+    }
+
+    #[test]
+    fn screenshot_link_is_local_and_never_deletes_the_file() {
+        let dir = TempDir::new();
+        let p = pipeline(&dir);
+        let id = stored_id(p.ingest(image(40, 30, 7)).unwrap());
+        let shot = dir.0.join("Screenshot (1).png");
+        std::fs::write(&shot, b"not ours").unwrap();
+        let shot_str = shot.to_string_lossy().into_owned();
+
+        assert!(p.link_image_file(&id, &shot_str).unwrap());
+        assert!(!p.link_image_file(&id, "other.png").unwrap(), "linked once");
+        let clip = p.store().get(&id).unwrap().unwrap();
+        assert_eq!(clip.summary.files, vec![shot_str.clone()]);
+        assert_eq!(clip.summary.subkind.as_deref(), Some("screenshot"));
+
+        let text_id = stored_id(p.ingest(text("hello there")).unwrap());
+        assert!(
+            !p.link_image_file(&text_id, &shot_str).unwrap(),
+            "images only"
+        );
+
+        p.delete(&id).unwrap();
+        assert!(shot.exists(), "the user's screenshot is not ours to delete");
     }
 
     #[test]

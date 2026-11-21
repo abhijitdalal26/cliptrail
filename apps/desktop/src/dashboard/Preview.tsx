@@ -213,7 +213,21 @@ function SecondaryAction({
         </Button>
       ) : null;
     case "image":
-      return isAndroid ? null : (
+      if (isAndroid) return null;
+      // A screenshot linked to the file the OS saved: show the real file.
+      if (s.files.length > 0) {
+        return (
+          <Button
+            icon={FolderOpen}
+            title={s.files[0]}
+            className={cls}
+            onClick={() => api.revealPath(s.files[0]).catch(fail)}
+          >
+            Open in folder
+          </Button>
+        );
+      }
+      return (
         <Button
           icon={FolderOpen}
           title="Saves a copy to Downloads and shows it in the folder (stored images are encrypted)"

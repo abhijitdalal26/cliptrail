@@ -712,6 +712,7 @@ version = "0.1.3"
 dependencies = [
  "anyhow",
  "clipd-core",
+ "dirs 7.0.0",
  "image",
  "objc2",
  "objc2-app-kit",

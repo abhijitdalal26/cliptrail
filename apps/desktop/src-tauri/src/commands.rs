@@ -393,6 +393,9 @@ pub fn open_url(app: AppHandle, url: String) -> CmdResult<()> {
 #[cfg(desktop)]
 #[tauri::command]
 pub fn reveal_path(app: AppHandle, path: String) -> CmdResult<()> {
+    if !std::path::Path::new(&path).exists() {
+        return Err("That file was moved or deleted".to_string());
+    }
     app.opener()
         .reveal_item_in_dir(path)
         .map_err(|_| "Couldn't show that file".to_string())
