@@ -1,15 +1,14 @@
-import { memo } from "react";
+import { memo, useState } from "react";
 import { Copy, Star } from "lucide-react";
 import { assetUrl } from "../lib/api";
-import { appName } from "../lib/apps";
 import { cx } from "../lib/cx";
-import { parseColor, parseUrl, shortTime, splitPath, untilLabel } from "../lib/format";
+import { parseColor, splitPath, untilLabel } from "../lib/format";
 import { useHighlighted } from "../lib/highlight";
 import { subkindLabel } from "../lib/kinds";
 import type { ClipSummary } from "../lib/types";
-import { AppAvatar, KindBadge, KindTile } from "../components/ui";
-import { DeviceBadge } from "../components/DeviceBadge";
-import { useOtherDevice } from "../lib/sync";
+import { KindTile } from "../components/ui";
+import { FileMedia } from "../components/FilePreview";
+import { mediaKind } from "../lib/media";
 
 interface Props {
   clip: ClipSummary;
@@ -37,8 +36,8 @@ export const ClipCard = memo(function ClipCard({ clip, selected, onSelect, onCop
     >
       <Leading clip={clip} />
       <div className={cx("min-w-0 flex-1", !readOnly && "pr-16")}>
+        {/* Only the content here; app, time, device and counts are in the clip panel. */}
         <Body clip={clip} />
-        <Meta clip={clip} />
       </div>
       {!readOnly && (
         <div className="absolute top-2 right-2 flex items-center gap-0.5">
@@ -104,17 +103,40 @@ function Leading({ clip }: { clip: ClipSummary }) {
   return <KindTile kind={clip.kind} className="mt-0.5" />;
 }
 
+/** Copied files: name and folder; images and videos also get a preview from the real file. */
+function FileBody({ clip }: { clip: ClipSummary }) {
+  const first = clip.files[0] ?? clip.preview;
+  const { name, dir } = splitPath(first);
+  const [missing, setMissing] = useState(false);
+  const text = (
+    <div className="min-w-0">
+      <div className="flex items-baseline gap-1.5">
+        <span className="truncate text-[13px] font-medium text-fg">{name}</span>
+        {clip.files.length > 1 && (
+          <span className="shrink-0 text-[12px] text-fg-3">+{clip.files.length - 1} more</span>
+        )}
+      </div>
+      <div className="truncate text-[12.5px] text-fg-3">{dir}</div>
+    </div>
+  );
+  if (missing || !mediaKind(first)) return text;
+  return (
+    <div className="flex items-center gap-3">
+      <FileMedia
+        path={first}
+        onMissing={() => setMissing(true)}
+        className="checker h-[64px] w-[96px] shrink-0 rounded-md object-cover shadow-[0_0_0_1px_var(--border)]"
+      />
+      {text}
+    </div>
+  );
+}
+
 function Body({ clip }: { clip: ClipSummary }) {
   switch (clip.kind) {
-    case "link": {
-      const u = parseUrl(clip.preview);
-      return (
-        <div className="min-w-0">
-          <div className="truncate text-[13px] font-medium text-fg">{u?.host ?? clip.subkind ?? clip.preview}</div>
-          <div className="truncate text-[12.5px] text-fg-3">{u ? u.path || "/" : clip.preview}</div>
-        </div>
-      );
-    }
+    case "link":
+      // The link exactly as copied, not split into host and path.
+      return <div className="line-clamp-2 text-[13px] leading-5 break-all text-fg">{clip.preview}</div>;
     case "code":
       return <CodePreview clip={clip} />;
     case "image":
@@ -134,21 +156,8 @@ function Body({ clip }: { clip: ClipSummary }) {
           </div>
         </div>
       );
-    case "file": {
-      const first = clip.files[0] ?? clip.preview;
-      const { name, dir } = splitPath(first);
-      return (
-        <div className="min-w-0">
-          <div className="flex items-baseline gap-1.5">
-            <span className="truncate text-[13px] font-medium text-fg">{name}</span>
-            {clip.files.length > 1 && (
-              <span className="shrink-0 text-[12px] text-fg-3">+{clip.files.length - 1} more</span>
-            )}
-          </div>
-          <div className="truncate text-[12.5px] text-fg-3">{dir}</div>
-        </div>
-      );
-    }
+    case "file":
+      return <FileBody clip={clip} />;
     case "color": {
       const c = parseColor(clip.preview);
       return (
@@ -201,36 +210,5 @@ function CodePreview({ clip }: { clip: ClipSummary }) {
       )}
       dangerouslySetInnerHTML={{ __html: html }}
     />
-  );
-}
-
-function Meta({ clip }: { clip: ClipSummary }) {
-  const sub = clip.kind === "code" || clip.kind === "image" ? subkindLabel(clip.kind, clip.subkind) : null;
-  const other = useOtherDevice(clip.device_id);
-  const lead = clip.kind === "code" || clip.kind === "sensitive" || !!clip.source_app || !!other;
-  return (
-    <div className="mt-1.5 flex items-center gap-1.5 text-[11.5px] text-fg-3">
-      {clip.kind === "code" && <KindBadge kind="code" label={sub ?? "Code"} />}
-      {clip.kind === "sensitive" && <KindBadge kind="sensitive" />}
-      {/* No "Unknown app" noise in the list (the clip view still says so). */}
-      {clip.source_app && (
-        <>
-          <AppAvatar app={clip.source_app} size={14} />
-          <span className="truncate">{appName(clip.source_app)}</span>
-        </>
-      )}
-      <DeviceBadge deviceId={clip.device_id} />
-      {lead && <span className="text-fg-4">·</span>}
-      <span className="shrink-0 tabular-nums">{shortTime(clip.last_seen_at)}</span>
-      {clip.copy_count > 1 && (
-        <>
-          <span className="text-fg-4">·</span>
-          <span className="shrink-0 tabular-nums">×{clip.copy_count}</span>
-        </>
-      )}
-      {clip.kind === "code" && clip.line_count > 1 && (
-        <span className="ml-auto shrink-0 tabular-nums">{clip.line_count} lines</span>
-      )}
-    </div>
   );
 }

@@ -237,6 +237,7 @@ fn run(cli: Cli) -> Result<()> {
                 content: RawContent::Text { text, html: None },
                 source_app: app,
                 captured_at: now_millis(),
+                source_url: None,
             })?;
             print_outcome(&pipeline, &outcome);
         }
@@ -253,6 +254,7 @@ fn run(cli: Cli) -> Result<()> {
                 },
                 source_app: app,
                 captured_at: now_millis(),
+                source_url: None,
             })?;
             print_outcome(&pipeline, &outcome);
         }

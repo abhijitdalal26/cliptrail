@@ -164,10 +164,19 @@ fn read_image() -> Option<RawContent> {
     None
 }
 
-/// Read the clipboard content (priority: files, text(+html), image).
+/// Where a copied image came from: browsers' "Copy image" adds an HTML
+/// flavor whose header names the page (`SourceURL`) and whose fragment is
+/// the `<img>`. The page wins; the image's own address is the fallback.
+fn read_image_source() -> Option<String> {
+    let data = format_bytes(formats().html)?;
+    cfhtml::source_url(&data).or_else(|| cfhtml::img_src(&cfhtml::parse(&data)?))
+}
+
+/// Read the clipboard content (priority: files, text(+html), image), plus
+/// the web page an image came from when known.
 /// `Err` only when the clipboard could not be opened. The clipboard is
 /// closed again before this returns.
-pub(super) fn read_content(owner: HWND) -> Result<Option<RawContent>> {
+pub(super) fn read_content(owner: HWND) -> Result<Option<(RawContent, Option<String>)>> {
     let _open = OpenClipboardGuard::open(owner)?;
     if is_excluded() {
         tracing::debug!("clipboard change excluded by producer opt-out format");
@@ -175,7 +184,7 @@ pub(super) fn read_content(owner: HWND) -> Result<Option<RawContent>> {
     }
     if let Some(files) = read_files() {
         tracing::debug!(format = "CF_HDROP", count = files.len(), "clipboard files");
-        return Ok(Some(RawContent::Files(files)));
+        return Ok(Some((RawContent::Files(files), None)));
     }
     if let Some(text) = read_text() {
         let html = read_html();
@@ -185,19 +194,20 @@ pub(super) fn read_content(owner: HWND) -> Result<Option<RawContent>> {
             html_bytes = html.as_ref().map(String::len),
             "clipboard text"
         );
-        return Ok(Some(RawContent::Text { text, html }));
+        return Ok(Some((RawContent::Text { text, html }, None)));
     }
-    Ok(read_image())
+    Ok(read_image().map(|img| (img, read_image_source())))
 }
 
 /// See [`crate::read_current`].
 pub fn read_current() -> Result<Option<RawClip>> {
     let source_app = source_app_now();
     let content = read_content(std::ptr::null_mut())?;
-    Ok(content.map(|content| RawClip {
+    Ok(content.map(|(content, source_url)| RawClip {
         content,
         source_app,
         captured_at: now_ms(),
+        source_url,
     }))
 }
 

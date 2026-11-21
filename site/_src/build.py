@@ -249,7 +249,7 @@ DOCS = [
   ]),
   ("Devices", [
     ("sync.html", "Sync your devices", "pair qr hub lan firewall wifi revoke encryption"),
-    ("android.html", "Android setup", "samsung phone accessibility tile share battery apk"),
+    ("android.html", "Android setup", "samsung phone notification tile share battery apk"),
   ]),
   ("Reference", [
     ("settings.html", "Settings", "preferences options retention exclude theme port"),

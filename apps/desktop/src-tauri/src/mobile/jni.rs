@@ -1,5 +1,5 @@
 //! JNI entry points for `dev.cliptrail.app.NativeCore` (Kotlin). They let
-//! the accessibility service, Quick Settings tile, share target and
+//! the Quick Settings tile, notification action, share target and
 //! text-selection activity write into the clip store without the UI.
 //!
 //! Kotlin calls these off the main thread. Every body is panic-guarded (a
@@ -93,6 +93,7 @@ pub extern "system" fn Java_dev_cliptrail_app_NativeCore_ingestText<'l>(
         content: RawContent::Text { text, html },
         source_app,
         captured_at: at(captured_at),
+        source_url: None,
     };
     catch_unwind(AssertUnwindSafe(|| code(super::ingest(raw)))).unwrap_or(-1)
 }
@@ -142,6 +143,7 @@ pub extern "system" fn Java_dev_cliptrail_app_NativeCore_ingestImage<'l>(
             },
             source_app,
             captured_at,
+            source_url: None,
         }))
     }))
     .unwrap_or(-1)

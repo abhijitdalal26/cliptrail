@@ -42,6 +42,8 @@ tauri = { version = "2.12.5", features = ["tray-icon", "image-png"] }
 tauri-plugin-global-shortcut = "2.4"
 tauri-plugin-single-instance = "2.5"
 tauri-plugin-autostart = "2.7"
+# Native "Save as…" dialog for image clips.
+tauri-plugin-dialog = "2"
 # Optional, user-enabled update check against GitHub Releases (desktop only;
 # Android is updated as an APK). Relaunch uses tauri's own AppHandle::restart.
 tauri-plugin-updater = "2.14"

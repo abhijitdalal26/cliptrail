@@ -70,6 +70,7 @@ fn run(on_clip: Box<dyn Fn(RawClip) + Send>, stop: Arc<AtomicBool>, mut last: is
                     content,
                     source_app,
                     captured_at: super::pasteboard::now_ms(),
+                    source_url: None,
                 };
                 if catch_unwind(AssertUnwindSafe(|| on_clip(clip))).is_err() {
                     tracing::warn!("on_clip callback panicked; watcher continues");

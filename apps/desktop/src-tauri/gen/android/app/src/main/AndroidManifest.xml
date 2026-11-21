@@ -14,8 +14,6 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <!-- Optional, user-granted: lets the invisible-activity fallback start from the background. -->
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <!-- QR scan for pairing (asked when you tap Scan). -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
@@ -48,9 +46,12 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="cliptrail" android:host="pair" />
             </intent-filter>
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
 
-        <!-- Invisible: becomes the focused app for one frame to read the clipboard (tile, notification, fallback). -->
+        <!-- Invisible: becomes the focused app for one frame to read the clipboard (tile, notification, icon shortcut, widget). -->
         <activity
             android:name=".ReadClipActivity"
             android:exported="false"
@@ -87,25 +88,12 @@
         </activity>
 
         <service
-            android:name=".CaptureAccessibilityService"
-            android:exported="true"
-            android:label="@string/a11y_label"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/accessibility_service_config" />
-        </service>
-
-        <service
             android:name=".KeepAliveService"
             android:exported="false"
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Keeps the user's on-device clipboard-history capture running (accessibility-triggered capture plus a Save clipboard notification action) and the local-network connection to the user's own paired computer for clipboard sync." />
+                android:value="Shows a persistent Save clipboard notification action for the user's on-device clipboard history and keeps the local-network connection to the user's own paired computer for clipboard sync." />
         </service>
 
         <service
@@ -121,6 +109,18 @@
                 android:name="android.service.quicksettings.TOGGLEABLE_TILE"
                 android:value="false" />
         </service>
+
+        <receiver
+            android:name=".SaveClipWidget"
+            android:exported="false"
+            android:label="@string/save_clipboard">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_save_info" />
+        </receiver>
 
         <receiver
             android:name=".BootReceiver"

@@ -54,15 +54,14 @@ desc: Fixes for common {{B}} problems: hotkey conflicts, paste-back not working,
 </ol>
 <p><code>clipd sync status</code> shows the last error a device ran into, which usually says which of these it is.</p>
 
-<h2 id="android">Android: capture stops after a while</h2>
+<h2 id="android">Android: the notification or background sync stops after a while</h2>
 <p>This is almost always the phone's battery manager stopping the app. On Samsung:</p>
 <ul>
   <li><em>Settings → Apps → {{B}} → Battery</em>: <strong>Unrestricted</strong>.</li>
   <li><em>Settings → Battery → Background usage limits</em>: add {{B}} to <strong>Never sleeping apps</strong> and turn off <strong>Put unused apps to sleep</strong>.</li>
-  <li>Check the accessibility service is still on (<em>Settings → Accessibility → Installed apps</em>). Android may turn it off after an app update or a crash.</li>
-  <li>Keep the "capturing" notification; dismissing or blocking it lets Android stop the service.</li>
+  <li>Keep the "{{B}} is ready" notification; blocking it lets Android stop the app.</li>
 </ul>
-<p>Accessibility switch greyed out? That's Android's <a href="android.html#restricted">restricted settings</a>. For a copy that wasn't caught, tap the <strong>Save clipboard</strong> tile. More in <a href="android.html">Android setup</a>.</p>
+<p>The <strong>Save clipboard</strong> tile and the share menu work even when the notification is gone. More in <a href="android.html">Android setup</a>.</p>
 
 <h2 id="windows-install">Windows says "Windows protected your PC"</h2>
 <p>Pre-release installers aren't code-signed yet. Click <strong>More info → Run anyway</strong>. Builds are made by GitHub Actions from the public source.</p>

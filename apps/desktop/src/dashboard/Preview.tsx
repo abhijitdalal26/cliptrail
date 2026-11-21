@@ -4,6 +4,7 @@ import {
   Clipboard,
   ClipboardType,
   Copy,
+  Download,
   ExternalLink,
   Eye,
   EyeOff,
@@ -28,6 +29,8 @@ import type { Clip, ClipSummary } from "../lib/types";
 import { AppAvatar, Button, IconButton, KindBadge } from "../components/ui";
 import { platformIcon, useOtherDevice } from "../lib/sync";
 import { Actions } from "./Actions";
+import { FilePreview } from "../components/FilePreview";
+import { mediaKind } from "../lib/media";
 
 interface Props {
   summary: ClipSummary | null;
@@ -65,6 +68,8 @@ export function Preview({ summary, onCopy, onTogglePin, onDelete, toast, trash, 
   const clip: Clip | null = full && full.id === summary.id ? { ...full, ...summary } : null;
   const s = summary;
   const sub = subkindLabel(s.kind, s.subkind);
+  // Images copied in a browser remember the page (see clipd-capture cfhtml).
+  const page = s.kind === "image" ? parseUrl(s.preview) : null;
   const hasActions = !trash && !s.masked && !["sensitive", "image", "file"].includes(s.kind);
   const shownTab: Tab = hasActions ? tab : "details";
 
@@ -139,6 +144,17 @@ export function Preview({ summary, onCopy, onTogglePin, onDelete, toast, trash, 
                 {appName(s.source_app)}
               </span>
             </Row>
+            {page && (
+              <Row label="From">
+                <button
+                  className="truncate text-accent-text hover:underline"
+                  title={s.preview}
+                  onClick={() => void api.openUrl(s.preview).catch((e) => toast(errorMessage(e)))}
+                >
+                  {page.host}
+                </button>
+              </Row>
+            )}
             <DeviceRow deviceId={s.device_id} />
             <Row label={s.kind === "image" ? "Resolution" : "Size"}>{sizeLabel(s)}</Row>
             <Row label="Copied">
@@ -176,6 +192,16 @@ export function Preview({ summary, onCopy, onTogglePin, onDelete, toast, trash, 
               Copy
             </Button>
             <SecondaryAction summary={s} clip={clip} onCopy={onCopy} toast={toast} />
+            {page && !isAndroid && (
+              <Button
+                icon={ExternalLink}
+                className="h-9 w-full"
+                title={s.preview}
+                onClick={() => void api.openUrl(s.preview).catch((e) => toast(errorMessage(e)))}
+              >
+                Open page
+              </Button>
+            )}
           </>
         )}
       </div>
@@ -213,19 +239,33 @@ function SecondaryAction({
         </Button>
       ) : null;
     case "image":
-      return isAndroid ? null : (
+      if (isAndroid) return null;
+      // A screenshot linked to the file the OS saved: show the real file.
+      if (s.files.length > 0) {
+        return (
+          <Button
+            icon={FolderOpen}
+            title={s.files[0]}
+            className={cls}
+            onClick={() => api.revealPath(s.files[0]).catch(fail)}
+          >
+            Open in folder
+          </Button>
+        );
+      }
+      return (
         <Button
-          icon={FolderOpen}
-          title="Saves a copy to Downloads and shows it in the folder (stored images are encrypted)"
+          icon={Download}
+          title="Save a copy of this image as a PNG file"
           className={cls}
           onClick={() =>
             api
               .saveImage(s.id)
-              .then(() => toast("Saved a copy to Downloads"))
+              .then((path) => path && toast(`Saved ${splitPath(path).name}`))
               .catch(fail)
           }
         >
-          Open in folder
+          Save as…
         </Button>
       );
     case "contact": {
@@ -366,8 +406,15 @@ function Body({ summary: s, clip, toast }: { summary: ClipSummary; clip: Clip | 
       return <LinkView url={clip?.text ?? s.preview} />;
     case "color":
       return <ColorView value={clip?.text ?? s.preview} toast={toast} />;
-    case "file":
-      return <FilesView files={s.files} />;
+    case "file": {
+      const media = s.files.find((f) => mediaKind(f));
+      return (
+        <div className="space-y-3">
+          {media && <FilePreview path={media} />}
+          <FilesView files={s.files} />
+        </div>
+      );
+    }
     case "sensitive":
       return <SensitiveView key={s.id} clip={clip} summary={s} />;
     case "contact":
@@ -409,21 +456,9 @@ export function CodeBlock({ code, lang }: { code: string; lang: string | null })
 }
 
 function LinkView({ url }: { url: string }) {
-  const u = parseUrl(url);
   return (
-    <div>
-      <div className="overflow-hidden rounded-xl border border-line bg-panel-2">
-        <div className="k-link flex items-center gap-3 border-b border-line px-4 py-3.5">
-          <span className="k-tile grid h-9 w-9 place-items-center rounded-[10px] text-[15px] font-semibold uppercase">
-            {(u?.host ?? "?").charAt(0)}
-          </span>
-          <div className="min-w-0">
-            <div className="truncate text-[14px] font-semibold text-fg">{u?.host ?? "Link"}</div>
-            <div className="truncate text-[12px] text-fg-3">{u?.path || "/"}</div>
-          </div>
-        </div>
-        <div className="code px-4 py-3 text-[12px] leading-[1.6] break-all text-fg-2">{url}</div>
-      </div>
+    <div className="overflow-hidden rounded-xl border border-line bg-panel-2">
+      <div className="code px-4 py-3 text-[12px] leading-[1.6] break-all text-fg-2">{url}</div>
     </div>
   );
 }

@@ -194,7 +194,12 @@ impl Engine {
                     c.clip.text.clone()
                 },
                 html: c.clip.html.clone(),
-                files: s.files.clone(),
+                // An image's file is a local screenshot path; meaningless elsewhere.
+                files: if s.kind == Kind::Image {
+                    Vec::new()
+                } else {
+                    s.files.clone()
+                },
                 source_app: s.source_app.clone(),
                 origin: s.device_id.clone(),
                 created_at: s.created_at,

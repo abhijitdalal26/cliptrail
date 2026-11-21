@@ -65,14 +65,6 @@ class ClipTrailPlugin(private val activity: Activity) : Plugin(activity) {
 
     // ---- status / onboarding ---------------------------------------------------------------------
 
-    private fun a11yComponent() = ComponentName(activity, CaptureAccessibilityService::class.java)
-
-    private fun a11yEnabled(): Boolean {
-        val enabled = Settings.Secure.getString(activity.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)
-            ?: return false
-        return enabled.split(':').any { ComponentName.unflattenFromString(it) == a11yComponent() }
-    }
-
     private fun notificationsAllowed(): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             activity.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
@@ -83,22 +75,16 @@ class ClipTrailPlugin(private val activity: Activity) : Plugin(activity) {
     private fun statusObject(): JSObject {
         val ctx = activity
         return JSObject().apply {
-            put("autoCapture", Prefs.autoCapture(ctx))
-            put("serviceEnabled", a11yEnabled())
-            put("serviceConnected", CaptureEngine.serviceConnected)
+            put("keepAlive", Prefs.keepAlive(ctx))
             put("notificationsAllowed", notificationsAllowed())
             put("batteryUnrestricted", batteryUnrestricted())
             put("keepAliveRunning", KeepAliveService.running)
-            put("overlayAllowed", Settings.canDrawOverlays(ctx))
-            put("restrictedSettings", Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
             put("samsung", Build.MANUFACTURER.equals("samsung", ignoreCase = true))
             put("sdk", Build.VERSION.SDK_INT)
             put("device", NativeCore.deviceName(ctx))
             put("lastCaptureAt", Prefs.lastCaptureAt(ctx))
             put("lastSignal", Prefs.lastSignal(ctx))
-            put("autoCaptures", Prefs.count(ctx, "auto"))
-            put("manualCaptures", Prefs.count(ctx, "manual"))
-            put("misses", Prefs.count(ctx, "miss"))
+            put("captures", Prefs.count(ctx, "manual"))
         }
     }
 
@@ -108,9 +94,9 @@ class ClipTrailPlugin(private val activity: Activity) : Plugin(activity) {
     }
 
     @Command
-    fun setAutoCapture(invoke: Invoke) {
+    fun setKeepAlive(invoke: Invoke) {
         val args = invoke.parseArgs(EnabledArgs::class.java)
-        Prefs.setAutoCapture(activity, args.enabled)
+        Prefs.setKeepAlive(activity, args.enabled)
         if (args.enabled) KeepAliveService.start(activity) else KeepAliveService.stop(activity)
         invoke.resolve(statusObject())
     }
@@ -120,14 +106,6 @@ class ClipTrailPlugin(private val activity: Activity) : Plugin(activity) {
         val target = invoke.parseArgs(OpenArgs::class.java).target
         val pkg = activity.packageName
         val ok = when (target) {
-            // The per-service page needs a privileged permission, so this normally lands on the
-            // Accessibility list; the fragment key highlights our entry where Settings supports it.
-            "accessibility" -> tryStart(
-                Intent("android.settings.ACCESSIBILITY_DETAILS_SETTINGS")
-                    .putExtra(Intent.EXTRA_COMPONENT_NAME, a11yComponent().flattenToString()),
-                Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-                    .putExtra(":settings:fragment_args_key", a11yComponent().flattenToString()),
-            )
             "appInfo" -> tryStart(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", pkg, null)))
             "batteryOptimization" -> tryStart(
                 Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.fromParts("package", pkg, null)),
@@ -142,7 +120,6 @@ class ClipTrailPlugin(private val activity: Activity) : Plugin(activity) {
             "notifications" -> tryStart(
                 Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, pkg),
             )
-            "overlay" -> tryStart(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.fromParts("package", pkg, null)))
             else -> false
         }
         if (ok) invoke.resolve(JSObject().put("opened", true)) else invoke.reject("Couldn't open that screen on this phone")
@@ -174,7 +151,7 @@ class ClipTrailPlugin(private val activity: Activity) : Plugin(activity) {
         }
         val asked = SystemClock.uptimeMillis()
         wry.requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS)) { granted ->
-            if (granted == true && Prefs.autoCapture(activity)) KeepAliveService.start(activity)
+            if (granted == true && Prefs.keepAlive(activity)) KeepAliveService.start(activity)
             // Denied before: Android answers at once without showing the dialog, so open the setting
             // instead. A slower "no" is the user's own answer to the dialog; respect it.
             if (granted != true && SystemClock.uptimeMillis() - asked < 400) {

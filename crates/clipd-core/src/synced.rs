@@ -500,6 +500,7 @@ mod tests {
                 },
                 source_app: Some("notepad.exe".into()),
                 captured_at: now_millis(),
+                source_url: None,
             })
             .unwrap()
         {

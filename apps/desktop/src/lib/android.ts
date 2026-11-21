@@ -4,35 +4,21 @@
 import { isTauri } from "./api";
 
 export interface AndroidStatus {
-  /** "Automatic capture (beta)" toggle. */
-  autoCapture: boolean;
-  /** Accessibility service switched on in Settings. */
-  serviceEnabled: boolean;
-  /** …and actually bound (on but not connected = toggle it off and on). */
-  serviceConnected: boolean;
+  /** "Save button in notifications" (off by default): the notification with Save clipboard, and sync. */
+  keepAlive: boolean;
   notificationsAllowed: boolean;
   batteryUnrestricted: boolean;
   keepAliveRunning: boolean;
-  overlayAllowed: boolean;
-  /** Android 13+: sideloaded apps need "Allow restricted settings". */
-  restrictedSettings: boolean;
   samsung: boolean;
   sdk: number;
   device: string;
   lastCaptureAt: number;
   lastSignal: string | null;
-  autoCaptures: number;
-  manualCaptures: number;
-  misses: number;
+  /** Clips saved on this phone (tile, notification, share, app). */
+  captures: number;
 }
 
-export type SettingsScreen =
-  | "accessibility"
-  | "appInfo"
-  | "battery"
-  | "batteryOptimization"
-  | "notifications"
-  | "overlay";
+export type SettingsScreen = "appInfo" | "battery" | "batteryOptimization" | "notifications";
 
 async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
   if (isTauri) {
@@ -44,7 +30,7 @@ async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> 
 
 export const androidApi = {
   status: () => call<AndroidStatus>("android_status"),
-  setAutoCapture: (enabled: boolean) => call<AndroidStatus>("android_set_auto_capture", { enabled }),
+  setKeepAlive: (enabled: boolean) => call<AndroidStatus>("android_set_keep_alive", { enabled }),
   open: (target: SettingsScreen) => call<unknown>("android_open", { target }),
   requestNotifications: () => call<{ granted: boolean }>("android_request_notifications"),
   /** `{ text }` or `{ cancelled: true }`. */
@@ -61,22 +47,16 @@ export const androidApi = {
 // ---- browser mock ----
 
 const mock: AndroidStatus = {
-  autoCapture: true,
-  serviceEnabled: false,
-  serviceConnected: false,
-  notificationsAllowed: true,
+  keepAlive: true,
+  notificationsAllowed: false,
   batteryUnrestricted: false,
   keepAliveRunning: true,
-  overlayAllowed: false,
-  restrictedSettings: true,
   samsung: true,
   sdk: 36,
   device: "Galaxy S23 FE",
   lastCaptureAt: Date.now() - 4 * 60_000,
   lastSignal: "QS_TILE",
-  autoCaptures: 0,
-  manualCaptures: 3,
-  misses: 0,
+  captures: 3,
 };
 
 async function mockCall(cmd: string, a: Record<string, unknown>): Promise<unknown> {
@@ -84,13 +64,12 @@ async function mockCall(cmd: string, a: Record<string, unknown>): Promise<unknow
   switch (cmd) {
     case "android_status":
       return { ...mock };
-    case "android_set_auto_capture":
-      mock.autoCapture = Boolean(a.enabled);
-      mock.keepAliveRunning = mock.autoCapture;
+    case "android_set_keep_alive":
+      mock.keepAlive = Boolean(a.enabled);
+      mock.keepAliveRunning = mock.keepAlive;
       return { ...mock };
     case "android_open":
       // Pretend the user did what the screen asks.
-      if (a.target === "accessibility") mock.serviceEnabled = mock.serviceConnected = true;
       if (a.target === "batteryOptimization") mock.batteryUnrestricted = true;
       if (a.target === "notifications") mock.notificationsAllowed = true;
       return { opened: true };

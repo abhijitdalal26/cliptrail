@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, ArrowLeft, ChevronRight, ClipboardPlus, Layers, Search, Settings, Star, X, Zap } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Bell, ChevronRight, ClipboardPlus, Layers, Search, Settings, Star, X } from "lucide-react";
 import { api, errorMessage, isTauri, onClipsChanged } from "../lib/api";
 import { androidApi, type AndroidStatus } from "../lib/android";
 import { cx } from "../lib/cx";
@@ -266,7 +266,8 @@ export function MobileApp() {
       };
     }),
   ];
-  const setupNeeded = !!status && status.autoCapture && !(status.serviceEnabled && status.serviceConnected);
+  // The Save clipboard button lives on the notification, so nudge until notifications are allowed.
+  const setupNeeded = !!status && status.keepAlive && !status.notificationsAllowed;
   const filtered = filter !== "all" || !!debounced;
 
   const top = (
@@ -285,12 +286,12 @@ export function MobileApp() {
           className="flex w-full items-center gap-3 rounded-2xl border border-line bg-panel px-3.5 py-3 text-left shadow-soft active:scale-[0.99]"
         >
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent-text">
-            <Zap size={19} strokeWidth={2} />
+            <Bell size={19} strokeWidth={2} />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[14px] font-semibold text-fg">Turn on automatic capture</span>
+            <span className="block text-[14px] font-semibold text-fg">Get a Save clipboard button</span>
             <span className="block text-[12.5px] leading-[1.4] text-fg-3">
-              Save everything you copy, without opening ClipTrail. Takes a minute.
+              Allow notifications to save what you copy without opening ClipTrail.
             </span>
           </span>
           <ChevronRight size={18} className="shrink-0 text-fg-3" />

@@ -110,6 +110,16 @@ pub fn dib_to_rgba(data: &[u8]) -> Result<(u32, u32, Vec<u8>)> {
 
     let bytes_pp = usize::from(bpp / 8);
     let stride = (w * usize::from(bpp)).div_ceil(32) * 4;
+    // A V4/V5 header carries its masks, but the CF_DIBV5 Windows synthesizes
+    // for a screenshot repeats them after the header as well. Reading pixels
+    // straight after the header then shifts the image by 3 pixels, so skip
+    // the masks when exactly those 12 bytes are in front of the pixel data.
+    if compression == BI_BITFIELDS
+        && header_size > 40
+        && data.len().checked_sub(offset) == Some(stride * h + 12)
+    {
+        offset += 12;
+    }
     // Tolerate a missing padding tail on the last row.
     let needed = offset + stride * (h - 1) + w * bytes_pp;
     if data.len() < needed {
@@ -314,6 +324,25 @@ mod tests {
         ]
         .concat();
         assert_eq!(dib_to_rgba(&d).unwrap().2, want);
+    }
+
+    #[test]
+    fn dibv5_bitfields_with_repeated_masks_after_header() {
+        // What Windows synthesizes for a screenshot: a 124-byte V5 header
+        // with masks, then the same three masks again, then the pixels.
+        let mut d = header(2, -2, 32, BI_BITFIELDS, 124);
+        d.resize(40, 0);
+        for m in [0x00FF_0000u32, 0x0000_FF00, 0x0000_00FF, 0xFF00_0000] {
+            d.extend(m.to_le_bytes());
+        }
+        d.resize(124, 0);
+        for m in [0x00FF_0000u32, 0x0000_FF00, 0x0000_00FF] {
+            d.extend(m.to_le_bytes());
+        }
+        for px in [RED, GREEN, BLUE, WHITE] {
+            d.extend(bgra(px, 255));
+        }
+        assert_eq!(dib_to_rgba(&d).unwrap().2, expected());
     }
 
     #[test]

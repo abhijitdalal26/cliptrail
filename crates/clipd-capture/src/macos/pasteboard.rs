@@ -138,6 +138,7 @@ pub fn read_current() -> Result<Option<RawClip>> {
         content,
         source_app: super::paste::source_app_now(),
         captured_at: now_ms(),
+        source_url: None,
     }))
 }
 

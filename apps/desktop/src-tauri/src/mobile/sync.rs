@@ -2,7 +2,7 @@
 //!
 //! The client loop belongs to the process, not to the UI: it starts when
 //! the core is initialized (by whichever Android component started first)
-//! so copies captured by the accessibility service are pushed while the
+//! so copies saved from the tile or notification are pushed while the
 //! app's window is closed. Images sync as thumbnails; the full image is
 //! fetched when a clip is opened (`sync_fetch_image`).
 //!

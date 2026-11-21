@@ -65,5 +65,6 @@ pub(super) fn read_current() -> Result<Option<RawClip>> {
         content,
         source_app,
         captured_at: now_ms(),
+        source_url: None,
     }))
 }
