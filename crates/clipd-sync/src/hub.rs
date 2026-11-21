@@ -42,7 +42,7 @@ use tokio::task::JoinHandle;
 use crate::auth::{AuthHeader, MAX_SKEW_MS};
 use crate::crypto::aad;
 use crate::db::DeviceRow;
-use crate::engine::{Engine, JOURNAL_BATCH, SyncNotice, valid_blob_id};
+use crate::engine::{Engine, FileFetchError, JOURNAL_BATCH, SyncNotice, valid_blob_id};
 use crate::envelope::SeqEnvelope;
 use crate::keystore::KeyStore;
 use crate::pairing::{PairError, PairOffers, PairRequest};
@@ -503,6 +503,7 @@ fn router(hub: Arc<Hub>) -> Router {
                 .get(get_blob)
                 .layer(DefaultBodyLimit::max(BLOB_BODY_LIMIT)),
         )
+        .route("/v1/files/{blob_id}/{index}", get(get_file))
         .layer(middleware::from_fn(lan_only))
         .with_state(hub)
 }
@@ -881,6 +882,47 @@ async fn get_blob(
     match bytes {
         Some(b) => Ok(([(header::CONTENT_TYPE, "application/octet-stream")], b).into_response()),
         None => Err(ApiError(StatusCode::NOT_FOUND, "no such blob".into())),
+    }
+}
+
+#[derive(Deserialize)]
+struct FileQuery {
+    #[serde(default)]
+    preview: bool,
+}
+
+/// A copied file (or its preview) for a paired device, fetched on demand:
+/// file clips sync as paths only, and phones ask for the file when the user
+/// wants it. Sealed with the space keys like blobs.
+async fn get_file(
+    State(hub): State<Arc<Hub>>,
+    AxPath((blob_id, index)): AxPath<(String, usize)>,
+    Query(q): Query<FileQuery>,
+    method: Method,
+    uri: Uri,
+    headers: HeaderMap,
+) -> Result<Response, ApiError> {
+    authenticate(&hub, &method, &uri, &headers, b"")?;
+    if !valid_blob_id(&blob_id) {
+        return Err(ApiError(StatusCode::BAD_REQUEST, "bad blob id".into()));
+    }
+    let engine = hub.engine.clone();
+    let sealed = tokio::task::spawn_blocking(move || engine.seal_file(&blob_id, index, q.preview))
+        .await
+        .map_err(|_| anyhow::anyhow!("file task failed"))?;
+    match sealed {
+        Ok(b) => Ok(([(header::CONTENT_TYPE, "application/octet-stream")], b).into_response()),
+        Err(e) => match e.downcast_ref::<FileFetchError>() {
+            Some(f) => {
+                let status = match f {
+                    FileFetchError::NoClip | FileFetchError::Missing => StatusCode::NOT_FOUND,
+                    FileFetchError::TooBig => StatusCode::PAYLOAD_TOO_LARGE,
+                    FileFetchError::NotAnImage => StatusCode::UNSUPPORTED_MEDIA_TYPE,
+                };
+                Err(ApiError(status, f.to_string()))
+            }
+            None => Err(e.into()),
+        },
     }
 }
 

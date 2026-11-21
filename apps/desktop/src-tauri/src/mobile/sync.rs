@@ -19,6 +19,7 @@ use std::time::Duration;
 use clipd_sync::relay::RelayHello;
 use clipd_sync::{ClientConfig, ClientHandle, PairOutcome, Role, SyncNotice, SyncStatus};
 use serde::Serialize;
+use tauri::AppHandle;
 
 use crate::state::lock;
 
@@ -299,6 +300,148 @@ pub async fn sync_fetch_image(id: String) -> CmdResult<bool> {
         super::emit("clips-updated", ());
     }
     Ok(got)
+}
+
+// ---- copied files on the computer --------------------------------------------
+//
+// A copied file syncs as its path only. Its preview, and the file itself when
+// the user copies or saves it, are fetched from the computer on demand, so
+// copying 50 photos on the laptop doesn't fill the phone.
+
+/// Previews of copied files: encrypted like other images (`write_image`),
+/// served by `clipimg://`, and pruned to the newest `FILE_CACHE_KEEP`.
+const FILE_CACHE_DIR: &str = "file-cache";
+const FILE_CACHE_KEEP: usize = 60;
+/// Plain copies handed to Android (clipboard via the FileProvider, or the
+/// Gallery). Must match `file_paths.xml`; holds only the latest one.
+const FILE_OUT_DIR: &str = "clipboard-out";
+
+fn running_client() -> CmdResult<Arc<ClientHandle>> {
+    lock(&CTL.running)
+        .clone()
+        .ok_or_else(|| "Pair this phone with your computer to get files from it".to_string())
+}
+
+fn friendly(e: anyhow::Error) -> String {
+    let m = format!("{e:#}");
+    let mut c = m.chars();
+    c.next()
+        .map(|f| f.to_uppercase().collect::<String>() + c.as_str())
+        .unwrap_or(m)
+}
+
+/// Preview of file `index` of a copied-files clip, fetched once and cached.
+#[tauri::command]
+pub async fn sync_file_preview(app: AppHandle, id: String, index: usize) -> CmdResult<String> {
+    let dir = crate::commands::pipeline(&app)?
+        .config()
+        .data_dir
+        .join(FILE_CACHE_DIR);
+    let name: String = id.chars().filter(|c| c.is_ascii_alphanumeric()).collect();
+    let path = dir.join(format!("{name}-{index}.png"));
+    if path.exists() {
+        return Ok(path.to_string_lossy().into_owned());
+    }
+    let png = running_client()?
+        .fetch_file(&id, index, true)
+        .await
+        .map_err(friendly)?;
+    crate::commands::blocking(move || {
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        clipd_core::write_image(&path, &png).map_err(|e| format!("{e:#}"))?;
+        prune_file_cache(&dir);
+        Ok(path.to_string_lossy().into_owned())
+    })
+    .await
+}
+
+fn prune_file_cache(dir: &std::path::Path) {
+    let Ok(rd) = std::fs::read_dir(dir) else {
+        return;
+    };
+    let mut files: Vec<_> = rd
+        .filter_map(|e| e.ok())
+        .filter_map(|e| Some((e.metadata().ok()?.modified().ok()?, e.path())))
+        .collect();
+    files.sort_by(|a, b| b.0.cmp(&a.0));
+    for (_, p) in files.into_iter().skip(FILE_CACHE_KEEP) {
+        let _ = std::fs::remove_file(p);
+    }
+}
+
+/// Fetch file `index` of a copied-files clip into the hand-off folder.
+/// Returns its path and file name.
+async fn fetch_to_out(app: &AppHandle, id: &str, index: usize) -> CmdResult<(String, String)> {
+    let p = crate::commands::pipeline(app)?;
+    let source = {
+        let (p, id) = (p.clone(), id.to_owned());
+        crate::commands::blocking(move || {
+            let clip = p
+                .store()
+                .get(&id)
+                .map_err(|e| format!("{e:#}"))?
+                .ok_or_else(|| "That clip no longer exists".to_string())?;
+            clip.summary
+                .files
+                .get(index)
+                .cloned()
+                .ok_or_else(|| "That file isn't in this clip".to_string())
+        })
+        .await?
+    };
+    // A Windows path on the phone: take the name after the last separator.
+    let name: String = source
+        .rsplit(['\\', '/'])
+        .next()
+        .unwrap_or("file")
+        .chars()
+        .filter(|c| !matches!(c, '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|'))
+        .collect();
+    let name = if name.is_empty() {
+        "file".to_owned()
+    } else {
+        name
+    };
+    let bytes = running_client()?
+        .fetch_file(id, index, false)
+        .await
+        .map_err(friendly)?;
+    let dir = p.config().data_dir.join(FILE_OUT_DIR);
+    let out = dir.join(&name);
+    crate::commands::blocking(move || {
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        std::fs::write(&out, bytes).map_err(|e| e.to_string())?;
+        Ok((out.to_string_lossy().into_owned(), name))
+    })
+    .await
+}
+
+/// Copy a file that's on the computer to the phone's clipboard.
+#[tauri::command]
+pub async fn sync_copy_file(app: AppHandle, id: String, index: usize) -> CmdResult<()> {
+    let (path, _) = fetch_to_out(&app, &id, index).await?;
+    super::bridge::call::<serde_json::Value>(
+        &app,
+        "writeClipboard",
+        serde_json::json!({ "imagePath": path }),
+    )
+    .await?;
+    Ok(())
+}
+
+/// Save a file that's on the computer to the phone's Pictures/ClipTrail.
+#[tauri::command]
+pub async fn sync_save_file(app: AppHandle, id: String, index: usize) -> CmdResult<()> {
+    let (path, name) = fetch_to_out(&app, &id, index).await?;
+    let res = super::bridge::call::<serde_json::Value>(
+        &app,
+        "saveToGallery",
+        serde_json::json!({ "path": path, "name": name }),
+    )
+    .await;
+    let _ = std::fs::remove_file(&path);
+    res.map(|_| ())
 }
 
 // ---- off-LAN relays ("Sync anywhere") ---------------------------------------

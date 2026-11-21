@@ -239,6 +239,18 @@ impl Envelope {
 }
 
 /// AAD for a sealed image blob.
+/// Associated data of a copied file fetched from the hub on demand: binds
+/// the bytes to the clip, the file's place in its list and the variant.
+pub fn file_aad(space_id: &str, blob_id: &str, index: usize, preview: bool) -> Vec<u8> {
+    aad(&[
+        b"cliptrail-file-v1",
+        space_id.as_bytes(),
+        blob_id.as_bytes(),
+        index.to_string().as_bytes(),
+        if preview { b"preview" } else { b"full" },
+    ])
+}
+
 pub fn blob_aad(space_id: &str, blob_id: &str) -> Vec<u8> {
     aad(&[
         b"cliptrail-blob-v1",

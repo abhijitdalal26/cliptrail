@@ -19,7 +19,7 @@ pub mod trash;
 pub use classify::classify_text;
 pub use imagefile::{read_image, write_image};
 pub use model::*;
-pub use pipeline::{ClearScope, Pipeline, PipelineConfig};
+pub use pipeline::{ClearScope, Pipeline, PipelineConfig, preview_png};
 pub use store::Store;
 pub use synced::{ClipWithHash, JournalEntry, JournalOp, SyncedClip, SyncedImage};
 pub use transform::{

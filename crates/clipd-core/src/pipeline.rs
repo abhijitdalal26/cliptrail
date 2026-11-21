@@ -539,6 +539,23 @@ fn is_web_url(u: &str) -> bool {
     u.len() <= 2048 && (u.starts_with("https://") || u.starts_with("http://"))
 }
 
+/// A PNG preview of an image file's bytes (PNG, JPEG, WebP, GIF or BMP),
+/// scaled so its longer side is at most `max_side` (never upscaled).
+pub fn preview_png(bytes: &[u8], max_side: u32) -> Result<Vec<u8>> {
+    let img = image::load_from_memory(bytes)
+        .context("not an image this build can read")?
+        .to_rgba8();
+    let (w, h) = img.dimensions();
+    let scale = (f64::from(max_side) / f64::from(w.max(h))).min(1.0);
+    let fit = |v: u32| ((f64::from(v) * scale).round() as u32).max(1);
+    let small = if scale < 1.0 {
+        imageops::thumbnail(&img, fit(w), fit(h))
+    } else {
+        img
+    };
+    encode_png(&small)
+}
+
 pub(crate) fn thumbnail(img: &RgbaImage) -> RgbaImage {
     let (w, h) = img.dimensions();
     let (tw, th) = thumb_size(w, h);
@@ -1045,5 +1062,21 @@ mod tests {
         assert!(!wildcard_match("a*b*c", "aXXbYY"));
         assert!(wildcard_match("1password.exe", "1password.exe"));
         assert!(!wildcard_match("1password.exe", "1password.exe2"));
+    }
+
+    #[test]
+    fn preview_png_shrinks_and_keeps_aspect() {
+        let big = RgbaImage::from_pixel(2000, 1000, image::Rgba([10, 20, 30, 255]));
+        let png = encode_png(&big).unwrap();
+        let out = preview_png(&png, 640).unwrap();
+        let img = image::load_from_memory(&out).unwrap();
+        assert_eq!((img.width(), img.height()), (640, 320));
+
+        // Small images are not upscaled.
+        let small = encode_png(&RgbaImage::new(100, 50)).unwrap();
+        let img = image::load_from_memory(&preview_png(&small, 640).unwrap()).unwrap();
+        assert_eq!((img.width(), img.height()), (100, 50));
+
+        assert!(preview_png(b"not an image", 640).is_err());
     }
 }

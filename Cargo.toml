@@ -27,7 +27,8 @@ rusqlite = { version = "0.41", features = ["bundled"] }
 ulid = "3"
 sha2 = "0.11"
 regex = "1"
-image = { version = "0.25", default-features = false, features = ["png"] }
+# png for clip images; the others to preview copied image files (sync file fetch).
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp", "gif", "bmp"] }
 dirs = "7"
 clap = { version = "4", features = ["derive"] }
 tracing = "0.1"

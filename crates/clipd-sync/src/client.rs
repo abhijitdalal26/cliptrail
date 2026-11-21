@@ -421,6 +421,51 @@ impl ClientHandle {
         }
     }
 
+    /// File `index` of a copied-files clip, fetched from the hub now
+    /// (`preview`: a small PNG of an image instead). Files never sync by
+    /// themselves; this is the on-demand path. Needs the hub reachable.
+    pub async fn fetch_file(&self, clip_id: &str, index: usize, preview: bool) -> Result<Vec<u8>> {
+        let engine = self.shared.engine.clone();
+        let id = clip_id.to_owned();
+        let blob_id = blocking(move || {
+            Ok(engine
+                .pipeline
+                .store()
+                .content_hash(&id)?
+                .map(|h| engine.keys.blob_id(&h)))
+        })
+        .await?
+        .context("that clip isn't on this device")?;
+        let host = {
+            let live = lock(&self.shared.live);
+            live.connected.then(|| live.host.clone()).flatten()
+        };
+        let Some(host) = host else {
+            bail!("your computer isn't reachable; the file is on it");
+        };
+        let q = if preview { "?preview=true" } else { "" };
+        let resp = send(
+            &self.shared,
+            &host,
+            Method::GET,
+            &format!("/v1/files/{blob_id}/{index}{q}"),
+            Vec::new(),
+        )
+        .await?;
+        if resp.status() == reqwest::StatusCode::NOT_FOUND {
+            let msg = error_message(resp).await;
+            // Hubs from before v0.1.6 don't know the route: no JSON error.
+            if msg.starts_with("HTTP ") {
+                bail!("update ClipTrail on your computer to get files from it");
+            }
+            bail!("{msg}");
+        }
+        let sealed = expect_ok(resp, "file download").await?;
+        let engine = self.shared.engine.clone();
+        let b = blob_id.clone();
+        blocking(move || engine.open_file(&b, index, preview, &sealed)).await
+    }
+
     /// Stop the loop (closes the stream; the outbox stays on disk).
     pub async fn shutdown(self) {
         self.relays.shutdown().await;

@@ -7,8 +7,9 @@ import { useDebounced, useEvent, useTick } from "../lib/hooks";
 import { KIND_META } from "../lib/kinds";
 import { isAndroid } from "../lib/platform";
 import { platformIcon, syncApi, useDeviceInfo, useSyncView } from "../lib/sync";
+import { remoteImageFile } from "../lib/media";
 import { useTheme } from "../lib/theme";
-import { toast } from "../lib/toast";
+import { dismiss, toast } from "../lib/toast";
 import { ALL_KINDS, type ClipSummary, type Kind, type ListQuery, type Stats } from "../lib/types";
 import { useClips } from "../lib/useClips";
 import { Toasts } from "../components/Toasts";
@@ -175,8 +176,12 @@ export function MobileApp() {
 
   // ---------- actions ----------
   const copy = useEvent((id: string, plain: boolean) => {
-    api
-      .copyClip(id, plain)
+    // A copied image file is on the computer: fetch it now (it isn't stored here).
+    const c = clips.items.find((x) => x.id === id);
+    const remote = isAndroid && !!c && remoteImageFile(c.kind, c.files);
+    const busy = remote ? toast({ message: "Getting the image…", tone: "busy", duration: 30_000 }) : 0;
+    (remote ? syncApi.copyFile(id, 0) : api.copyClip(id, plain))
+      .finally(() => busy && dismiss(busy))
       .then(() => {
         // Android 13+ confirms every copy itself; a second toast would just repeat it.
         if (!(isAndroid && (status?.sdk ?? 0) >= 33)) toast(plain ? "Copied as plain text" : "Copied");
