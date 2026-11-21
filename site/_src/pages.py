@@ -17,7 +17,7 @@ INDEX = r"""
 <section class="hero">
   <div class="wrap">
     <div class="hero-copy">
-      <a class="badge" href="{{R}}changelog.html"><span class="dot"></span>v0.1.5: tap to copy, devices filter, phone update notices <span class="arrow">→</span></a>
+      <a class="badge" href="{{R}}changelog.html"><span class="dot"></span>v0.1.6: images copied on your computer, on your phone in one tap <span class="arrow">→</span></a>
       <h1 class="h1">Your clipboard,<br><span class="grad">everywhere, forever.</span></h1>
       <p class="lede">{{B}} remembers everything you copy, knows what each thing is, and puts it one keystroke away. Pair your devices and your history follows you, end-to-end encrypted. Open source, no account, no tracking.</p>
       <div class="hero-cta">
@@ -474,6 +474,34 @@ CHANGELOG = r"""
 </section>
 <section style="padding:16px 0 96px">
   <div class="wrap">
+    <div class="changelog-entry">
+      <div class="changelog-meta">
+        <div class="ver">v0.1.6</div>
+        <div class="date">2026-11-22</div>
+        <span class="chip chip-accent">Alpha</span>
+      </div>
+      <div class="prose">
+        <p>Copy an image file on your computer and use it on your phone, without filling the phone with copies.</p>
+
+        <div class="cl-group">
+          <h3>Android</h3>
+          <ul>
+            <li>Open an image file you copied on the computer to see a preview; <strong>Copy</strong> puts the image on the phone's clipboard and <strong>Save to phone</strong> adds it to Pictures › ClipTrail. The file is fetched from the computer when you tap (encrypted, paired devices only); only its name syncs by itself.</li>
+            <li>Clear messages when the computer isn't reachable, the file was moved or deleted, or the computer runs an older {{B}}.</li>
+          </ul>
+        </div>
+
+        <div class="cl-group">
+          <h3>Desktop</h3>
+          <ul>
+            <li>Answers your phone's requests for copied files: only files listed in your history, to paired devices, up to 64 MB.</li>
+            <li>Image previews now read JPEG, WebP, GIF and BMP as well as PNG.</li>
+            <li>"Sync anywhere" (relays) is hidden for now; devices sync on the same network and catch up when they're together again.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
     <div class="changelog-entry">
       <div class="changelog-meta">
         <div class="ver">v0.1.5</div>
