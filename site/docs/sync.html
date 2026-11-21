@@ -148,13 +148,8 @@ clipd sync pair "cliptrail://pair?v=1&amp;h=…"</code></pre></li>
   <li><strong>Start over:</strong> <code>clipd sync reset</code> (with the app closed) forgets keys, devices and sync progress for this device, keeping all clips.</li>
 </ul>
 
-<h2 id="anywhere">Sync away from home (relay)</h2>
-<p>Devices on different networks (your phone on mobile data, the laptop at home or asleep) can sync through a <strong>relay</strong>: a small mailbox server that stores only end-to-end-encrypted events and images. It never has a key that can open them.</p>
-<ol>
-  <li>Run a relay on a server you control. The <a href="https://github.com/abhijitdalal26/cliptrail/tree/main/docker">self-hosting guide</a> has a one-command Docker setup with automatic HTTPS.</li>
-  <li>On the desktop app: <em>Settings → Devices → Sync anywhere</em>, paste the relay's URL (and its invite code), test it and add it. Paired devices pick it up automatically.</li>
-</ol>
-<p>There is no public ClipTrail relay; you host your own.</p>
+<h2 id="anywhere">Away from home</h2>
+<p>Devices sync when they can reach each other on the same network (Wi-Fi, or your phone's hotspot). Apart, each keeps saving on its own and they catch up the next time they're together. Syncing over the internet while apart is planned for a later version.</p>
 
   </article>
   <nav class="docs-pager" aria-label="Previous and next page"><a class="prev" href="ai-assistants.html"><span class="lbl">← Previous</span><span class="ttl">AI assistants (MCP)</span></a><a class="next" href="android.html"><span class="lbl">Next →</span><span class="ttl">Android setup</span></a></nav>

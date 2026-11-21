@@ -200,6 +200,9 @@ export function useDeviceInfo(): (id: string) => Pick<DeviceView, "name" | "plat
   };
 }
 
+/** "Sync anywhere" (relays) is built but hidden in the apps until it's ready to offer. */
+export const SHOW_RELAY = false;
+
 export function platformIcon(platform: string): LucideIcon {
   if (platform === "android" || platform === "ios") return Smartphone;
   if (platform === "macos") return Laptop;

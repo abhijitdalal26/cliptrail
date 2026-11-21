@@ -8,6 +8,7 @@ import {
   platformIcon,
   refreshSync,
   setSyncView,
+  SHOW_RELAY,
   syncApi,
   useSyncView,
   type DeviceView,
@@ -92,7 +93,7 @@ export function DevicesSection() {
           </div>
         )}
 
-        {view.enabled && st.configured && st.running && <RelayCard view={view} />}
+        {SHOW_RELAY && view.enabled && st.configured && st.running && <RelayCard view={view} />}
 
         {view.enabled && !isClient && <PortRow view={view} busy={busy} run={run} />}
       </div>

@@ -20,7 +20,7 @@ import { androidApi, type AndroidStatus, type SettingsScreen } from "../lib/andr
 import { cx } from "../lib/cx";
 import { untilLabel } from "../lib/format";
 import { isAndroid } from "../lib/platform";
-import { otherDevices, platformIcon, refreshSync, setSyncView, syncApi, useSyncView, type PairOutcome } from "../lib/sync";
+import { otherDevices, platformIcon, refreshSync, setSyncView, SHOW_RELAY, syncApi, useSyncView, type PairOutcome } from "../lib/sync";
 import { setThemePref } from "../lib/theme";
 import type { Settings, SettingsView, ThemePref } from "../lib/types";
 import { ClearHistoryDialog } from "../components/ClearHistoryDialog";
@@ -583,7 +583,7 @@ function DevicesSection({ pairLink, onPairLinkUsed }: { pairLink: string | null;
         </>
       )}
     </Section>
-    {isClient && v.enabled && (
+    {SHOW_RELAY && isClient && v.enabled && (
       <Section title="Sync anywhere">
         <RelayCard view={v} mobile />
       </Section>
