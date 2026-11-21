@@ -57,6 +57,7 @@ fn list_query(args: &Value) -> Result<ListQuery> {
             .get("source_app")
             .and_then(Value::as_str)
             .map(str::to_string),
+        device_id: None,
         from: time_arg(args, "from")?,
         to: time_arg(args, "to")?,
         before: time_arg(args, "before")?,

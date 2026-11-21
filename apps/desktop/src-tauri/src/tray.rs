@@ -80,7 +80,9 @@ fn on_menu(app: &AppHandle, event: MenuEvent) {
         "autostart" => {
             let al = app.autolaunch();
             let on = al.is_enabled().unwrap_or(false);
-            let _ = if on { al.disable() } else { al.enable() };
+            if if on { al.disable() } else { al.enable() }.is_ok() {
+                state.remember_autostart(!on);
+            }
             let _ = app.emit("settings-changed", ());
             refresh(app);
         }

@@ -22,6 +22,7 @@ import { Timeline, type TimelineHandle } from "./Timeline";
 import { UpdateNotices } from "./Updates";
 import { Welcome } from "./Welcome";
 import { TitleBar } from "./TitleBar";
+import { useDeviceInfo } from "../lib/sync";
 
 type Range = "any" | "today" | "7d" | "30d";
 const DAY = 86_400_000;
@@ -32,6 +33,8 @@ export function Dashboard() {
 
   const [view, setView] = useState<View>({ type: "dashboard" });
   const [app, setApp] = useState<string | null>(null);
+  const [device, setDevice] = useState<string | null>(null);
+  const deviceInfo = useDeviceInfo();
   const [search, setSearch] = useState("");
   const debounced = useDebounced(search.trim(), 160);
   const [range, setRange] = useState<Range>("any");
@@ -60,11 +63,12 @@ export function Dashboard() {
       kind: view.type === "kind" ? view.kind : null,
       pinned_only: view.type === "favorites",
       source_app: app,
+      device_id: device,
       search: debounced || null,
       from: from ?? recentFrom,
       before: jump?.before ?? null,
     };
-  }, [view, app, debounced, range, jump]);
+  }, [view, app, device, debounced, range, jump]);
 
   const inTrash = view.type === "trash";
   const live = useClips(query);
@@ -287,10 +291,11 @@ export function Dashboard() {
   };
 
   const filtered =
-    !["dashboard", "all", "trash"].includes(view.type) || !!app || !!debounced || range !== "any" || !!jump;
+    !["dashboard", "trash"].includes(view.type) || !!app || !!device || !!debounced || range !== "any" || !!jump;
   const clearFilters = () => {
-    setView({ type: view.type === "dashboard" ? "dashboard" : "all" });
+    setView({ type: "dashboard" });
     setApp(null);
+    setDevice(null);
     setRange("any");
     setJump(null);
     setSearch("");
@@ -343,13 +348,12 @@ export function Dashboard() {
   // ---------- derived ----------
   const TITLES: Record<Exclude<View["type"], "kind">, string> = {
     dashboard: "Dashboard",
-    all: "All clips",
     favorites: "Favorites",
     recent: "Recent",
     trash: "Trash",
   };
   const SUBTITLES: Partial<Record<View["type"], string>> = {
-    dashboard: "Your clipboard activity at a glance",
+    dashboard: "Everything you've copied, and your activity at a glance",
     recent: `Copied in the last ${RECENT_DAYS} days`,
     favorites: "Starred clips are kept until you remove them",
     trash: "Deleted clips are removed for good after 30 days",
@@ -358,7 +362,7 @@ export function Dashboard() {
   const subtitle = SUBTITLES[view.type];
   const byKind = new Map(stats?.by_kind ?? []);
   const titleCount =
-    view.type === "all"
+    view.type === "dashboard"
       ? stats?.total
       : view.type === "favorites"
         ? stats?.pinned
@@ -367,7 +371,7 @@ export function Dashboard() {
           : view.type === "kind"
             ? byKind.get(view.kind)
             : undefined;
-  const showRange = view.type === "all" || view.type === "kind" || view.type === "favorites";
+  const showRange = view.type === "dashboard" || view.type === "kind" || view.type === "favorites";
 
   const heat = useMemo(() => {
     if (!dayCounts) return null;
@@ -432,6 +436,8 @@ export function Dashboard() {
           apps={apps}
           app={app}
           onApp={setApp}
+          device={device}
+          onDevice={setDevice}
           capture={capture}
           onToggleCapture={() => void (capture.paused ? api.resumeCapture() : api.pauseCapture(null))}
           onSettings={() => setModal("settings")}
@@ -485,12 +491,17 @@ export function Dashboard() {
               />
               )}
             </div>
-            {(app || jump || debounced) && (
+            {(app || device || jump || debounced) && (
               <div className="anim-drop flex flex-wrap items-center gap-1.5 px-6 pb-2">
                 {debounced && <Chip active onRemove={() => setSearch("")}>“{debounced}”</Chip>}
                 {app && (
                   <Chip active onRemove={() => setApp(null)}>
                     {appName(app)}
+                  </Chip>
+                )}
+                {device && (
+                  <Chip active onRemove={() => setDevice(null)}>
+                    {deviceInfo(device).name}
                   </Chip>
                 )}
                 {jump && (

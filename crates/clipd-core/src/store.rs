@@ -297,6 +297,10 @@ impl Store {
             sql.push_str(" AND c.source_app = ?");
             args.push(Value::Text(app.clone()));
         }
+        if let Some(dev) = &q.device_id {
+            sql.push_str(" AND c.device_id = ?");
+            args.push(Value::Text(dev.clone()));
+        }
         if let Some(from) = q.from {
             sql.push_str(" AND c.last_seen_at >= ?");
             args.push(Value::Integer(from));
@@ -447,12 +451,19 @@ impl Store {
             .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?
             .collect::<rusqlite::Result<Vec<_>>>()?;
         let trashed = conn.query_row("SELECT count(*) FROM trash", [], |r| r.get(0))?;
+        let by_device = conn
+            .prepare(
+                "SELECT device_id, count(*) AS n FROM clips GROUP BY device_id                  ORDER BY n DESC, device_id",
+            )?
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
         Ok(Stats {
             total,
             by_kind,
             pinned,
             top_apps,
             trashed,
+            by_device,
         })
     }
 
@@ -1087,6 +1098,7 @@ mod tests {
         let mut c = text_clip("c", "c", t + 2 * 86_400_000);
         c.kind = Kind::Code;
         c.source_app = None;
+        c.device_id = "phone".to_owned();
         store.upsert(c).unwrap();
         store.set_pinned("a", true).unwrap();
 
@@ -1103,6 +1115,21 @@ mod tests {
         assert_eq!(s.pinned, 1);
         assert_eq!(s.by_kind, [(Kind::Text, 2), (Kind::Code, 1)]);
         assert_eq!(s.top_apps, [("notepad.exe".to_owned(), 2)]);
+        assert_eq!(
+            s.by_device,
+            [("dev1".to_owned(), 2), ("phone".to_owned(), 1)]
+        );
+
+        let from_phone = store
+            .list(&ListQuery {
+                device_id: Some("phone".to_owned()),
+                ..Default::default()
+            })
+            .unwrap();
+        assert_eq!(
+            from_phone.iter().map(|c| c.id.as_str()).collect::<Vec<_>>(),
+            ["c"]
+        );
     }
 
     #[test]

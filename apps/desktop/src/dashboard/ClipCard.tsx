@@ -1,5 +1,5 @@
-import { memo, useState } from "react";
-import { Copy, Star } from "lucide-react";
+import { memo, useRef, useState } from "react";
+import { Check, ChevronRight, Copy, Star } from "lucide-react";
 import { assetUrl } from "../lib/api";
 import { cx } from "../lib/cx";
 import { parseColor, splitPath, untilLabel } from "../lib/format";
@@ -18,9 +18,12 @@ interface Props {
   onTogglePin: (clip: ClipSummary) => void;
   /** Trash: no copy / favorite controls. */
   readOnly?: boolean;
+  /** Phone: tapping the row copies it; the chevron or a long press opens it. */
+  mobile?: boolean;
 }
 
-export const ClipCard = memo(function ClipCard({ clip, selected, onSelect, onCopy, onTogglePin, readOnly }: Props) {
+export const ClipCard = memo(function ClipCard({ clip, selected, onSelect, onCopy, onTogglePin, readOnly, mobile }: Props) {
+  if (mobile && !readOnly) return <MobileCard clip={clip} onSelect={onSelect} onCopy={onCopy} />;
   return (
     <div
       role="option"
@@ -57,6 +60,85 @@ export const ClipCard = memo(function ClipCard({ clip, selected, onSelect, onCop
     </div>
   );
 });
+
+const LONG_PRESS_MS = 450;
+
+function MobileCard({
+  clip,
+  onSelect,
+  onCopy,
+}: {
+  clip: ClipSummary;
+  onSelect: (id: string) => void;
+  onCopy: (id: string) => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const press = useRef<{ timer: number; x: number; y: number; long: boolean } | null>(null);
+  const flash = useRef(0);
+
+  const cancel = () => {
+    if (press.current) window.clearTimeout(press.current.timer);
+  };
+  // Click (not pointerdown) so a scroll that starts on a row never copies it.
+  const tap = () => {
+    if (press.current?.long) return;
+    onCopy(clip.id);
+    setCopied(true);
+    window.clearTimeout(flash.current);
+    flash.current = window.setTimeout(() => setCopied(false), 900);
+  };
+
+  return (
+    <div
+      role="option"
+      aria-selected={false}
+      aria-label="Tap to copy"
+      onClick={tap}
+      onPointerDown={(e) => {
+        cancel();
+        const p = { timer: 0, x: e.clientX, y: e.clientY, long: false };
+        p.timer = window.setTimeout(() => {
+          p.long = true;
+          onSelect(clip.id);
+        }, LONG_PRESS_MS);
+        press.current = p;
+      }}
+      onPointerMove={(e) => {
+        const p = press.current;
+        if (p && Math.hypot(e.clientX - p.x, e.clientY - p.y) > 8) cancel();
+      }}
+      onPointerUp={cancel}
+      onPointerCancel={cancel}
+      onContextMenu={(e) => e.preventDefault()}
+      className={cx(
+        "relative flex gap-3 rounded-[11px] py-2.5 pr-1 pl-3 transition-colors duration-150 select-none active:bg-active",
+        copied && "bg-accent-soft",
+      )}
+    >
+      <Leading clip={clip} />
+      <div className="min-w-0 flex-1 self-center">
+        <Body clip={clip} />
+      </div>
+      {copied ? (
+        <span className="grid w-10 shrink-0 place-items-center text-accent-text" aria-live="polite">
+          <Check size={18} strokeWidth={2.4} aria-label="Copied" />
+        </span>
+      ) : (
+        <button
+          aria-label="Open clip"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect(clip.id);
+          }}
+          className="grid w-10 shrink-0 place-items-center self-stretch rounded-lg text-fg-3 active:bg-active"
+        >
+          <ChevronRight size={19} strokeWidth={2} />
+        </button>
+      )}
+    </div>
+  );
+}
 
 function RowButton({
   label,

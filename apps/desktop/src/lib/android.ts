@@ -18,6 +18,15 @@ export interface AndroidStatus {
   captures: number;
 }
 
+/** Result of the Android update check (src-tauri/src/apkupdate.rs). */
+export interface ApkUpdate {
+  available: boolean;
+  version: string;
+  currentVersion: string;
+  apkUrl: string;
+  notesUrl: string;
+}
+
 export type SettingsScreen = "appInfo" | "battery" | "batteryOptimization" | "notifications";
 
 async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
@@ -40,6 +49,8 @@ export const androidApi = {
   saveClipboard: () => call<{ message: string }>("android_save_clipboard"),
   /** A cliptrail://pair link that opened the app, once. */
   takePairLink: () => call<{ link: string | null }>("android_take_pair_link"),
+  /** Ask GitHub for the newest release (only when the user opted in or tapped Check now). */
+  updateCheck: () => call<ApkUpdate>("android_update_check"),
   /** Plain text on the clipboard ("" when none); the WebView can't read it itself. */
   readClipboard: () => call<{ text: string }>("android_read_clipboard"),
 };
@@ -82,6 +93,14 @@ async function mockCall(cmd: string, a: Record<string, unknown>): Promise<unknow
       return { message: "Nothing to save" };
     case "android_take_pair_link":
       return { link: null };
+    case "android_update_check":
+      return {
+        available: true,
+        version: "0.1.5",
+        currentVersion: "0.1.4",
+        apkUrl: "https://github.com/abhijitdalal26/cliptrail/releases",
+        notesUrl: "https://github.com/abhijitdalal26/cliptrail/releases",
+      };
     case "android_read_clipboard":
       return { text: await navigator.clipboard.readText() };
     default:

@@ -5,6 +5,9 @@
 //!
 //! Rule: never log clip content. Log ids, kinds, sizes.
 
+// Compiled everywhere so its tests run on the desktop CI; used on Android.
+#[cfg_attr(not(target_os = "android"), allow(dead_code))]
+mod apkupdate;
 mod commands;
 #[cfg(desktop)]
 mod fileproto;
@@ -104,13 +107,28 @@ pub fn run() {
             let state = app.state::<AppState>();
             state.init();
 
-            // Fresh install: start with the OS, as other clipboard managers
-            // do. The welcome card shows the toggle so it's one click to undo.
-            // Not in dev builds, which would register the debug binary.
-            if state.is_first_run() && !cfg!(debug_assertions) {
+            // Start at login. Fresh install: on, as other clipboard managers
+            // do (the welcome card shows the toggle, one click to undo).
+            // Reinstall: the uninstaller removed the login item, so put it
+            // back if the user had it on. Not in dev builds, which would
+            // register the debug binary.
+            if !cfg!(debug_assertions) {
                 use tauri_plugin_autostart::ManagerExt as _;
-                if let Err(e) = app.autolaunch().enable() {
-                    tracing::warn!("couldn't enable start at login: {e}");
+                let al = app.autolaunch();
+                let enabled = al.is_enabled().unwrap_or(false);
+                let wanted = if state.is_first_run() {
+                    Some(true)
+                } else {
+                    state.settings().start_at_login
+                };
+                match wanted {
+                    Some(true) if !enabled => match al.enable() {
+                        Ok(()) => state.remember_autostart(true),
+                        Err(e) => tracing::warn!("couldn't enable start at login: {e}"),
+                    },
+                    Some(_) => {}
+                    // Installs from before the choice was recorded.
+                    None => state.remember_autostart(enabled),
                 }
             }
 

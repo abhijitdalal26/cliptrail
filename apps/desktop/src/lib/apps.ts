@@ -61,6 +61,8 @@ const NAMES: Record<string, string> = {
   cliptrail: "ClipTrail",
   chrome: "Chrome",
   msedge: "Edge",
+  // WebView2 helper: the host app (Claude, Teams, Outlook…) is recorded since v0.1.5.
+  msedgewebview2: "Web app",
   firefox: "Firefox",
   brave: "Brave",
   arc: "Arc",

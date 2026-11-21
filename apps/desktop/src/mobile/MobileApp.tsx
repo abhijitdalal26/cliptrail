@@ -6,7 +6,7 @@ import { cx } from "../lib/cx";
 import { useDebounced, useEvent, useTick } from "../lib/hooks";
 import { KIND_META } from "../lib/kinds";
 import { isAndroid } from "../lib/platform";
-import { syncApi, useSyncView } from "../lib/sync";
+import { platformIcon, syncApi, useDeviceInfo, useSyncView } from "../lib/sync";
 import { useTheme } from "../lib/theme";
 import { toast } from "../lib/toast";
 import { ALL_KINDS, type ClipSummary, type Kind, type ListQuery, type Stats } from "../lib/types";
@@ -15,14 +15,17 @@ import { Toasts } from "../components/Toasts";
 import { Preview } from "../dashboard/Preview";
 import { Timeline, type TimelineHandle } from "../dashboard/Timeline";
 import { MobileSettings } from "./MobileSettings";
+import { UpdateCard } from "./MobileUpdates";
 
-type Filter = "all" | "pinned" | Kind;
+/** A kind, favorites, or the clips from one device ("dev:<id>"). */
+type Filter = "all" | "pinned" | Kind | `dev:${string}`;
 const UNDO_MS = 5000;
 
 /** Phone layout: search on top, kind chips, day-grouped list, full-screen clip sheet, settings sheet. */
 export function MobileApp() {
   useTick(60_000);
   const [filter, setFilter] = useState<Filter>("all");
+  const deviceInfo = useDeviceInfo();
   const [search, setSearch] = useState("");
   const debounced = useDebounced(search.trim(), 160);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -48,8 +51,9 @@ export function MobileApp() {
 
   const query = useMemo<ListQuery>(
     () => ({
-      kind: filter !== "all" && filter !== "pinned" ? filter : null,
+      kind: filter !== "all" && filter !== "pinned" && !filter.startsWith("dev:") ? (filter as Kind) : null,
       pinned_only: filter === "pinned",
+      device_id: filter.startsWith("dev:") ? filter.slice(4) : null,
       search: debounced || null,
     }),
     [filter, debounced],
@@ -249,9 +253,15 @@ export function MobileApp() {
 
   // ---------- derived ----------
   const byKind = new Map(stats?.by_kind ?? []);
+  const byDevice = (stats?.by_device ?? []).length > 1 ? (stats?.by_device ?? []) : [];
   const chips: { f: Filter; label: string; count?: number; icon: React.ReactNode }[] = [
     { f: "all", label: "All", count: stats?.total, icon: <Layers size={14} strokeWidth={2} /> },
     { f: "pinned", label: "Favorites", count: stats?.pinned, icon: <Star size={14} strokeWidth={2} /> },
+    ...byDevice.map(([id, n]) => {
+      const d = deviceInfo(id);
+      const Icon = platformIcon(d.platform);
+      return { f: `dev:${id}` as Filter, label: d.name, count: n, icon: <Icon size={14} strokeWidth={2} /> };
+    }),
     ...ALL_KINDS.filter((k) => (byKind.get(k) ?? 0) > 0 || filter === k).map((k) => {
       const Icon = KIND_META[k].icon;
       return {
@@ -280,6 +290,7 @@ export function MobileApp() {
           </span>
         </div>
       )}
+      {isAndroid && !filtered && <UpdateCard />}
       {setupNeeded && !filtered && (
         <button
           onClick={() => setSettings(true)}

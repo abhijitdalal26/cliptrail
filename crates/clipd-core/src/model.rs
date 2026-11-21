@@ -149,6 +149,8 @@ pub struct ListQuery {
     pub search: Option<String>,
     pub pinned_only: bool,
     pub source_app: Option<String>,
+    /// Only clips first copied on this device (a synced device id).
+    pub device_id: Option<String>,
     /// Only clips with last_seen_at in [from, to).
     pub from: Option<Millis>,
     pub to: Option<Millis>,
@@ -173,6 +175,9 @@ pub struct Stats {
     /// Clips in the trash.
     #[serde(default)]
     pub trashed: i64,
+    /// (device id, count) per device clips came from, biggest first.
+    #[serde(default)]
+    pub by_device: Vec<(String, i64)>,
 }
 
 /// Clip count for one local calendar day, for the heatmap.
