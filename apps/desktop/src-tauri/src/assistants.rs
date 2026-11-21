@@ -279,7 +279,18 @@ pub struct ClientView {
 /// How assistants start the server: this executable, `--mcp`.
 fn server_command() -> Result<(String, Vec<String>)> {
     let exe = std::env::current_exe().context("finding ClipTrail's own path")?;
+    let exe = stable_exe(exe, std::env::var_os("APPIMAGE"));
     Ok((exe.to_string_lossy().into_owned(), vec!["--mcp".to_owned()]))
+}
+
+/// An AppImage runs from a temporary mount (`/tmp/.mount_…`) that is gone once
+/// it quits, so assistants must start the `.AppImage` file itself, which the
+/// AppImage runtime names in `$APPIMAGE`.
+fn stable_exe(exe: PathBuf, appimage: Option<std::ffi::OsString>) -> PathBuf {
+    match appimage.map(PathBuf::from) {
+        Some(image) if image.is_file() => image,
+        _ => exe,
+    }
 }
 
 pub fn clients() -> Vec<ClientView> {
@@ -680,6 +691,25 @@ mod tests {
         let back = edit_json(&out, Format::McpServers, None).unwrap();
         let v: Value = serde_json::from_str(&back).unwrap();
         assert_eq!(v["preferences"]["apple"]["b"], 2);
+    }
+
+    #[test]
+    fn appimage_points_assistants_at_the_image_not_its_mount() {
+        let dir = std::env::temp_dir().join(format!("cliptrail-appimage-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let image = dir.join("ClipTrail.AppImage");
+        std::fs::write(&image, b"").unwrap();
+        let mounted = PathBuf::from("/tmp/.mount_ClipTrXYZ/usr/bin/cliptrail");
+        assert_eq!(
+            stable_exe(mounted.clone(), Some(image.clone().into())),
+            image
+        );
+        assert_eq!(stable_exe(mounted.clone(), None), mounted);
+        assert_eq!(
+            stable_exe(mounted.clone(), Some(dir.join("gone").into())),
+            mounted
+        );
+        let _ = std::fs::remove_dir_all(dir);
     }
 
     #[test]
