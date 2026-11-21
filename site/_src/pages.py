@@ -151,10 +151,11 @@ INDEX = r"""
     <div>
       <span class="eyebrow">AI assistants</span>
       <h2 class="h2">Ask your AI assistant what you copied.</h2>
-      <p class="lede" style="margin-bottom:24px">"Find the docker command I copied yesterday." Your assistant searches your clipboard history and puts the clip back, in plain words. Works with Claude, Cursor, VS Code with Copilot, Windsurf, Codex, Gemini CLI, LM Studio and any other MCP app.</p>
+      <p class="lede" style="margin-bottom:24px">"Find the docker command I copied yesterday." Your assistant searches your clipboard history and puts the clip back, in plain words. Works with the AI apps installed on your computer:</p>
+      {{AIAPPS}}
       <ul class="checklist">
         <li>""" + CHECK + r"""<span><b>One switch to set up.</b> In {{B}}: <em>Settings → AI assistants</em>, turn it on. It finds your AI apps and connects them. Nothing extra to install, no config files to edit.</span></li>
-        <li>""" + CHECK + r"""<span><b>Only on your computer.</b> The assistant starts {{B}} on your laptop and talks to it directly. {{B}} itself never talks to any cloud: no account, no server, no open port.</span></li>
+        <li>""" + CHECK + r"""<span><b>Only on your computer.</b> The AI app has to be installed on the same computer as {{B}}: it starts {{B}} there and talks to it directly, so your history never goes through an internet server to reach it. {{B}} itself never talks to any cloud: no account, no server, no open port. Web chats in a browser tab can't connect, by design.</span></li>
         <li>""" + CHECK + r"""<span><b>Fully offline if you like.</b> Pair it with a local model in LM Studio and nothing leaves your machine at all.</span></li>
         <li>""" + CHECK + r"""<span><b>Sensitive clips are withheld.</b> Keys, one-time codes and card numbers are masked; the assistant never gets their body and can't copy them back.</span></li>
         <li>""" + CHECK + r"""<span><b>Read-mostly.</b> It can search, read, pin and put a clip back on your clipboard. It can't delete or edit anything.</span></li>
