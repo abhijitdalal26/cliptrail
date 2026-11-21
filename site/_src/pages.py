@@ -151,8 +151,7 @@ INDEX = r"""
     <div>
       <span class="eyebrow">AI assistants</span>
       <h2 class="h2">Ask your AI assistant what you copied.</h2>
-      <p class="lede" style="margin-bottom:24px">"Find the docker command I copied yesterday." Your assistant searches your clipboard history and puts the clip back, in plain words. Works with the AI apps installed on your computer:</p>
-      {{AIAPPS}}
+      <p class="lede" style="margin-bottom:24px">"Find the docker command I copied yesterday." Your assistant searches your clipboard history and puts the clip back, in plain words.</p>
       <ul class="checklist">
         <li>""" + CHECK + r"""<span><b>One switch to set up.</b> In {{B}}: <em>Settings → AI assistants</em>, turn it on. It finds your AI apps and connects them. Nothing extra to install, no config files to edit.</span></li>
         <li>""" + CHECK + r"""<span><b>Only on your computer.</b> The AI app has to be installed on the same computer as {{B}}: it starts {{B}} there and talks to it directly, so your history never goes through an internet server to reach it. {{B}} itself never talks to any cloud: no account, no server, no open port. Web chats in a browser tab can't connect, by design.</span></li>
@@ -163,6 +162,7 @@ INDEX = r"""
       </ul>
       <p style="margin-top:20px"><a class="btn" href="{{R}}docs/ai-assistants.html">{{i:book}}Set up your assistant</a></p>
     </div>
+    <div class="ai-side">
     <div class="chat-card" role="img" aria-label="Example conversation: you ask for the Postgres connection string you copied in March and the assistant finds it with search_clips, then puts it on your clipboard with copy_to_clipboard.">
       <div class="head">{{i:sparkles}}Ask your history</div>
       <div class="msg you">Find the Postgres connection string I copied in March.</div>
@@ -171,6 +171,9 @@ INDEX = r"""
       <div class="msg you">Put it back on my clipboard.</div>
       <div class="tool">{{i:copy}}<span><code>copy_to_clipboard</code></span></div>
       <div class="msg ai">Done. It's on your clipboard, so press <kbd>Ctrl</kbd> <kbd>V</kbd>.</div>
+    </div>
+      <p class="ai-apps-label">Works with the AI apps installed on your computer</p>
+      {{AIAPPS}}
     </div>
   </div>
 </section>

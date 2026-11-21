@@ -767,3 +767,6 @@ pre:hover .copy-btn, .copy-btn:focus-visible { opacity: 1; }
 .ai-app { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--card); color: var(--text); font-size: 13.5px; font-weight: 560; line-height: 1; }
 .ai-app svg { width: 17px; height: 17px; flex: none; }
 .ai-app.more { color: var(--muted); border-style: dashed; }
+.ai-side { min-width: 0; }
+.ai-apps-label { margin: 22px 0 10px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.ai-side .ai-apps { margin-bottom: 0; }
