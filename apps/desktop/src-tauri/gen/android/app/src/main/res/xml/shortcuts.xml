@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Long-press the app icon: "Save clipboard" (can also be dragged to the home screen). -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_save"
+        android:shortcutId="save_clipboard"
+        android:shortcutLongLabel="@string/save_clipboard"
+        android:shortcutShortLabel="@string/save_clipboard">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="dev.cliptrail.app.ReadClipActivity"
+            android:targetPackage="dev.cliptrail.app">
+            <extra android:name="signal" android:value="SHORTCUT" />
+        </intent>
+    </shortcut>
+</shortcuts>

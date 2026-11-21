@@ -1,15 +1,12 @@
 import { memo } from "react";
 import { Copy, Star } from "lucide-react";
 import { assetUrl } from "../lib/api";
-import { appName } from "../lib/apps";
 import { cx } from "../lib/cx";
-import { parseColor, shortTime, splitPath, untilLabel } from "../lib/format";
+import { parseColor, splitPath, untilLabel } from "../lib/format";
 import { useHighlighted } from "../lib/highlight";
 import { subkindLabel } from "../lib/kinds";
 import type { ClipSummary } from "../lib/types";
-import { AppAvatar, KindBadge, KindTile } from "../components/ui";
-import { DeviceBadge } from "../components/DeviceBadge";
-import { useOtherDevice } from "../lib/sync";
+import { KindTile } from "../components/ui";
 
 interface Props {
   clip: ClipSummary;
@@ -37,8 +34,8 @@ export const ClipCard = memo(function ClipCard({ clip, selected, onSelect, onCop
     >
       <Leading clip={clip} />
       <div className={cx("min-w-0 flex-1", !readOnly && "pr-16")}>
+        {/* Only the content here; app, time, device and counts are in the clip panel. */}
         <Body clip={clip} />
-        <Meta clip={clip} />
       </div>
       {!readOnly && (
         <div className="absolute top-2 right-2 flex items-center gap-0.5">
@@ -195,36 +192,5 @@ function CodePreview({ clip }: { clip: ClipSummary }) {
       )}
       dangerouslySetInnerHTML={{ __html: html }}
     />
-  );
-}
-
-function Meta({ clip }: { clip: ClipSummary }) {
-  const sub = clip.kind === "code" || clip.kind === "image" ? subkindLabel(clip.kind, clip.subkind) : null;
-  const other = useOtherDevice(clip.device_id);
-  const lead = clip.kind === "code" || clip.kind === "sensitive" || !!clip.source_app || !!other;
-  return (
-    <div className="mt-1.5 flex items-center gap-1.5 text-[11.5px] text-fg-3">
-      {clip.kind === "code" && <KindBadge kind="code" label={sub ?? "Code"} />}
-      {clip.kind === "sensitive" && <KindBadge kind="sensitive" />}
-      {/* No "Unknown app" noise in the list (the clip view still says so). */}
-      {clip.source_app && (
-        <>
-          <AppAvatar app={clip.source_app} size={14} />
-          <span className="truncate">{appName(clip.source_app)}</span>
-        </>
-      )}
-      <DeviceBadge deviceId={clip.device_id} />
-      {lead && <span className="text-fg-4">·</span>}
-      <span className="shrink-0 tabular-nums">{shortTime(clip.last_seen_at)}</span>
-      {clip.copy_count > 1 && (
-        <>
-          <span className="text-fg-4">·</span>
-          <span className="shrink-0 tabular-nums">×{clip.copy_count}</span>
-        </>
-      )}
-      {clip.kind === "code" && clip.line_count > 1 && (
-        <span className="ml-auto shrink-0 tabular-nums">{clip.line_count} lines</span>
-      )}
-    </div>
   );
 }

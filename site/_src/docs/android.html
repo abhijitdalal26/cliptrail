@@ -1,5 +1,5 @@
 title: Android setup
-desc: Set up the {{B}} Android app: install the APK, allow the Save clipboard notification, keep it running on Samsung and other phones, add the tile, and pair.
+desc: Set up the {{B}} Android app: install the APK, add the Save clipboard tile, shortcut or widget, keep it running on Samsung and other phones, and pair.
 ---
 <h1>Android setup</h1>
 <p class="doc-lede">The Android app keeps a history of what you copy on your phone and shares it with your computer. Android limits clipboard access more than desktops do, so here is how saving works and the few taps it needs.</p>
@@ -9,10 +9,11 @@ desc: Set up the {{B}} Android app: install the APK, allow the Save clipboard no
 <h2 id="why">How saving works</h2>
 <p>Since Android 10, only the keyboard or the app on screen may read the clipboard. {{B}} doesn't ask you to switch keyboards or turn on an accessibility service, so it saves a copy when you ask it to, with one tap:</p>
 <ul>
-  <li>the <strong>Save clipboard</strong> button on the {{B}} notification;</li>
   <li>the <strong>Save clipboard</strong> Quick Settings tile;</li>
+  <li>long-press the {{B}} icon → <strong>Save clipboard</strong> (drag it out for a one-tap home screen button), or the <strong>Save clipboard</strong> widget;</li>
   <li><strong>Share → Save to {{B}}</strong> from any app (text and images), or select text and pick <strong>Save to {{B}}</strong> from the selection menu;</li>
-  <li>opening {{B}}, or its save button.</li>
+  <li>opening {{B}}, or its save button;</li>
+  <li>optionally, a <strong>Save clipboard</strong> button on a {{B}} notification.</li>
 </ul>
 <p>Going the other way needs nothing: once the two are paired, what you copy on your computer shows up in the phone's history by itself. Tap it to copy.</p>
 <p>On Android 12 and newer you'll see a short "{{B}} pasted from your clipboard" message after each save. That's Android telling you an app read the clipboard; it's expected.</p>
@@ -24,10 +25,19 @@ desc: Set up the {{B}} Android app: install the APK, allow the Save clipboard no
   <li>Requires Android 10 or newer.</li>
 </ol>
 
-<h2 id="notifications">2. Allow notifications</h2>
-<p>Allow notifications when asked. You'll see a quiet "{{B}} is ready" notification with a <strong>Save clipboard</strong> button. It also keeps sync with your computer running while the app is closed; you can turn it off under <em>Settings → Capture → Keep running in the background</em>.</p>
+<h2 id="tile">2. Add a one-tap Save button</h2>
+<p>Pick whichever suits you; they all do the same thing.</p>
+<ul>
+  <li><strong>Quick Settings tile:</strong> swipe down twice from the top of the screen, tap the <strong>✎ edit</strong> (pencil) button, and drag <strong>Save clipboard</strong> into your active tiles.</li>
+  <li><strong>App icon shortcut:</strong> long-press the {{B}} icon and tap <strong>Save clipboard</strong>. Drag that entry onto the home screen to keep it there as its own button.</li>
+  <li><strong>Widget:</strong> long-press an empty part of the home screen → <strong>Widgets</strong> → {{B}} → <strong>Save clipboard</strong>.</li>
+</ul>
 
-<h2 id="battery">3. Keep it running (Samsung)</h2><p>Samsung (and Xiaomi, OnePlus, Huawei) phones aggressively stop background apps. On a Samsung Galaxy:</p>
+<h2 id="notifications">Optional: Save button in notifications</h2>
+<p>Turn on <em>Settings → Capture → Save button in notifications</em> to keep a quiet "{{B}} is ready" notification with a <strong>Save clipboard</strong> button. It also keeps sync with your computer running while the app is closed. It's off by default.</p>
+
+<h2 id="battery">3. Keep it running (Samsung)</h2>
+<p>Only needed if you turned on the notification above, or want sync to keep running in the background.</p><p>Samsung (and Xiaomi, OnePlus, Huawei) phones aggressively stop background apps. On a Samsung Galaxy:</p>
 <ol class="steps-list">
   <li>When the app asks "Let app always run in background?", tap <strong>Allow</strong>. Or: <em>Settings → Apps → {{B}} → Battery → <strong>Unrestricted</strong></em>.</li>
   <li><em>Settings → Battery → Background usage limits → <strong>Never sleeping apps</strong></em> → <strong>+</strong> → add {{B}}.</li>
@@ -35,15 +45,7 @@ desc: Set up the {{B}} Android app: install the APK, allow the Save clipboard no
 </ol>
 <p>Other brands: look for "Autostart", "No restrictions" or "Don't optimise" in the app's battery settings. <a href="https://dontkillmyapp.com/">dontkillmyapp.com</a> has per-brand instructions.</p>
 
-<h2 id="tile">4. Add the Quick Settings tile</h2>
-<ol class="steps-list">
-  <li>Swipe down twice from the top of the screen to open Quick Settings.</li>
-  <li>Tap the <strong>✎ edit</strong> (pencil) button.</li>
-  <li>Drag <strong>Save clipboard</strong> into your active tiles.</li>
-</ol>
-<p>Tap the tile right after you copy something. It works from any app, even with the notification hidden.</p>
-
-<h2 id="pair">5. Pair with your computer</h2>
+<h2 id="pair">4. Pair with your computer</h2>
 <ol class="steps-list">
   <li>Make sure the phone is on the same Wi-Fi as your computer.</li>
   <li>On the computer: <strong>Settings → Devices → Pair a phone</strong>.</li>

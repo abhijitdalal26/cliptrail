@@ -41,6 +41,8 @@ const SIGNALS: Record<string, string> = {
   SHARE: "Share",
   PROCESS_TEXT: "the text menu",
   IN_APP: "the Save button",
+  SHORTCUT: "the app icon shortcut",
+  WIDGET: "the home screen widget",
 };
 
 /** Settings as a full-screen sheet on the phone. */
@@ -227,10 +229,15 @@ function CaptureSection({
         </div>
         <ul className="mt-2.5 space-y-1 text-[12.5px] leading-[1.45] text-fg-3">
           <li>
-            Tap <span className="font-medium text-fg-2">Save clipboard</span> on the ClipTrail notification.
+            Add the <span className="font-medium text-fg-2">Save clipboard</span> tile: swipe down twice › ✎ › drag it in.
           </li>
           <li>
-            Add the <span className="font-medium text-fg-2">Save clipboard</span> tile: swipe down twice › ✎ › drag it in.
+            Long-press the ClipTrail icon › <span className="font-medium text-fg-2">Save clipboard</span>. Drag it out
+            to put a one-tap button on your home screen.
+          </li>
+          <li>
+            Add the <span className="font-medium text-fg-2">Save clipboard</span> widget: long-press the home screen ›
+            Widgets › ClipTrail.
           </li>
           <li>
             <span className="font-medium text-fg-2">Share › Save to ClipTrail</span> from any app (text and images).
@@ -249,12 +256,12 @@ function CaptureSection({
       </div>
 
       <Row
-        title="Keep running in the background"
-        desc="Shows a quiet notification with a Save clipboard button, and keeps sync with your computer going while ClipTrail is closed."
+        title="Save button in notifications"
+        desc="Keeps a quiet ClipTrail notification with a Save clipboard button, and keeps sync with your computer going while ClipTrail is closed."
         error={error}
       >
         <Switch
-          label="Keep running in the background"
+          label="Save button in notifications"
           checked={st?.keepAlive ?? false}
           disabled={!st}
           onChange={(v) => run(() => androidApi.setKeepAlive(v))}

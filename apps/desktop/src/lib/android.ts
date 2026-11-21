@@ -4,7 +4,7 @@
 import { isTauri } from "./api";
 
 export interface AndroidStatus {
-  /** "Keep running in the background": the notification with Save clipboard, and sync. */
+  /** "Save button in notifications" (off by default): the notification with Save clipboard, and sync. */
   keepAlive: boolean;
   notificationsAllowed: boolean;
   batteryUnrestricted: boolean;

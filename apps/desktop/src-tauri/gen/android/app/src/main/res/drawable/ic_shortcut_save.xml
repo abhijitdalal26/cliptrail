@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icon of the "Save clipboard" launcher shortcut: the app's gradient with the clipboard glyph. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_background" />
+    <foreground>
+        <inset android:drawable="@drawable/ic_clip" android:inset="33dp" />
+    </foreground>
+</adaptive-icon>

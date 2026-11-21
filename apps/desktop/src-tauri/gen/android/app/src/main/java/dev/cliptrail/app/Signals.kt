@@ -12,4 +12,6 @@ enum class Signal(val label: String) {
     SHARE("Share to ClipTrail"),
     PROCESS_TEXT("Text menu \"ClipTrail\""),
     IN_APP("Save clipboard in the app"),
+    SHORTCUT("App icon shortcut \"Save clipboard\""),
+    WIDGET("Home screen widget"),
 }

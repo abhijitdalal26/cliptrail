@@ -13,14 +13,14 @@ object Prefs {
         ctx.applicationContext.getSharedPreferences("cliptrail", Context.MODE_PRIVATE)
 
     /**
-     * "Keep running in the background": the foreground service with the Save clipboard notification,
-     * which also keeps sync with the paired computer alive. On by default. Uses the key of the old
-     * "Automatic capture" toggle, so people who had switched that off keep the service off.
+     * "Save button in notifications": the foreground service with the Save clipboard notification,
+     * which also keeps sync with the paired computer alive. Off by default (an always-on notification
+     * is opt-in; the tile, icon shortcut, widget and Share work without it).
      */
-    fun keepAlive(ctx: Context): Boolean = sp(ctx).getBoolean("autoCapture", true)
+    fun keepAlive(ctx: Context): Boolean = sp(ctx).getBoolean("keepAlive", false)
 
     fun setKeepAlive(ctx: Context, on: Boolean) {
-        sp(ctx).edit().putBoolean("autoCapture", on).apply()
+        sp(ctx).edit().putBoolean("keepAlive", on).apply()
     }
 
     /** Salt for the in-memory content hashes of the dedup guard. */
