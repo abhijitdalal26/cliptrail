@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useState } from "react";
 import { Copy, Star } from "lucide-react";
 import { assetUrl } from "../lib/api";
 import { appName } from "../lib/apps";
@@ -9,6 +9,8 @@ import { subkindLabel } from "../lib/kinds";
 import type { ClipSummary } from "../lib/types";
 import { AppAvatar, KindBadge, KindTile } from "../components/ui";
 import { DeviceBadge } from "../components/DeviceBadge";
+import { FileMedia } from "../components/FilePreview";
+import { mediaKind } from "../lib/media";
 import { useOtherDevice } from "../lib/sync";
 
 interface Props {
@@ -104,6 +106,35 @@ function Leading({ clip }: { clip: ClipSummary }) {
   return <KindTile kind={clip.kind} className="mt-0.5" />;
 }
 
+/** Copied files: name and folder; images and videos also get a preview from the real file. */
+function FileBody({ clip }: { clip: ClipSummary }) {
+  const first = clip.files[0] ?? clip.preview;
+  const { name, dir } = splitPath(first);
+  const [missing, setMissing] = useState(false);
+  const text = (
+    <div className="min-w-0">
+      <div className="flex items-baseline gap-1.5">
+        <span className="truncate text-[13px] font-medium text-fg">{name}</span>
+        {clip.files.length > 1 && (
+          <span className="shrink-0 text-[12px] text-fg-3">+{clip.files.length - 1} more</span>
+        )}
+      </div>
+      <div className="truncate text-[12.5px] text-fg-3">{dir}</div>
+    </div>
+  );
+  if (missing || !mediaKind(first)) return text;
+  return (
+    <div className="flex items-center gap-3">
+      <FileMedia
+        path={first}
+        onMissing={() => setMissing(true)}
+        className="checker h-[64px] w-[96px] shrink-0 rounded-md object-cover shadow-[0_0_0_1px_var(--border)]"
+      />
+      {text}
+    </div>
+  );
+}
+
 function Body({ clip }: { clip: ClipSummary }) {
   switch (clip.kind) {
     case "link": {
@@ -134,21 +165,8 @@ function Body({ clip }: { clip: ClipSummary }) {
           </div>
         </div>
       );
-    case "file": {
-      const first = clip.files[0] ?? clip.preview;
-      const { name, dir } = splitPath(first);
-      return (
-        <div className="min-w-0">
-          <div className="flex items-baseline gap-1.5">
-            <span className="truncate text-[13px] font-medium text-fg">{name}</span>
-            {clip.files.length > 1 && (
-              <span className="shrink-0 text-[12px] text-fg-3">+{clip.files.length - 1} more</span>
-            )}
-          </div>
-          <div className="truncate text-[12.5px] text-fg-3">{dir}</div>
-        </div>
-      );
-    }
+    case "file":
+      return <FileBody clip={clip} />;
     case "color": {
       const c = parseColor(clip.preview);
       return (

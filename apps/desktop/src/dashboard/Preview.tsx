@@ -28,6 +28,8 @@ import type { Clip, ClipSummary } from "../lib/types";
 import { AppAvatar, Button, IconButton, KindBadge } from "../components/ui";
 import { platformIcon, useOtherDevice } from "../lib/sync";
 import { Actions } from "./Actions";
+import { FilePreview } from "../components/FilePreview";
+import { mediaKind } from "../lib/media";
 
 interface Props {
   summary: ClipSummary | null;
@@ -366,8 +368,15 @@ function Body({ summary: s, clip, toast }: { summary: ClipSummary; clip: Clip | 
       return <LinkView url={clip?.text ?? s.preview} />;
     case "color":
       return <ColorView value={clip?.text ?? s.preview} toast={toast} />;
-    case "file":
-      return <FilesView files={s.files} />;
+    case "file": {
+      const media = s.files.find((f) => mediaKind(f));
+      return (
+        <div className="space-y-3">
+          {media && <FilePreview path={media} />}
+          <FilesView files={s.files} />
+        </div>
+      );
+    }
     case "sensitive":
       return <SensitiveView key={s.id} clip={clip} summary={s} />;
     case "contact":

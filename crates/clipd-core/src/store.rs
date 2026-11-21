@@ -397,6 +397,17 @@ impl Store {
         collect_paths(rows)
     }
 
+    /// True when some clip in the history lists exactly this file path
+    /// (a copied file, or the file a screenshot was linked to). The desktop
+    /// app only previews files the user actually copied.
+    pub fn has_file(&self, path: &str) -> Result<bool> {
+        Ok(self.conn().query_row(
+            "SELECT EXISTS(SELECT 1 FROM clips, json_each(clips.files) WHERE json_each.value = ?1)",
+            [path],
+            |r| r.get(0),
+        )?)
+    }
+
     /// How many clips [`Store::clear`] would remove right now.
     pub fn count_clearable(&self, keep_pinned: bool) -> Result<i64> {
         let sql = if keep_pinned {
@@ -998,6 +1009,19 @@ mod tests {
         );
         assert!(store.get("i").unwrap().is_none());
         assert!(store.delete("i").unwrap().is_empty());
+    }
+
+    #[test]
+    fn has_file_matches_listed_paths_exactly() {
+        let store = Store::open_in_memory().unwrap();
+        let mut c = text_clip("f", "/home/u/b.png", 1);
+        c.kind = Kind::File;
+        c.files = vec!["/home/u/b.png".into(), "/home/u/c.mp4".into()];
+        store.upsert(c).unwrap();
+        assert!(store.has_file("/home/u/c.mp4").unwrap());
+        assert!(!store.has_file("/home/u").unwrap());
+        assert!(!store.has_file("/home/u/b.pn").unwrap());
+        assert!(!store.has_file("/etc/passwd").unwrap());
     }
 
     #[test]

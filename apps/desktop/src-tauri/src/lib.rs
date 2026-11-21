@@ -6,6 +6,8 @@
 //! Rule: never log clip content. Log ids, kinds, sizes.
 
 mod commands;
+#[cfg(desktop)]
+mod fileproto;
 mod imageproto;
 mod maintenance;
 #[cfg(mobile)]
@@ -87,6 +89,7 @@ pub fn run() {
         .plugin(shortcuts::plugin())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .register_asynchronous_uri_scheme_protocol(imageproto::SCHEME, imageproto::handle)
+        .register_asynchronous_uri_scheme_protocol(fileproto::SCHEME, fileproto::handle)
         .manage(AppState::new(clipd_core::default_data_dir()))
         .manage(sync::SyncState::default())
         .manage(updater::UpdaterState::default())
