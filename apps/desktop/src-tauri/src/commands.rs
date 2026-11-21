@@ -143,16 +143,14 @@ pub async fn empty_trash(app: AppHandle) -> CmdResult<usize> {
     Ok(n)
 }
 
-/// Save an image clip (decrypted) to the Downloads folder and show it there.
+/// "Save as…" for an image clip: ask where (Downloads by default), then
+/// write the decrypted PNG there. Returns the path, or None if cancelled.
 #[cfg(desktop)]
 #[tauri::command]
-pub async fn save_image(app: AppHandle, id: String) -> CmdResult<String> {
+pub async fn save_image(app: AppHandle, id: String) -> CmdResult<Option<String>> {
+    use tauri_plugin_dialog::DialogExt;
     let p = pipeline(&app)?;
-    let dir = app
-        .path()
-        .download_dir()
-        .map_err(|_| "Couldn't find your Downloads folder".to_string())?;
-    let out = blocking(move || {
+    let png = blocking(move || {
         guard("saving image", || {
             let clip = match p.store().get(&id)? {
                 Some(c) => c,
@@ -165,21 +163,33 @@ pub async fn save_image(app: AppHandle, id: String) -> CmdResult<String> {
                 .image_path
                 .or(clip.summary.thumb_path)
                 .ok_or_else(|| anyhow::anyhow!("no image on this device"))?;
-            let png = clipd_core::read_image(&src)?;
-            let stamp = chrono::Local::now().format("%Y-%m-%d %H.%M.%S");
-            let mut out = dir.join(format!("ClipTrail {stamp}.png"));
-            let mut n = 2;
-            while out.exists() {
-                out = dir.join(format!("ClipTrail {stamp} ({n}).png"));
-                n += 1;
-            }
-            std::fs::write(&out, png)?;
-            Ok(out)
+            clipd_core::read_image(&src)
         })
     })
     .await?;
-    let _ = app.opener().reveal_item_in_dir(&out);
-    Ok(out.to_string_lossy().into_owned())
+    let stamp = chrono::Local::now().format("%Y-%m-%d %H.%M.%S");
+    let mut dialog = app
+        .dialog()
+        .file()
+        .set_title("Save image")
+        .set_file_name(format!("ClipTrail {stamp}.png"))
+        .add_filter("PNG image", &["png"]);
+    if let Ok(dir) = app.path().download_dir() {
+        dialog = dialog.set_directory(dir);
+    }
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    dialog.save_file(move |picked| {
+        let _ = tx.send(picked);
+    });
+    let Some(picked) = rx.await.ok().flatten() else {
+        return Ok(None);
+    };
+    let out = picked
+        .into_path()
+        .map_err(|_| "Couldn't save there".to_string())?;
+    let target = out.clone();
+    blocking(move || guard("saving image", || Ok(std::fs::write(&target, png)?))).await?;
+    Ok(Some(out.to_string_lossy().into_owned()))
 }
 
 /// How many clips "Clear history" would remove (for the confirm dialog).

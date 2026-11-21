@@ -48,8 +48,8 @@ export const api = {
   /** Delete a trashed clip for good. */
   purgeClip: (id: string) => call<void>("purge_clip", { id }),
   emptyTrash: () => call<number>("empty_trash"),
-  /** Save an image clip to Downloads (decrypted) and show it in the folder. Returns the path. */
-  saveImage: (id: string) => call<string>("save_image", { id }),
+  /** "Save as…" for an image clip (decrypted PNG). Returns the path, or null if cancelled. */
+  saveImage: (id: string) => call<string | null>("save_image", { id }),
   /** How many clips "Clear history" would delete. */
   clearCount: (keepPinned: boolean) => call<number>("clear_count", { keepPinned }),
   /** Delete the history (and image files). By default this device only;
