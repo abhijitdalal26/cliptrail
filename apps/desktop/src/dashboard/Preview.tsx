@@ -409,21 +409,9 @@ export function CodeBlock({ code, lang }: { code: string; lang: string | null })
 }
 
 function LinkView({ url }: { url: string }) {
-  const u = parseUrl(url);
   return (
-    <div>
-      <div className="overflow-hidden rounded-xl border border-line bg-panel-2">
-        <div className="k-link flex items-center gap-3 border-b border-line px-4 py-3.5">
-          <span className="k-tile grid h-9 w-9 place-items-center rounded-[10px] text-[15px] font-semibold uppercase">
-            {(u?.host ?? "?").charAt(0)}
-          </span>
-          <div className="min-w-0">
-            <div className="truncate text-[14px] font-semibold text-fg">{u?.host ?? "Link"}</div>
-            <div className="truncate text-[12px] text-fg-3">{u?.path || "/"}</div>
-          </div>
-        </div>
-        <div className="code px-4 py-3 text-[12px] leading-[1.6] break-all text-fg-2">{url}</div>
-      </div>
+    <div className="overflow-hidden rounded-xl border border-line bg-panel-2">
+      <div className="code px-4 py-3 text-[12px] leading-[1.6] break-all text-fg-2">{url}</div>
     </div>
   );
 }

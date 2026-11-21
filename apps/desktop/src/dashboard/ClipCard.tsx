@@ -3,7 +3,7 @@ import { Copy, Star } from "lucide-react";
 import { assetUrl } from "../lib/api";
 import { appName } from "../lib/apps";
 import { cx } from "../lib/cx";
-import { parseColor, parseUrl, shortTime, splitPath, untilLabel } from "../lib/format";
+import { parseColor, shortTime, splitPath, untilLabel } from "../lib/format";
 import { useHighlighted } from "../lib/highlight";
 import { subkindLabel } from "../lib/kinds";
 import type { ClipSummary } from "../lib/types";
@@ -106,15 +106,9 @@ function Leading({ clip }: { clip: ClipSummary }) {
 
 function Body({ clip }: { clip: ClipSummary }) {
   switch (clip.kind) {
-    case "link": {
-      const u = parseUrl(clip.preview);
-      return (
-        <div className="min-w-0">
-          <div className="truncate text-[13px] font-medium text-fg">{u?.host ?? clip.subkind ?? clip.preview}</div>
-          <div className="truncate text-[12.5px] text-fg-3">{u ? u.path || "/" : clip.preview}</div>
-        </div>
-      );
-    }
+    case "link":
+      // The link exactly as copied, not split into host and path.
+      return <div className="line-clamp-2 text-[13px] leading-5 break-all text-fg">{clip.preview}</div>;
     case "code":
       return <CodePreview clip={clip} />;
     case "image":
