@@ -134,6 +134,12 @@ export const syncApi = {
   unpair: () => call<boolean>("sync_unpair"),
   /** Phone: download a synced image's full size. */
   fetchImage: (id: string) => call<boolean>("sync_fetch_image", { id }),
+  /** Phone: preview of a file copied on the computer (fetched once, cached); returns its path. */
+  filePreview: (id: string, index: number) => call<string>("sync_file_preview", { id, index }),
+  /** Phone: fetch a file copied on the computer and put it on the phone's clipboard. */
+  copyFile: (id: string, index: number) => call<void>("sync_copy_file", { id, index }),
+  /** Phone: fetch a file copied on the computer into Pictures/ClipTrail. */
+  saveFile: (id: string, index: number) => call<void>("sync_save_file", { id, index }),
   /** Check a relay URL without changing anything. */
   relayCheck: (url: string) => call<RelayHello>("sync_relay_check", { url }),
   /** Register this space on a relay; other devices pick it up on their next sync. */
@@ -199,6 +205,9 @@ export function useDeviceInfo(): (id: string) => Pick<DeviceView, "name" | "plat
     return d ? { name: d.name, platform: d.platform } : { name: v.names[id] ?? "Another device", platform: "" };
   };
 }
+
+/** "Sync anywhere" (relays) is built but hidden in the apps until it's ready to offer. */
+export const SHOW_RELAY = false;
 
 export function platformIcon(platform: string): LucideIcon {
   if (platform === "android" || platform === "ios") return Smartphone;
@@ -340,6 +349,10 @@ async function mockCall(cmd: string, a: Record<string, unknown>): Promise<unknow
       return true;
     case "sync_fetch_image":
       return false;
+    case "sync_file_preview":
+    case "sync_copy_file":
+    case "sync_save_file":
+      throw "Files come from your computer in the phone app";
     case "sync_status":
     case "sync_restart":
       return mockView();

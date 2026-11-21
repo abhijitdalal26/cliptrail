@@ -24,10 +24,12 @@ export function Toasts({ compact, raised }: { compact?: boolean; raised?: boolea
         >
           {t.tone === "error" ? (
             <CircleAlert size={15} className="shrink-0 text-[#f87171]" />
+          ) : t.tone === "busy" ? (
+            <span className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-white/25 border-t-white" />
           ) : (
             <CircleCheck size={15} className="shrink-0 text-[#4ade80]" />
           )}
-          <span className={cx("truncate", raised ? "max-w-[calc(100vw-140px)]" : "max-w-[420px]")}>{t.message}</span>
+          <span className={cx(raised ? "line-clamp-2 max-w-[calc(100vw-140px)]" : "truncate max-w-[420px]")}>{t.message}</span>
           {t.action && (
             <button
               onClick={() => {

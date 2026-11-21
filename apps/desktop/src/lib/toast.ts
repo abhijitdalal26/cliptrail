@@ -3,7 +3,8 @@ import { useSyncExternalStore } from "react";
 export interface Toast {
   id: number;
   message: string;
-  tone?: "default" | "error";
+  /** "busy": work in progress (spinner); dismiss it when the work ends. */
+  tone?: "default" | "error" | "busy";
   action?: { label: string; run: () => void };
   /** ms; default 2200 (5000 with an action). */
   duration?: number;

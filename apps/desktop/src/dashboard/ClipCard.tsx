@@ -9,6 +9,7 @@ import type { ClipSummary } from "../lib/types";
 import { KindTile } from "../components/ui";
 import { FileMedia } from "../components/FilePreview";
 import { mediaKind } from "../lib/media";
+import { isAndroid } from "../lib/platform";
 
 interface Props {
   clip: ClipSummary;
@@ -201,7 +202,8 @@ function FileBody({ clip }: { clip: ClipSummary }) {
       <div className="truncate text-[12.5px] text-fg-3">{dir}</div>
     </div>
   );
-  if (missing || !mediaKind(first)) return text;
+  // Phone: the file is on the computer; its preview loads when the clip is opened.
+  if (isAndroid || missing || !mediaKind(first)) return text;
   return (
     <div className="flex items-center gap-3">
       <FileMedia

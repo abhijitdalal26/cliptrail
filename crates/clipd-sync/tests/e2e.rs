@@ -274,8 +274,9 @@ async fn hub_and_clients_sync_everything() {
             && find(&bp, "A offline copy").is_some()
     })
     .await;
+    // Catch-up can finish a moment before the client marks itself connected.
+    wait("A connected", || a.status().is_ok_and(|s| s.connected)).await;
     let st = a.status().unwrap();
-    assert!(st.connected);
     assert_eq!(st.outbox, 0);
     assert!(st.devices.iter().any(|d| d.name == "Test Hub"));
 
@@ -324,5 +325,81 @@ async fn hub_and_clients_sync_everything() {
     assert!(!client::unpair(&a_dir.0, a_ks.clone()).await.unwrap());
 
     b.shutdown().await;
+    hub.shutdown().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn copied_files_are_fetched_on_demand() {
+    let (hub_dir, a_dir, files) = (
+        TempDir::new("fhub"),
+        TempDir::new("fa"),
+        TempDir::new("files"),
+    );
+    let (hub_ks, a_ks) = (
+        Arc::new(MemoryKeyStore::default()),
+        Arc::new(MemoryKeyStore::default()),
+    );
+    let hp = pipeline(&hub_dir.0);
+    let ap = pipeline(&a_dir.0);
+
+    // A copied image file: only its path is a clip.
+    let photo = files.0.join("photo.png");
+    image::RgbaImage::from_pixel(800, 400, image::Rgba([200, 40, 90, 255]))
+        .save(&photo)
+        .unwrap();
+    let bytes = std::fs::read(&photo).unwrap();
+    hp.ingest(RawClip {
+        content: RawContent::Files(vec![photo.to_string_lossy().into_owned()]),
+        source_app: Some("explorer.exe".into()),
+        captured_at: now_millis(),
+        source_url: None,
+    })
+    .unwrap();
+
+    let hub = hub::start(HubConfig {
+        data_dir: hub_dir.0.clone(),
+        keystore: hub_ks.clone(),
+        port: 0,
+        bind: IpAddr::V4(Ipv4Addr::LOCALHOST),
+        advertise: Some(vec!["127.0.0.1".into()]),
+        name: "Test Hub".into(),
+    })
+    .await
+    .unwrap();
+    let offer = hub.create_offer();
+    client::pair(&a_dir.0, a_ks.clone(), &offer.uri, "Phone", "android")
+        .await
+        .unwrap();
+    let a = start_client(&a_dir.0, &a_ks);
+    let file_clip = || {
+        ap.store()
+            .list(&ListQuery {
+                kind: Some(Kind::File),
+                ..Default::default()
+            })
+            .unwrap()
+            .pop()
+    };
+    wait("file clip on the phone", || file_clip().is_some()).await;
+    let id = file_clip().unwrap().id;
+    wait("phone connected", || a.status().is_ok_and(|s| s.connected)).await;
+
+    // The file itself, then a small preview.
+    assert_eq!(a.fetch_file(&id, 0, false).await.unwrap(), bytes);
+    let preview = a.fetch_file(&id, 0, true).await.unwrap();
+    let img = image::load_from_memory(&preview).unwrap();
+    assert_eq!((img.width(), img.height()), (640, 320));
+
+    // No such file in the clip; then the file is gone from the computer.
+    let err = a.fetch_file(&id, 1, false).await.unwrap_err();
+    assert!(
+        format!("{err:#}").contains("isn't on the computer"),
+        "{err:#}"
+    );
+    std::fs::remove_file(&photo).unwrap();
+    let err = a.fetch_file(&id, 0, false).await.unwrap_err();
+    assert!(format!("{err:#}").contains("moved or deleted"), "{err:#}");
+
+    a.shutdown().await;
     hub.shutdown().await;
 }

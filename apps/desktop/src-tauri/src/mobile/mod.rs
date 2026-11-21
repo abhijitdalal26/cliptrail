@@ -150,6 +150,9 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             crate::apkupdate::android_update_check,
+            sync::sync_file_preview,
+            sync::sync_copy_file,
+            sync::sync_save_file,
             cmd::list_clips,
             cmd::get_clip,
             cmd::stats,

@@ -5,13 +5,16 @@ import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.ComponentName
+import android.content.ContentValues
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.os.PersistableBundle
 import android.os.PowerManager
 import android.os.SystemClock
+import android.provider.MediaStore
 import android.provider.Settings
 import android.webkit.WebView
 import androidx.activity.result.ActivityResult
@@ -42,6 +45,12 @@ class OpenArgs {
 class DarkArgs {
     var dark: Boolean = false
     var panel: Boolean = false
+}
+
+@InvokeArg
+class SaveArgs {
+    var path: String = ""
+    var name: String = ""
 }
 
 @InvokeArg
@@ -205,6 +214,38 @@ class ClipTrailPlugin(private val activity: Activity) : Plugin(activity) {
             null
         }
         invoke.resolve(JSObject().put("text", text ?: ""))
+    }
+
+    /**
+     * Save a file fetched from the computer into Pictures/ClipTrail, so it shows in the Gallery.
+     * MediaStore needs no storage permission for files the app adds itself (Android 10+).
+     */
+    @Command
+    fun saveToGallery(invoke: Invoke) {
+        val args = invoke.parseArgs(SaveArgs::class.java)
+        Thread {
+            try {
+                val src = File(args.path)
+                val mime = java.net.URLConnection.guessContentTypeFromName(args.name) ?: "image/png"
+                val resolver = activity.contentResolver
+                val values = ContentValues().apply {
+                    put(MediaStore.Images.Media.DISPLAY_NAME, args.name)
+                    put(MediaStore.Images.Media.MIME_TYPE, mime)
+                    put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/ClipTrail")
+                    put(MediaStore.Images.Media.IS_PENDING, 1)
+                }
+                val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+                    ?: throw IllegalStateException("no MediaStore entry")
+                resolver.openOutputStream(uri)?.use { out -> src.inputStream().use { it.copyTo(out) } }
+                    ?: throw IllegalStateException("no output stream")
+                values.clear()
+                values.put(MediaStore.Images.Media.IS_PENDING, 0)
+                resolver.update(uri, values, null, null)
+                invoke.resolve()
+            } catch (e: Exception) {
+                invoke.reject("Couldn't save to the phone: ${e.javaClass.simpleName}")
+            }
+        }.start()
     }
 
     /** The in-app "Save clipboard" button (the app is focused, so the read is allowed). */

@@ -16,7 +16,9 @@ use serde::Serialize;
 
 use crate::crypto::{SecretKey, SpaceKeys, aad, b64, unb64};
 use crate::db::{Role, SpaceState, SyncDb};
-use crate::envelope::{ClipAdded, Envelope, Event, ImageRef, RelayConfig, SpaceConfig, blob_aad};
+use crate::envelope::{
+    ClipAdded, Envelope, Event, ImageRef, RelayConfig, SpaceConfig, blob_aad, file_aad,
+};
 use crate::keystore::{KeyStore, MASTER_KEY};
 
 /// Thumbnails up to this size travel inline in `ClipAdded`.
@@ -512,7 +514,114 @@ impl Engine {
     pub fn blob_dir(&self) -> PathBuf {
         self.data_dir.join(BLOB_DIR)
     }
+
+    /// Hub: file `index` of a copied-files clip, sealed for a paired device.
+    /// Only files listed in a clip of this history are ever read, and the
+    /// file stays where it is: phones fetch copied files on demand instead
+    /// of syncing them. `preview`: a small PNG instead of the file itself
+    /// (images only). Err(FileFetchError) says why there is nothing to send.
+    pub fn seal_file(&self, blob_id: &str, index: usize, preview: bool) -> Result<Vec<u8>> {
+        let hash = self
+            .file_clip_hash(blob_id)?
+            .ok_or(FileFetchError::NoClip)?;
+        let clip = self
+            .pipeline
+            .store()
+            .get_by_hash(&hash)?
+            .ok_or(FileFetchError::NoClip)?;
+        let path = clip
+            .clip
+            .summary
+            .files
+            .get(index)
+            .cloned()
+            .ok_or(FileFetchError::NoClip)?;
+        let meta = std::fs::metadata(&path).map_err(|_| FileFetchError::Missing)?;
+        if !meta.is_file() {
+            return Err(FileFetchError::Missing.into());
+        }
+        if meta.len() > MAX_FILE_FETCH_BYTES {
+            return Err(FileFetchError::TooBig.into());
+        }
+        let bytes = std::fs::read(&path).map_err(|_| FileFetchError::Missing)?;
+        let bytes = if preview {
+            clipd_core::preview_png(&bytes, FILE_PREVIEW_SIDE)
+                .map_err(|_| FileFetchError::NotAnImage)?
+        } else {
+            bytes
+        };
+        Ok(self.keys.blobs.seal_packed(
+            &file_aad(&self.space.space_id, blob_id, index, preview),
+            &bytes,
+        )?)
+    }
+
+    /// Client: open what `seal_file` sent.
+    pub fn open_file(
+        &self,
+        blob_id: &str,
+        index: usize,
+        preview: bool,
+        sealed: &[u8],
+    ) -> Result<Vec<u8>> {
+        self.keys
+            .blobs
+            .open_packed(
+                &file_aad(&self.space.space_id, blob_id, index, preview),
+                sealed,
+            )
+            .context("file does not decrypt")
+    }
+
+    /// The copied-files clip a device asked for. Blob ids are opaque, so
+    /// look through this history's file clips for the one that matches.
+    fn file_clip_hash(&self, blob_id: &str) -> Result<Option<Vec<u8>>> {
+        let store = self.pipeline.store();
+        let files = store.list(&ListQuery {
+            kind: Some(Kind::File),
+            limit: Some(10_000),
+            ..Default::default()
+        })?;
+        for c in files {
+            if let Some(h) = store.content_hash(&c.id)?
+                && self.keys.blob_id(&h) == blob_id
+            {
+                return Ok(Some(h));
+            }
+        }
+        Ok(None)
+    }
 }
+
+/// Largest copied file a paired device can fetch.
+pub const MAX_FILE_FETCH_BYTES: u64 = 64 * 1024 * 1024;
+/// Longer side of a copied image's preview, in pixels.
+pub const FILE_PREVIEW_SIDE: u32 = 640;
+
+/// Why the hub has no file to send (shown to the user on the phone).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FileFetchError {
+    /// No copied-files clip here matches (or it has no file at that index).
+    NoClip,
+    /// The file was moved or deleted on the computer.
+    Missing,
+    TooBig,
+    /// A preview was asked for a file that isn't a readable image.
+    NotAnImage,
+}
+
+impl std::fmt::Display for FileFetchError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            FileFetchError::NoClip => "that clip isn't on the computer",
+            FileFetchError::Missing => "the file was moved or deleted on the computer",
+            FileFetchError::TooBig => "the file is too big to fetch (64 MB max)",
+            FileFetchError::NotAnImage => "the file isn't an image",
+        })
+    }
+}
+
+impl std::error::Error for FileFetchError {}
 
 pub type SharedEngine = Arc<Engine>;
 

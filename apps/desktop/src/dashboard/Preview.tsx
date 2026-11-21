@@ -28,10 +28,10 @@ import { isAndroid } from "../lib/platform";
 import { KIND_META, subkindLabel } from "../lib/kinds";
 import type { Clip, ClipSummary } from "../lib/types";
 import { AppAvatar, Button, IconButton, KindBadge } from "../components/ui";
-import { platformIcon, useOtherDevice } from "../lib/sync";
+import { platformIcon, syncApi, useOtherDevice } from "../lib/sync";
 import { Actions } from "./Actions";
 import { FilePreview } from "../components/FilePreview";
-import { mediaKind } from "../lib/media";
+import { mediaKind, remoteImageFile } from "../lib/media";
 
 interface Props {
   summary: ClipSummary | null;
@@ -229,7 +229,23 @@ function SecondaryAction({
       );
     }
     case "file":
-      return s.files.length > 0 && !isAndroid ? (
+      if (isAndroid) {
+        return remoteImageFile(s.kind, s.files) ? (
+          <Button
+            icon={Download}
+            className={cls}
+            onClick={() =>
+              syncApi
+                .saveFile(s.id, 0)
+                .then(() => toast("Saved to Pictures › ClipTrail"))
+                .catch(fail)
+            }
+          >
+            Save to phone
+          </Button>
+        ) : null;
+      }
+      return s.files.length > 0 ? (
         <Button icon={FolderOpen} className={cls} onClick={() => api.revealPath(s.files[0]).catch(fail)}>
           Open in folder
         </Button>
@@ -459,6 +475,7 @@ function Body({ summary: s, clip, toast }: { summary: ClipSummary; clip: Clip | 
     case "color":
       return <ColorView value={clip?.text ?? s.preview} toast={toast} />;
     case "file": {
+      if (isAndroid) return <RemoteFiles summary={s} />;
       const media = s.files.find((f) => mediaKind(f));
       return (
         <div className="space-y-3">
@@ -556,7 +573,60 @@ function ColorView({ value, toast }: { value: string; toast: (m: string) => void
   );
 }
 
-function FilesView({ files }: { files: string[] }) {
+/** Phone: copied files stay on the computer; an image's preview is fetched when the clip is opened. */
+function RemoteFiles({ summary: s }: { summary: ClipSummary }) {
+  const device = useOtherDevice(s.device_id)?.name ?? "your computer";
+  const [attempt, setAttempt] = useState(0);
+  const image = remoteImageFile(s.kind, s.files);
+  return (
+    <div className="space-y-3">
+      {image && (
+        <RemotePreview key={`${s.id}:${attempt}`} id={s.id} device={device} onRetry={() => setAttempt((n) => n + 1)} />
+      )}
+      <FilesView files={s.files} reveal={false} />
+      <div className="text-[12px] leading-[1.45] text-fg-3">
+        {image
+          ? `On ${device}. Copy fetches the image now; nothing is kept on this phone unless you save it.`
+          : `On ${device}. Open it there.`}
+      </div>
+    </div>
+  );
+}
+
+function RemotePreview({ id, device, onRetry }: { id: string; device: string; onRetry: () => void }) {
+  const [path, setPath] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    syncApi.filePreview(id, 0).then(
+      (p) => alive && setPath(p),
+      (e) => alive && setError(errorMessage(e)),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [id]);
+  return (
+    <div className="checker grid min-h-[150px] place-items-center overflow-hidden rounded-xl shadow-[0_0_0_1px_var(--border)]">
+      {path ? (
+        <img src={assetUrl(path)} alt="" draggable={false} className="block h-auto max-h-[42vh] w-full object-contain" />
+      ) : error ? (
+        <div className="px-5 py-6 text-center text-[12.5px] leading-[1.45] text-fg-3">
+          {error}
+          <div className="mt-2.5">
+            <Button size="sm" onClick={onRetry}>
+              Try again
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="text-[12.5px] text-fg-3">Getting the preview from {device}…</div>
+      )}
+    </div>
+  );
+}
+
+function FilesView({ files, reveal = true }: { files: string[]; reveal?: boolean }) {
   return (
     <div className="overflow-hidden rounded-xl border border-line">
       {files.map((f, i) => {
@@ -573,12 +643,14 @@ function FilesView({ files }: { files: string[] }) {
               <div className="truncate text-[13px] font-medium text-fg">{name}</div>
               <div className="truncate text-[11.5px] text-fg-3">{dir}</div>
             </div>
-            <IconButton
-              icon={FolderOpen}
-              label="Show in folder"
-              className="opacity-0 group-hover:opacity-100"
-              onClick={() => void api.revealPath(f).catch(() => undefined)}
-            />
+            {reveal && (
+              <IconButton
+                icon={FolderOpen}
+                label="Show in folder"
+                className="opacity-0 group-hover:opacity-100"
+                onClick={() => void api.revealPath(f).catch(() => undefined)}
+              />
+            )}
           </div>
         );
       })}

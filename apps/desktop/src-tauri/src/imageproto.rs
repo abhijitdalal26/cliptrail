@@ -3,7 +3,9 @@
 //! Image files are encrypted at rest (`clipd_core::imagefile`), so the
 //! webview can't load them from disk; this protocol decrypts them in memory.
 //! The frontend builds URLs with `convertFileSrc(path, "clipimg")`. Only
-//! `<data dir>/images/*.png` and `<data dir>/thumbs/*.png` are served.
+//! `<data dir>/images/*.png`, `<data dir>/thumbs/*.png` and (Android)
+//! `<data dir>/file-cache/*.png` (previews of copied files on the computer)
+//! are served.
 
 use std::path::{Path, PathBuf};
 
@@ -33,7 +35,7 @@ pub(crate) fn percent_decode(s: &str) -> Option<String> {
 }
 
 /// The image file a request may read, or None if it's outside the data dir's
-/// `images/` / `thumbs/` folders.
+/// `images/` / `thumbs/` / `file-cache/` folders.
 fn allowed_path(data_dir: &Path, url_path: &str) -> Option<PathBuf> {
     let path = PathBuf::from(percent_decode(url_path.trim_start_matches('/'))?);
     let name = path.file_name()?.to_str()?;
@@ -47,7 +49,7 @@ fn allowed_path(data_dir: &Path, url_path: &str) -> Option<PathBuf> {
     }
     let folder = path.parent()?;
     let kind = folder.file_name()?.to_str()?;
-    if kind != "images" && kind != "thumbs" {
+    if !matches!(kind, "images" | "thumbs" | "file-cache") {
         return None;
     }
     let canon = |p: &Path| dunce_canonical(p);
@@ -114,6 +116,7 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("clipimg-test-{}", std::process::id()));
         std::fs::create_dir_all(dir.join("thumbs")).unwrap();
         std::fs::create_dir_all(dir.join("other")).unwrap();
+        std::fs::create_dir_all(dir.join("file-cache")).unwrap();
         let enc = |p: &Path| {
             p.to_string_lossy()
                 .bytes()
@@ -129,6 +132,11 @@ mod tests {
         assert_eq!(
             allowed_path(&dir, &format!("/{}", enc(&good))),
             Some(dir.join("thumbs").join("01ABC.png"))
+        );
+        let preview = dir.join("file-cache").join("01ABC-0.png");
+        assert_eq!(
+            allowed_path(&dir, &format!("/{}", enc(&preview))),
+            Some(preview.clone())
         );
         for bad in [
             dir.join("other").join("01ABC.png"),
