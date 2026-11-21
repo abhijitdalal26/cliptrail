@@ -153,12 +153,9 @@ INDEX = r"""
       <h2 class="h2">Ask your AI assistant what you copied.</h2>
       <p class="lede" style="margin-bottom:24px">"Find the docker command I copied yesterday." Your assistant searches your clipboard history and puts the clip back, in plain words.</p>
       <ul class="checklist">
-        <li>""" + CHECK + r"""<span><b>One switch to set up.</b> In {{B}}: <em>Settings → AI assistants</em>, turn it on. It finds your AI apps and connects them. Nothing extra to install, no config files to edit.</span></li>
-        <li>""" + CHECK + r"""<span><b>Only on your computer.</b> The AI app has to be installed on the same computer as {{B}}: it starts {{B}} there and talks to it directly, so your history never goes through an internet server to reach it. {{B}} itself never talks to any cloud: no account, no server, no open port. Web chats in a browser tab can't connect, by design.</span></li>
-        <li>""" + CHECK + r"""<span><b>Fully offline if you like.</b> Pair it with a local model in LM Studio and nothing leaves your machine at all.</span></li>
-        <li>""" + CHECK + r"""<span><b>Sensitive clips are withheld.</b> Keys, one-time codes and card numbers are masked; the assistant never gets their body and can't copy them back.</span></li>
-        <li>""" + CHECK + r"""<span><b>Read-mostly.</b> It can search, read, pin and put a clip back on your clipboard. It can't delete or edit anything.</span></li>
-        <li>""" + CHECK + r"""<span><b>Honest about the edges.</b> With a cloud assistant, the clips it reads become part of that conversation with your AI provider. ChatGPT isn't supported: it needs a remote server, and ours is local by design. Phone clips are included through sync; the assistant runs on the laptop.</span></li>
+        <li>""" + CHECK + r"""<span><b>One switch.</b> <em>Settings → AI assistants</em>, turn it on. Nothing to install or edit.</span></li>
+        <li>""" + CHECK + r"""<span><b>Stays on your computer.</b> The AI app runs on the same computer and talks to {{B}} directly, no cloud in between.</span></li>
+        <li>""" + CHECK + r"""<span><b>Secrets stay hidden.</b> Keys, codes and card numbers are never shown to the assistant.</span></li>
       </ul>
       <p style="margin-top:20px"><a class="btn" href="{{R}}docs/ai-assistants.html">{{i:book}}Set up your assistant</a></p>
     </div>
