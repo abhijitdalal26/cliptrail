@@ -138,6 +138,7 @@ export const Timeline = forwardRef<TimelineHandle, Props>(function Timeline(p, r
                     onCopy={p.onCopy}
                     onTogglePin={p.onTogglePin}
                     readOnly={p.trash}
+                    mobile={p.mobile}
                   />
                 </div>
               )}

@@ -61,6 +61,8 @@ export interface ListQuery {
   search?: string | null;
   pinned_only?: boolean;
   source_app?: string | null;
+  /** Only clips first copied on this device. */
+  device_id?: string | null;
   from?: Millis | null;
   to?: Millis | null;
   before?: Millis | null;
@@ -77,6 +79,8 @@ export interface Stats {
   top_apps: [string, number][];
   /** Clips in the trash. */
   trashed?: number;
+  /** (device id, count), biggest first. */
+  by_device?: [string, number][];
 }
 
 export interface DayCount {

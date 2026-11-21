@@ -24,12 +24,27 @@ use super::{
 use crate::{WriteContent, cfhtml, dib, dropfiles};
 
 /// Source app of the current clipboard content: the clipboard owner's
-/// executable, or the foreground window's when the owner is unknown.
+/// executable, or the foreground window's when the owner is unknown or is
+/// only a helper process (see [`is_helper_process`]).
 pub(super) fn source_app_now() -> Option<String> {
     unsafe {
-        process_name_of_window(GetClipboardOwner())
-            .or_else(|| process_name_of_window(GetForegroundWindow()))
+        let owner = process_name_of_window(GetClipboardOwner());
+        let front = || process_name_of_window(GetForegroundWindow());
+        match owner {
+            Some(o) if is_helper_process(&o) => {
+                front().filter(|f| !is_helper_process(f)).or(Some(o))
+            }
+            Some(o) => Some(o),
+            None => front(),
+        }
     }
+}
+
+/// Processes that own the clipboard on behalf of another app: WebView2
+/// copies come from `msedgewebview2.exe` whatever app hosts it (Claude,
+/// Teams, Outlook, new Notepad…), so the window in front says more.
+fn is_helper_process(exe: &str) -> bool {
+    exe.eq_ignore_ascii_case("msedgewebview2.exe")
 }
 
 pub(super) fn now_ms() -> i64 {
@@ -290,4 +305,17 @@ pub fn write_clip(content: WriteContent<'_>) -> Result<()> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_helper_process;
+
+    #[test]
+    fn webview2_is_a_helper_and_real_apps_are_not() {
+        assert!(is_helper_process("msedgewebview2.exe"));
+        assert!(is_helper_process("MsEdgeWebView2.EXE"));
+        assert!(!is_helper_process("msedge.exe"));
+        assert!(!is_helper_process("chrome.exe"));
+    }
 }

@@ -439,6 +439,7 @@ pub fn set_autostart(app: AppHandle, enabled: bool) -> CmdResult<()> {
     let al = app.autolaunch();
     let r = if enabled { al.enable() } else { al.disable() };
     r.map_err(|_| "Couldn't change the login item".to_string())?;
+    app.state::<AppState>().remember_autostart(enabled);
     let _ = app.emit("settings-changed", ());
     tray::refresh(&app);
     Ok(())
@@ -564,9 +565,13 @@ pub fn get_settings(app: AppHandle) -> SettingsView {
 
 #[tauri::command]
 pub async fn update_settings(app: AppHandle, settings: Settings) -> CmdResult<SettingsView> {
-    let new = settings.normalized();
     let state = app.state::<AppState>();
     let old = state.settings();
+    let new = Settings {
+        start_at_login: old.start_at_login,
+        ..settings
+    }
+    .normalized();
     if new == old {
         return Ok(settings_view(&app));
     }

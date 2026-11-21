@@ -61,6 +61,10 @@ pub struct Settings {
     /// The user's order of the sidebar categories (kind names). Empty =
     /// the default order; kinds missing here are shown after these.
     pub kind_order: Vec<String>,
+    /// The user's start-at-login choice, so a reinstall (whose uninstaller
+    /// removes the login item) can restore it. None = not recorded yet.
+    /// Owned by the backend: the dashboard's settings edits never change it.
+    pub start_at_login: Option<bool>,
 }
 
 impl Default for Settings {
@@ -80,6 +84,7 @@ impl Default for Settings {
             show_tray_icon: true,
             welcome_seen: false,
             kind_order: Vec::new(),
+            start_at_login: None,
         }
     }
 }
@@ -155,6 +160,8 @@ mod tests {
         assert!(s.show_tray_icon);
         assert!(!s.welcome_seen);
         assert!(s.kind_order.is_empty());
+        // Not recorded yet: the first launch of this version records it.
+        assert_eq!(s.start_at_login, None);
     }
 
     #[test]

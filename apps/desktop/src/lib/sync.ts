@@ -189,6 +189,17 @@ export function useOtherDevice(deviceId: string): Pick<DeviceView, "name" | "pla
   return name ? { name, platform: "" } : null;
 }
 
+/** Name and platform of any device clips came from; this one is "This computer" / "This phone". */
+export function useDeviceInfo(): (id: string) => Pick<DeviceView, "name" | "platform"> {
+  const v = useSyncView();
+  return (id) => {
+    const here = !v?.status.configured || id === v.status.device_id;
+    if (here) return { name: isAndroid ? "This phone" : "This computer", platform: isAndroid ? "android" : "" };
+    const d = v.status.devices.find((x) => x.id === id);
+    return d ? { name: d.name, platform: d.platform } : { name: v.names[id] ?? "Another device", platform: "" };
+  };
+}
+
 export function platformIcon(platform: string): LucideIcon {
   if (platform === "android" || platform === "ios") return Smartphone;
   if (platform === "macos") return Laptop;

@@ -1,6 +1,7 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { format } from "date-fns";
 import {
+  Check,
   Clipboard,
   ClipboardType,
   Copy,
@@ -46,7 +47,7 @@ interface Props {
 
 type Tab = "details" | "actions";
 
-/** The clip panel: content on top, then title, details and the actions. */
+/** The clip panel: title and favorite/delete on top, then the content (click to copy), details and the actions. */
 export function Preview({ summary, onCopy, onTogglePin, onDelete, toast, trash, onRestore, onPurge }: Props) {
   const [full, setFull] = useState<Clip | null>(null);
   const [tab, setTab] = useState<Tab>("details");
@@ -76,28 +77,13 @@ export function Preview({ summary, onCopy, onTogglePin, onDelete, toast, trash, 
   return (
     <div key={s.id} className="anim-fade flex h-full min-h-0 flex-col">
       <div className="scroll-y selectable min-h-0 flex-1 overflow-x-hidden">
-        {/* Content first */}
-        <div className="px-5 pt-5">
-          <Body summary={s} clip={clip} toast={toast} />
-        </div>
-
-        {/* Title */}
-        <div className="flex items-start gap-2 px-5 pt-4">
+        {/* Title, when and where, favorite and delete */}
+        <div className="flex items-start gap-2 px-5 pt-5">
           <div className="min-w-0 flex-1">
             <h2 className="line-clamp-2 text-[15.5px] leading-[1.35] font-semibold tracking-[-0.015em] break-words text-fg">
               {clipTitle(s)}
             </h2>
-            <div className="mt-1 flex items-center gap-1.5 text-[12px] text-fg-3">
-              <span>
-                {trash && s.deleted_at ? `Deleted ${relative(s.deleted_at)}` : `Copied ${relative(s.last_seen_at)}`}
-              </span>
-              {s.source_app && (
-                <>
-                  <span className="text-fg-4">·</span>
-                  <span className="truncate">{appName(s.source_app)}</span>
-                </>
-              )}
-            </div>
+            <MetaLine summary={s} trash={trash} />
           </div>
           {!trash && (
             <div className="-mt-0.5 -mr-1.5 flex shrink-0 items-center">
@@ -116,6 +102,13 @@ export function Preview({ summary, onCopy, onTogglePin, onDelete, toast, trash, 
               <IconButton icon={Trash2} label="Move to Trash" shortcut="Del" tone="danger" onClick={() => onDelete(s)} />
             </div>
           )}
+        </div>
+
+        {/* The content; clicking it copies it (dragging still selects part of it) */}
+        <div className="px-5 pt-3.5">
+          <CopyArea enabled={!trash && !s.masked && s.kind !== "sensitive"} onCopy={() => onCopy(s.id, false)}>
+            <Body summary={s} clip={clip} toast={toast} />
+          </CopyArea>
         </div>
 
         {/* Tabs */}
@@ -138,12 +131,15 @@ export function Preview({ summary, onCopy, onTogglePin, onDelete, toast, trash, 
                 {sub && <KindBadge kind={s.kind} label={sub} />}
               </span>
             </Row>
-            <Row label="Source">
-              <span className="inline-flex items-center gap-1.5">
-                <AppAvatar app={s.source_app} size={14} />
-                {appName(s.source_app)}
-              </span>
-            </Row>
+            {/* No "Unknown app" row: phones can't tell which app a copy came from. */}
+            {s.source_app && (
+              <Row label="Source">
+                <span className="inline-flex items-center gap-1.5">
+                  <AppAvatar app={s.source_app} size={14} />
+                  {appName(s.source_app)}
+                </span>
+              </Row>
+            )}
             {page && (
               <Row label="From">
                 <button
@@ -349,6 +345,62 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 }
 
 /** Device row in the details list (only shown for clips from another device). */
+/** "Copied 2 min ago · Chrome", or the device when the app isn't known. */
+function MetaLine({ summary: s, trash }: { summary: ClipSummary; trash?: boolean }) {
+  const other = useOtherDevice(s.device_id);
+  const where = s.source_app ? appName(s.source_app) : other ? `on ${other.name}` : null;
+  return (
+    <div className="mt-1 flex items-center gap-1.5 text-[12px] text-fg-3">
+      <span className="shrink-0">
+        {trash && s.deleted_at ? `Deleted ${relative(s.deleted_at)}` : `Copied ${relative(s.last_seen_at)}`}
+      </span>
+      {where && (
+        <>
+          <span className="text-fg-4">·</span>
+          <span className="truncate">{where}</span>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Wraps the clip content: a click copies it, with a brief "Copied" badge. */
+function CopyArea({ enabled, onCopy, children }: { enabled: boolean; onCopy: () => void; children: ReactNode }) {
+  const [copied, setCopied] = useState(false);
+  const timer = useRef(0);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  if (!enabled) return <>{children}</>;
+  return (
+    <div
+      title="Click to copy"
+      onClick={(e) => {
+        // Buttons inside the content (colour values, show in folder) do their own thing,
+        // and a click that ends a text selection keeps the selection instead.
+        if ((e.target as HTMLElement).closest("button, a, input, select, textarea")) return;
+        if (window.getSelection()?.toString()) return;
+        onCopy();
+        setCopied(true);
+        window.clearTimeout(timer.current);
+        timer.current = window.setTimeout(() => setCopied(false), 1100);
+      }}
+      className="group/copy relative cursor-pointer rounded-xl transition-shadow hover:shadow-[0_0_0_2px_color-mix(in_oklab,var(--accent)_32%,transparent)]"
+    >
+      {children}
+      <span
+        className={cx(
+          "pointer-events-none absolute top-2 right-2 inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11.5px] font-semibold shadow-soft transition-opacity duration-150",
+          copied
+            ? "bg-accent text-accent-fg opacity-100"
+            : "bg-panel text-fg-2 opacity-0 group-hover/copy:opacity-100",
+        )}
+      >
+        {copied ? <Check size={13} strokeWidth={2.6} /> : <Copy size={12} strokeWidth={2.2} />}
+        {copied ? "Copied" : "Click to copy"}
+      </span>
+    </div>
+  );
+}
+
 function DeviceRow({ deviceId }: { deviceId: string }) {
   const d = useOtherDevice(deviceId);
   if (!d) return null;

@@ -282,6 +282,18 @@ impl Core {
         lock(&self.settings).clone()
     }
 
+    /// Record the start-at-login choice (see `Settings::start_at_login`).
+    pub fn remember_autostart(&self, on: bool) {
+        let mut s = lock(&self.settings);
+        if s.start_at_login == Some(on) {
+            return;
+        }
+        s.start_at_login = Some(on);
+        if let Err(e) = s.save(&self.data_dir) {
+            tracing::warn!("couldn't save settings: {e:#}");
+        }
+    }
+
     pub fn capture_state(&self) -> CaptureState {
         let mut p = lock(&self.pause);
         if let Pause::Until(t) = *p

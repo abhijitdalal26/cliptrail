@@ -17,7 +17,7 @@ INDEX = r"""
 <section class="hero">
   <div class="wrap">
     <div class="hero-copy">
-      <a class="badge" href="{{R}}changelog.html"><span class="dot"></span>v0.1.4: Android installs cleanly, screenshots link to their file <span class="arrow">→</span></a>
+      <a class="badge" href="{{R}}changelog.html"><span class="dot"></span>v0.1.5: tap to copy, devices filter, phone update notices <span class="arrow">→</span></a>
       <h1 class="h1">Your clipboard,<br><span class="grad">everywhere, forever.</span></h1>
       <p class="lede">{{B}} remembers everything you copy, knows what each thing is, and puts it one keystroke away. Pair your devices and your history follows you, end-to-end encrypted. Open source, no account, no tracking.</p>
       <div class="hero-cta">
@@ -474,6 +474,37 @@ CHANGELOG = r"""
 </section>
 <section style="padding:16px 0 96px">
   <div class="wrap">
+    <div class="changelog-entry">
+      <div class="changelog-meta">
+        <div class="ver">v0.1.5</div>
+        <div class="date">2026-11-21</div>
+        <span class="chip chip-accent">Alpha</span>
+      </div>
+      <div class="prose">
+        <p>Copying is quicker on both devices, you can see which device a clip came from, and the phone app tells you when there's a new version.</p>
+
+        <div class="cl-group">
+          <h3>Desktop</h3>
+          <ul>
+            <li>The clip panel puts the title, time and app on top, with favorite and delete. Click the content to copy it (drag to select just part).</li>
+            <li><strong>Devices</strong> in the sidebar once you sync: see only this computer's or your phone's clips.</li>
+            <li>"All clips" is now the Dashboard: everything you copied, with the count and the time range.</li>
+            <li>Copies from apps built on Edge WebView2 (Claude, Teams, Outlook…) are credited to the app instead of "msedgewebview2".</li>
+            <li>Start with Windows stays on after you reinstall {{B}}.</li>
+          </ul>
+        </div>
+
+        <div class="cl-group">
+          <h3>Android</h3>
+          <ul>
+            <li>Tap a clip to copy it; tap <strong>›</strong> or long-press to open it. In an open clip, tap the content to copy.</li>
+            <li>Update notices: turn on <em>Settings → Updates</em> and {{B}} tells you when a new version is out, with a Download button.</li>
+            <li>Filter by device, and no more "Unknown app": the device is shown when Android doesn't say which app it was.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
     <div class="changelog-entry">
       <div class="changelog-meta">
         <div class="ver">v0.1.4</div>

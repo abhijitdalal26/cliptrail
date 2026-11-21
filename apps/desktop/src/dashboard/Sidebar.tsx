@@ -4,7 +4,6 @@ import {
   Clock,
   Keyboard,
   LayoutDashboard,
-  Layers,
   Pause,
   Play,
   Settings,
@@ -17,6 +16,7 @@ import { compact } from "../lib/format";
 import { moveKind, useKindOrder } from "../lib/kindOrder";
 import { KIND_META } from "../lib/kinds";
 import type { CaptureState, Kind, Stats } from "../lib/types";
+import { platformIcon, useDeviceInfo } from "../lib/sync";
 import { sameView, type View } from "../lib/view";
 import { AppAvatar, IconButton } from "../components/ui";
 import { SyncStatusPill } from "./SyncStatusPill";
@@ -28,6 +28,8 @@ interface Props {
   apps: string[];
   app: string | null;
   onApp: (a: string | null) => void;
+  device: string | null;
+  onDevice: (d: string | null) => void;
   capture: CaptureState;
   onToggleCapture: () => void;
   onSettings: () => void;
@@ -39,6 +41,9 @@ export function Sidebar(p: Props) {
   const byKind = new Map(p.stats?.by_kind ?? []);
   const appCounts = new Map(p.stats?.top_apps ?? []);
   const apps = allApps ? p.apps : p.apps.slice(0, 6);
+  const deviceInfo = useDeviceInfo();
+  // Only worth a section once clips come from more than one device.
+  const devices = (p.stats?.by_device ?? []).length > 1 ? (p.stats?.by_device ?? []) : [];
   const [kinds, saveKinds] = useKindOrder();
   // Drag to reorder: `drag.to` is where the dragged kind would land.
   const [drag, setDrag] = useState<{ kind: Kind; to: number } | null>(null);
@@ -90,15 +95,9 @@ export function Sidebar(p: Props) {
         <Item
           icon={<LayoutDashboard size={15} strokeWidth={1.9} />}
           label="Dashboard"
+          count={p.stats?.total}
           active={sameView(p.view, { type: "dashboard" })}
           onClick={() => p.onView({ type: "dashboard" })}
-        />
-        <Item
-          icon={<Layers size={15} strokeWidth={1.9} />}
-          label="All clips"
-          count={p.stats?.total}
-          active={sameView(p.view, { type: "all" })}
-          onClick={() => p.onView({ type: "all" })}
         />
         <Item
           icon={<Star size={15} strokeWidth={1.9} />}
@@ -155,6 +154,26 @@ export function Sidebar(p: Props) {
             );
           })}
         </div>
+
+        {devices.length > 0 && (
+          <>
+            <SectionLabel>Devices</SectionLabel>
+            {devices.map(([id, n]) => {
+              const d = deviceInfo(id);
+              const Icon = platformIcon(d.platform);
+              return (
+                <Item
+                  key={id}
+                  icon={<Icon size={16} strokeWidth={1.9} />}
+                  label={d.name}
+                  count={n}
+                  active={p.device === id}
+                  onClick={() => p.onDevice(p.device === id ? null : id)}
+                />
+              );
+            })}
+          </>
+        )}
 
         {p.apps.length > 0 && (
           <>

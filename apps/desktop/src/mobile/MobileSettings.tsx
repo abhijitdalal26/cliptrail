@@ -27,6 +27,7 @@ import { ClearHistoryDialog } from "../components/ClearHistoryDialog";
 import { RelayCard } from "../components/RelayCard";
 import { Button, Segmented, Switch } from "../components/ui";
 import { Row, Section, Select } from "../dashboard/SettingsDialog";
+import { UpdatesSection } from "./MobileUpdates";
 
 function ago(t: number | null | undefined): string {
   if (!t) return "never";
@@ -170,6 +171,8 @@ export function MobileSettings({
                   />
                 </Row>
               </Section>
+
+              {isAndroid && <UpdatesSection />}
 
               <Section title="Danger zone">
                 <Row title="Clear history" desc="Permanently delete the clips saved on this phone.">

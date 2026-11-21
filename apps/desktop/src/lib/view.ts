@@ -2,7 +2,6 @@ import type { Kind } from "./types";
 
 export type View =
   | { type: "dashboard" }
-  | { type: "all" }
   | { type: "favorites" }
   | { type: "recent" }
   | { type: "trash" }
