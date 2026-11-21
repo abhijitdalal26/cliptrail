@@ -353,7 +353,7 @@ export function Dashboard() {
     trash: "Trash",
   };
   const SUBTITLES: Partial<Record<View["type"], string>> = {
-    dashboard: "Everything you've copied, and your activity at a glance",
+    dashboard: "Everything you've copied",
     recent: `Copied in the last ${RECENT_DAYS} days`,
     favorites: "Starred clips are kept until you remove them",
     trash: "Deleted clips are removed for good after 30 days",
