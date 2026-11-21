@@ -12,7 +12,8 @@ desc: Let Claude, Cursor, VS Code Copilot, Windsurf, Codex, Gemini CLI, LM Studi
   <li>Turn on <strong>Let AI assistants search my history</strong>. {{B}} checks that its server answers, then adds itself to every AI app it finds on your computer (keeping a backup of each settings file). To pick apps one by one, use <strong>Choose apps</strong>.</li>
   <li>Restart the assistant if it was open, and ask. Once it has used {{B}}, Settings shows <em>"… last used it 2 minutes ago"</em>, so you know it really works.</li>
 </ol>
-<p>{{B}} only connects apps that are actually installed: it looks for the program itself, not leftover settings folders. Works with:</p>
+{{AIAPPS}}
+<p><strong>The AI app must be installed on the same computer as {{B}}.</strong> That is what keeps your history safe: the app starts {{B}} on your computer and talks to it directly, with no internet server in between. Web chats in a browser (claude.ai, chatgpt.com, gemini.google.com) can't connect, by design. {{B}} only connects apps that are really installed: it looks for the program itself, not leftover settings folders.</p>
 <div class="table-wrap"><table>
   <thead><tr><th scope="col">App</th><th scope="col">AI models</th></tr></thead>
   <tbody>
@@ -26,6 +27,7 @@ desc: Let Claude, Cursor, VS Code Copilot, Windsurf, Codex, Gemini CLI, LM Studi
     <tr><td>Any other MCP app (Zed, JetBrains AI Assistant, Cline, Continue…)</td><td>Use <strong>Copy config</strong> in the same Settings section and paste it into the app's MCP settings</td></tr>
   </tbody>
 </table></div>
+<p class="muted" style="font-size:13px">Product names and logos belong to their owners and are shown only to say which apps work with {{B}}. Logos from <a href="https://simpleicons.org">Simple Icons</a>.</p>
 
 <h2 id="manual">Manual setup</h2>
 <p>Every MCP app takes the same thing: start {{B}} with <code>--mcp</code>. <strong>Copy config</strong> in Settings gives you this block with the right path for your computer:</p>
