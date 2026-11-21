@@ -47,6 +47,12 @@ tauri-plugin-dialog = "2"
 # Optional, user-enabled update check against GitHub Releases (desktop only;
 # Android is updated as an APK). Relaunch uses tauri's own AppHandle::restart.
 tauri-plugin-updater = "2.14"
+# `cliptrail --mcp`: the MCP server AI assistants start (Settings → AI assistants),
+# and the config edits behind its Connect buttons.
+clipd-mcp.workspace = true
+dirs.workspace = true
+indexmap = { version = "2", features = ["serde"] }
+toml_edit = "0.20"
 
 # Mica / acrylic backdrop; Windows only (Linux falls back to opaque windows).
 [target.'cfg(target_os = "windows")'.dependencies]

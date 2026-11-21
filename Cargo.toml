@@ -10,7 +10,7 @@ exclude = ["third_party"]
 libsqlite3-sys = { path = "third_party/libsqlite3-sys" }
 
 [workspace.package]
-version = "0.1.6"
+version = "0.1.7"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/abhijitdalal26/cliptrail"
@@ -19,6 +19,7 @@ repository = "https://github.com/abhijitdalal26/cliptrail"
 clipd-core = { path = "crates/clipd-core" }
 clipd-capture = { path = "crates/clipd-capture" }
 clipd-sync = { path = "crates/clipd-sync", default-features = false }
+clipd-mcp = { path = "crates/clipd-mcp" }
 anyhow = "1"
 thiserror = "2"
 serde = { version = "1", features = ["derive"] }

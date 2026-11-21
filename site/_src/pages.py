@@ -17,7 +17,7 @@ INDEX = r"""
 <section class="hero">
   <div class="wrap">
     <div class="hero-copy">
-      <a class="badge" href="{{R}}changelog.html"><span class="dot"></span>v0.1.6: images copied on your computer, on your phone in one tap <span class="arrow">→</span></a>
+      <a class="badge" href="{{R}}changelog.html"><span class="dot"></span>v0.1.7: ask your AI assistant what you copied <span class="arrow">→</span></a>
       <h1 class="h1">Your clipboard,<br><span class="grad">everywhere, forever.</span></h1>
       <p class="lede">{{B}} remembers everything you copy, knows what each thing is, and puts it one keystroke away. Pair your devices and your history follows you, end-to-end encrypted. Open source, no account, no tracking.</p>
       <div class="hero-cta">
@@ -139,7 +139,7 @@ INDEX = r"""
       <div class="tile span-2">
         <span class="ico">{{i:terminal}}</span>
         <h3>Scriptable, and agent-ready</h3>
-        <p>The <code>clipd</code> CLI does everything the app does (capture, search, pin, sync), so scripts can reach your history too. AI assistants can search it through the local <a href="{{R}}docs/ai-assistants.html"><code>clipd-mcp</code></a> server.</p>
+        <p>The <code>clipd</code> CLI does everything the app does (capture, search, pin, sync), so scripts can reach your history too. AI assistants can search it too, locally, <a href="{{R}}docs/ai-assistants.html">set up in one click</a>.</p>
         <a class="more" href="{{R}}docs/cli.html">clipd commands →</a>
       </div>
     </div>
@@ -150,13 +150,15 @@ INDEX = r"""
   <div class="wrap split">
     <div>
       <span class="eyebrow">AI assistants</span>
-      <h2 class="h2">Works with your AI assistant.</h2>
-      <p class="lede" style="margin-bottom:24px">Claude Code, Claude Desktop, Cursor and any MCP-compatible client can search your clipboard history for you, right on your own computer. Ask in plain words; get the clip back.</p>
+      <h2 class="h2">Ask your AI assistant what you copied.</h2>
+      <p class="lede" style="margin-bottom:24px">"Find the docker command I copied yesterday." Your assistant searches your clipboard history and puts the clip back, in plain words. Works with Claude, Cursor, VS Code with Copilot, Windsurf, Codex, Gemini CLI, LM Studio and any other MCP app.</p>
       <ul class="checklist">
-        <li>""" + CHECK + r"""<span><b>Runs locally.</b> The assistant starts <code>clipd-mcp</code> on your machine and talks to it over stdio. No account, no hosted service, no open port.</span></li>
+        <li>""" + CHECK + r"""<span><b>One click to set up.</b> In {{B}}: <em>Settings → AI assistants → Connect</em>. Nothing extra to install and no config files to edit.</span></li>
+        <li>""" + CHECK + r"""<span><b>Only on your computer.</b> The assistant starts {{B}} on your laptop and talks to it directly. {{B}} itself never talks to any cloud: no account, no server, no open port.</span></li>
+        <li>""" + CHECK + r"""<span><b>Fully offline if you like.</b> Pair it with a local model in LM Studio and nothing leaves your machine at all.</span></li>
         <li>""" + CHECK + r"""<span><b>Sensitive clips are withheld.</b> Keys, one-time codes and card numbers are masked; the assistant never gets their body and can't copy them back.</span></li>
         <li>""" + CHECK + r"""<span><b>Read-mostly.</b> It can search, read, pin and put a clip back on your clipboard. It can't delete or edit anything.</span></li>
-        <li>""" + CHECK + r"""<span><b>Honest about the edges.</b> Clips an assistant reads become part of that conversation with your AI provider. ChatGPT isn't supported: it needs a remote server, and ours is local by design.</span></li>
+        <li>""" + CHECK + r"""<span><b>Honest about the edges.</b> With a cloud assistant, the clips it reads become part of that conversation with your AI provider. ChatGPT isn't supported: it needs a remote server, and ours is local by design. Phone clips are included through sync; the assistant runs on the laptop.</span></li>
       </ul>
       <p style="margin-top:20px"><a class="btn" href="{{R}}docs/ai-assistants.html">{{i:book}}Set up your assistant</a></p>
     </div>
@@ -449,6 +451,26 @@ CHANGELOG = r"""
 </section>
 <section style="padding:16px 0 96px">
   <div class="wrap">
+    <div class="changelog-entry">
+      <div class="changelog-meta">
+        <div class="ver">v0.1.7</div>
+        <div class="date">2026-11-22</div>
+        <span class="chip chip-accent">Alpha</span>
+      </div>
+      <div class="prose">
+        <p>Ask your AI assistant to find something you copied, set up in one click.</p>
+
+        <div class="cl-group">
+          <h3>Desktop</h3>
+          <ul>
+            <li>New <strong>Settings → AI assistants</strong>: one click connects {{B}} to Claude Desktop, Claude Code, Cursor, VS Code (GitHub Copilot), Windsurf, Codex CLI, Gemini CLI or LM Studio; <strong>Copy config</strong> covers any other MCP app.</li>
+            <li>The MCP server is built into the app (<code>cliptrail --mcp</code>): nothing extra to install. It runs only on your computer and {{B}} talks to no cloud; with a local model in LM Studio nothing leaves your machine.</li>
+            <li>Connect keeps a backup of each app's settings file and never rewrites a file it can't read cleanly.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
     <div class="changelog-entry">
       <div class="changelog-meta">
         <div class="ver">v0.1.6</div>

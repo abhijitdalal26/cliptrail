@@ -49,7 +49,7 @@
 <section class="hero">
   <div class="wrap">
     <div class="hero-copy">
-      <a class="badge" href="changelog.html"><span class="dot"></span>v0.1.6: images copied on your computer, on your phone in one tap <span class="arrow">→</span></a>
+      <a class="badge" href="changelog.html"><span class="dot"></span>v0.1.7: ask your AI assistant what you copied <span class="arrow">→</span></a>
       <h1 class="h1">Your clipboard,<br><span class="grad">everywhere, forever.</span></h1>
       <p class="lede">ClipTrail remembers everything you copy, knows what each thing is, and puts it one keystroke away. Pair your devices and your history follows you, end-to-end encrypted. Open source, no account, no tracking.</p>
       <div class="hero-cta">
@@ -171,7 +171,7 @@
       <div class="tile span-2">
         <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 17 6-6-6-6M12 19h8"/></svg></span>
         <h3>Scriptable, and agent-ready</h3>
-        <p>The <code>clipd</code> CLI does everything the app does (capture, search, pin, sync), so scripts can reach your history too. AI assistants can search it through the local <a href="docs/ai-assistants.html"><code>clipd-mcp</code></a> server.</p>
+        <p>The <code>clipd</code> CLI does everything the app does (capture, search, pin, sync), so scripts can reach your history too. AI assistants can search it too, locally, <a href="docs/ai-assistants.html">set up in one click</a>.</p>
         <a class="more" href="docs/cli.html">clipd commands →</a>
       </div>
     </div>
@@ -182,13 +182,15 @@
   <div class="wrap split">
     <div>
       <span class="eyebrow">AI assistants</span>
-      <h2 class="h2">Works with your AI assistant.</h2>
-      <p class="lede" style="margin-bottom:24px">Claude Code, Claude Desktop, Cursor and any MCP-compatible client can search your clipboard history for you, right on your own computer. Ask in plain words; get the clip back.</p>
+      <h2 class="h2">Ask your AI assistant what you copied.</h2>
+      <p class="lede" style="margin-bottom:24px">"Find the docker command I copied yesterday." Your assistant searches your clipboard history and puts the clip back, in plain words. Works with Claude, Cursor, VS Code with Copilot, Windsurf, Codex, Gemini CLI, LM Studio and any other MCP app.</p>
       <ul class="checklist">
-        <li><span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><span><b>Runs locally.</b> The assistant starts <code>clipd-mcp</code> on your machine and talks to it over stdio. No account, no hosted service, no open port.</span></li>
+        <li><span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><span><b>One click to set up.</b> In ClipTrail: <em>Settings → AI assistants → Connect</em>. Nothing extra to install and no config files to edit.</span></li>
+        <li><span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><span><b>Only on your computer.</b> The assistant starts ClipTrail on your laptop and talks to it directly. ClipTrail itself never talks to any cloud: no account, no server, no open port.</span></li>
+        <li><span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><span><b>Fully offline if you like.</b> Pair it with a local model in LM Studio and nothing leaves your machine at all.</span></li>
         <li><span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><span><b>Sensitive clips are withheld.</b> Keys, one-time codes and card numbers are masked; the assistant never gets their body and can't copy them back.</span></li>
         <li><span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><span><b>Read-mostly.</b> It can search, read, pin and put a clip back on your clipboard. It can't delete or edit anything.</span></li>
-        <li><span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><span><b>Honest about the edges.</b> Clips an assistant reads become part of that conversation with your AI provider. ChatGPT isn't supported: it needs a remote server, and ours is local by design.</span></li>
+        <li><span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><span><b>Honest about the edges.</b> With a cloud assistant, the clips it reads become part of that conversation with your AI provider. ChatGPT isn't supported: it needs a remote server, and ours is local by design. Phone clips are included through sync; the assistant runs on the laptop.</span></li>
       </ul>
       <p style="margin-top:20px"><a class="btn" href="docs/ai-assistants.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>Set up your assistant</a></p>
     </div>

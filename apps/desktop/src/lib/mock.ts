@@ -600,6 +600,14 @@ function stats(): Stats {
 }
 
 const DEFAULT_EXCLUDED = ["1password.exe", "bitwarden.exe", "keepass.exe", "keepassxc.exe", "lastpass.exe", "dashlane.exe"];
+const mockAi = [
+  { id: "claude-desktop", name: "Claude Desktop", installed: true, connected: true, config_path: null as string | null },
+  { id: "claude-code", name: "Claude Code", installed: true, connected: false, config_path: null as string | null },
+  { id: "cursor", name: "Cursor", installed: true, connected: false, config_path: null as string | null },
+  { id: "vscode", name: "VS Code (GitHub Copilot)", installed: false, connected: false, config_path: null as string | null },
+  { id: "lmstudio", name: "LM Studio", installed: false, connected: false, config_path: null as string | null },
+];
+
 const mockSettings: SettingsView = {
   settings: {
     picker_shortcut: "Ctrl+Shift+Space",
@@ -723,6 +731,16 @@ export async function handle(cmd: string, a: Record<string, unknown>): Promise<u
     case "open_url":
       window.open(a.url as string, "_blank", "noopener");
       return null;
+    case "ai_clients":
+      return mockAi.map((c) => ({ ...c }));
+    case "ai_connect":
+    case "ai_disconnect": {
+      const c = mockAi.find((x) => x.id === a.id);
+      if (c) c.connected = cmd === "ai_connect";
+      return mockAi.map((x) => ({ ...x }));
+    }
+    case "ai_config_snippet":
+      return JSON.stringify({ mcpServers: { cliptrail: { command: "C:/Users/you/AppData/Local/ClipTrail/cliptrail.exe", args: ["--mcp"] } } }, null, 2);
     case "get_autostart":
       return mockSettings.autostart;
     case "set_autostart":

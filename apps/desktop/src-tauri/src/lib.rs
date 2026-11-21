@@ -8,6 +8,8 @@
 // Compiled everywhere so its tests run on the desktop CI; used on Android.
 #[cfg_attr(not(target_os = "android"), allow(dead_code))]
 mod apkupdate;
+#[cfg(desktop)]
+mod assistants;
 mod commands;
 #[cfg(desktop)]
 mod fileproto;
@@ -59,6 +61,25 @@ const PICKER_ARG: &str = "--picker";
 #[tauri::mobile_entry_point]
 pub fn run() {
     mobile::run();
+}
+
+/// `cliptrail --mcp`: the MCP server an AI assistant starts (stdin/stdout;
+/// see `assistants`). Never returns.
+#[cfg(desktop)]
+pub fn run_mcp() -> ! {
+    tracing_subscriber::fmt()
+        .with_writer(std::io::stderr)
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "warn".into()),
+        )
+        .init();
+    match clipd_mcp::serve(&clipd_core::default_data_dir()) {
+        Ok(()) => std::process::exit(0),
+        Err(e) => {
+            eprintln!("cliptrail --mcp: {e:#}");
+            std::process::exit(1)
+        }
+    }
 }
 
 #[cfg(desktop)]
@@ -171,6 +192,10 @@ pub fn run() {
             commands::open_url,
             commands::reveal_path,
             commands::open_data_dir,
+            commands::ai_clients,
+            commands::ai_connect,
+            commands::ai_disconnect,
+            commands::ai_config_snippet,
             commands::get_autostart,
             commands::set_autostart,
             commands::quit_app,
