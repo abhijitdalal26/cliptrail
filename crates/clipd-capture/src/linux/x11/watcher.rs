@@ -179,6 +179,7 @@ fn handle_change(clip: &mut X11Clip, on_clip: &dyn Fn(RawClip), pending: Pending
                 content,
                 source_app: pending.source_app,
                 captured_at: now_ms(),
+                source_url: None,
             };
             if catch_unwind(AssertUnwindSafe(|| on_clip(raw))).is_err() {
                 tracing::warn!("on_clip callback panicked; watcher continues");

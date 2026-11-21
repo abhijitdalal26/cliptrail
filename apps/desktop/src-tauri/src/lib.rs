@@ -6,6 +6,8 @@
 //! Rule: never log clip content. Log ids, kinds, sizes.
 
 mod commands;
+#[cfg(desktop)]
+mod fileproto;
 mod imageproto;
 mod maintenance;
 #[cfg(mobile)]
@@ -80,6 +82,7 @@ pub fn run() {
             }
         }))
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec![HIDDEN_ARG]),
@@ -87,6 +90,7 @@ pub fn run() {
         .plugin(shortcuts::plugin())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .register_asynchronous_uri_scheme_protocol(imageproto::SCHEME, imageproto::handle)
+        .register_asynchronous_uri_scheme_protocol(fileproto::SCHEME, fileproto::handle)
         .manage(AppState::new(clipd_core::default_data_dir()))
         .manage(sync::SyncState::default())
         .manage(updater::UpdaterState::default())
@@ -232,6 +236,31 @@ fn is_own_exe(app: &str) -> bool {
     .is_some_and(|own| own.eq_ignore_ascii_case(app))
 }
 
+/// A copied image may be a screenshot the OS also saved to disk: find that
+/// file (it can land a moment after the clipboard) and link the clip to it.
+#[cfg(any(windows, target_os = "linux"))]
+fn link_screenshot(app: AppHandle, id: String, width: u32, height: u32, rgba: Vec<u8>) {
+    let captured = std::time::SystemTime::now();
+    std::thread::spawn(move || {
+        let Some(path) =
+            clipd_capture::screenshot::wait_for_screenshot(width, height, &rgba, captured)
+        else {
+            return;
+        };
+        let Ok(p) = app.state::<AppState>().pipeline() else {
+            return;
+        };
+        match p.link_image_file(&id, &path.to_string_lossy()) {
+            Ok(true) => {
+                tracing::debug!(%id, "image linked to its screenshot file");
+                commands::notify_updated(&app);
+            }
+            Ok(false) => {}
+            Err(e) => tracing::warn!("linking screenshot: {e}"),
+        }
+    });
+}
+
 #[cfg(desktop)]
 fn on_raw_clip(app: &AppHandle, raw: RawClip) {
     let state = app.state::<AppState>();
@@ -255,12 +284,25 @@ fn on_raw_clip(app: &AppHandle, raw: RawClip) {
     if state.settings().clean_links {
         clean_copied_link(&mut raw);
     }
+    #[cfg(any(windows, target_os = "linux"))]
+    let shot = match &raw.content {
+        clipd_core::RawContent::Image {
+            width,
+            height,
+            rgba,
+        } => Some((*width, *height, rgba.clone())),
+        _ => None,
+    };
     match guard("ingest", || p.ingest(raw)) {
         Ok(outcome @ (IngestOutcome::Stored { .. } | IngestOutcome::Bumped { .. })) => {
             if let IngestOutcome::Stored { id, kind } | IngestOutcome::Bumped { id, kind } =
                 &outcome
             {
                 tracing::debug!(%id, kind = kind.as_str(), "clip ingested");
+                #[cfg(any(windows, target_os = "linux"))]
+                if let Some((w, h, rgba)) = shot {
+                    link_screenshot(app.clone(), id.clone(), w, h, rgba);
+                }
             }
             let _ = app.emit("clips-changed", &outcome);
             tray::refresh(app);
