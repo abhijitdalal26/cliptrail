@@ -370,7 +370,6 @@ BRAND_PATHS = {
 }
 AI_APPS = [
  ("Claude Desktop", 'claude', '#D97757'),
- ("Claude Code", 'claude', '#D97757'),
  ("Cursor", 'cursor', None),
  ("VS Code + Copilot", 'githubcopilot', None),
  ("Windsurf", 'windsurf', None),
