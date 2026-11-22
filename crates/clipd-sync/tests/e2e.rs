@@ -436,6 +436,20 @@ async fn copied_documents_import_on_request_only() {
         .unwrap();
     let secret = files.0.join("never-copied.pdf");
     std::fs::write(&secret, b"%PDF-secret").unwrap();
+    // Several documents copied together are one clip with one entry per file.
+    let (inv, rcpt) = (files.0.join("invoice.pdf"), files.0.join("receipt.pdf"));
+    std::fs::write(&inv, b"%PDF-invoice").unwrap();
+    std::fs::write(&rcpt, b"%PDF-receipt").unwrap();
+    hp.ingest(RawClip {
+        content: RawContent::Files(vec![
+            inv.to_string_lossy().into_owned(),
+            rcpt.to_string_lossy().into_owned(),
+        ]),
+        source_app: Some("explorer.exe".into()),
+        captured_at: now_millis(),
+        source_url: None,
+    })
+    .unwrap();
     for f in [&pdf, &big] {
         hp.ingest(RawClip {
             content: RawContent::Files(vec![f.to_string_lossy().into_owned()]),
@@ -469,7 +483,7 @@ async fn copied_documents_import_on_request_only() {
             })
             .unwrap()
     };
-    wait("both file clips on the phone", || list().len() == 2).await;
+    wait("all file clips on the phone", || list().len() == 3).await;
     wait("phone connected", || a.status().is_ok_and(|s| s.connected)).await;
     let id_of = |name: &str| {
         list()
@@ -483,6 +497,18 @@ async fn copied_documents_import_on_request_only() {
     assert!(!a_dir.0.join("file-cache").exists());
     let pdf_id = id_of("Report 2026.pdf");
     assert_eq!(a.fetch_file(&pdf_id, 0, false).await.unwrap(), pdf_bytes);
+
+    // One clip, two files: each is fetched on its own by its index.
+    let multi = id_of("invoice.pdf");
+    assert_eq!(
+        a.fetch_file(&multi, 1, false).await.unwrap(),
+        b"%PDF-receipt"
+    );
+    assert_eq!(
+        a.fetch_file(&multi, 0, false).await.unwrap(),
+        b"%PDF-invoice"
+    );
+    assert!(a.fetch_file(&multi, 2, false).await.is_err());
 
     // Not an image: no preview, with a message that says so.
     let err = a.fetch_file(&pdf_id, 0, true).await.unwrap_err();
