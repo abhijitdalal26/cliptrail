@@ -482,6 +482,13 @@ CHANGELOG = r"""
             <li>If your computer is off or the file moved, the clip says so and offers <strong>Try again</strong>.</li>
           </ul>
         </div>
+
+        <div class="cl-group">
+          <h3>Security</h3>
+          <ul>
+            <li>Files your computer hands to a paired device are now limited to files copied on that computer. Before, a paired device could ask it for a file by syncing a clip that named it. Update your computer to this version.</li>
+          </ul>
+        </div>
       </div>
     </div>
 

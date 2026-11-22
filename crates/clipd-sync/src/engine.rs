@@ -574,7 +574,7 @@ impl Engine {
     }
 
     /// The copied-files clip a device asked for. Blob ids are opaque, so
-    /// look through this history's file clips for the one that matches.
+    /// look through the file clips copied on this computer for the one that matches.
     fn file_clip_hash(&self, blob_id: &str) -> Result<Option<Vec<u8>>> {
         let store = self.pipeline.store();
         let files = store.list(&ListQuery {
@@ -583,6 +583,12 @@ impl Engine {
             ..Default::default()
         })?;
         for c in files {
+            // Only files copied on this computer: a clip synced from another
+            // device carries paths that device chose, and must never make this
+            // computer read a file for it.
+            if c.device_id != self.space.device_id {
+                continue;
+            }
             if let Some(h) = store.content_hash(&c.id)?
                 && self.keys.blob_id(&h) == blob_id
             {
