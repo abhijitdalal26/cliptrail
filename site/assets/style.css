@@ -290,6 +290,9 @@ kbd {
   box-shadow: var(--shadow-lg), 0 0 0 1px var(--border);
 }
 .showcase .window-float img { display: block; width: 100%; }
+.demo .section-head { margin-bottom: 36px; }
+.demo-video { max-width: 960px; margin: 0 auto; line-height: 0; }
+.demo-video video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; background: #0b0e14; }
 .showcase-fade { height: 120px; margin-top: -120px; position: relative; background: linear-gradient(transparent, var(--bg)); pointer-events: none; }
 .callout-tag {
   position: absolute; z-index: 2; display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 12px;
