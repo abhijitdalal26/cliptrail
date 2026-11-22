@@ -403,3 +403,103 @@ async fn copied_files_are_fetched_on_demand() {
     a.shutdown().await;
     hub.shutdown().await;
 }
+
+/// The Import button on the phone: any copied file (a PDF here) comes over
+/// on request, byte for byte, sealed; nothing arrives unasked; a file over
+/// the cap, a non-image preview and a path that was never copied are refused.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn copied_documents_import_on_request_only() {
+    let (hub_dir, a_dir, files) = (
+        TempDir::new("ihub"),
+        TempDir::new("ia"),
+        TempDir::new("ifiles"),
+    );
+    let (hub_ks, a_ks) = (
+        Arc::new(MemoryKeyStore::default()),
+        Arc::new(MemoryKeyStore::default()),
+    );
+    let hp = pipeline(&hub_dir.0);
+    let ap = pipeline(&a_dir.0);
+
+    let pdf = files.0.join("Report 2026.pdf");
+    let pdf_bytes: Vec<u8> = b"%PDF-1.7\n"
+        .iter()
+        .copied()
+        .chain((0..=255u8).cycle().take(200_000))
+        .collect();
+    std::fs::write(&pdf, &pdf_bytes).unwrap();
+    // Sparse, so cheap: one byte over the cap.
+    let big = files.0.join("big.iso");
+    std::fs::File::create(&big)
+        .unwrap()
+        .set_len(clipd_sync::MAX_FILE_FETCH_BYTES + 1)
+        .unwrap();
+    let secret = files.0.join("never-copied.pdf");
+    std::fs::write(&secret, b"%PDF-secret").unwrap();
+    for f in [&pdf, &big] {
+        hp.ingest(RawClip {
+            content: RawContent::Files(vec![f.to_string_lossy().into_owned()]),
+            source_app: Some("explorer.exe".into()),
+            captured_at: now_millis(),
+            source_url: None,
+        })
+        .unwrap();
+    }
+
+    let hub = hub::start(HubConfig {
+        data_dir: hub_dir.0.clone(),
+        keystore: hub_ks.clone(),
+        port: 0,
+        bind: IpAddr::V4(Ipv4Addr::LOCALHOST),
+        advertise: Some(vec!["127.0.0.1".into()]),
+        name: "Test Hub".into(),
+    })
+    .await
+    .unwrap();
+    let offer = hub.create_offer();
+    client::pair(&a_dir.0, a_ks.clone(), &offer.uri, "Phone", "android")
+        .await
+        .unwrap();
+    let a = start_client(&a_dir.0, &a_ks);
+    let list = || {
+        ap.store()
+            .list(&ListQuery {
+                kind: Some(Kind::File),
+                ..Default::default()
+            })
+            .unwrap()
+    };
+    wait("both file clips on the phone", || list().len() == 2).await;
+    wait("phone connected", || a.status().is_ok_and(|s| s.connected)).await;
+    let id_of = |name: &str| {
+        list()
+            .into_iter()
+            .find(|c| c.files[0].ends_with(name))
+            .unwrap()
+            .id
+    };
+
+    // Syncing a file clip carries the path only: the phone holds no copy.
+    assert!(!a_dir.0.join("file-cache").exists());
+    let pdf_id = id_of("Report 2026.pdf");
+    assert_eq!(a.fetch_file(&pdf_id, 0, false).await.unwrap(), pdf_bytes);
+
+    // Not an image: no preview, with a message that says so.
+    let err = a.fetch_file(&pdf_id, 0, true).await.unwrap_err();
+    assert!(format!("{err:#}").contains("isn't an image"), "{err:#}");
+
+    // Over 64 MB.
+    let err = a.fetch_file(&id_of("big.iso"), 0, false).await.unwrap_err();
+    assert!(format!("{err:#}").contains("too big"), "{err:#}");
+
+    // A clip that isn't in this history can't be used to read other files.
+    let err = a.fetch_file("no-such-clip", 0, false).await.unwrap_err();
+    assert!(
+        format!("{err:#}").contains("isn't on this device"),
+        "{err:#}"
+    );
+    assert!(secret.exists());
+
+    a.shutdown().await;
+    hub.shutdown().await;
+}

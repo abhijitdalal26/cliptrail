@@ -9,6 +9,7 @@
 pub mod classify;
 pub mod dbkey;
 pub mod imagefile;
+pub mod imported;
 pub mod model;
 pub mod pipeline;
 pub mod store;

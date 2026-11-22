@@ -36,7 +36,7 @@ use serde::{Deserialize, Serialize};
 
 pub use client::{ClientConfig, ClientHandle, PairOutcome, pair};
 pub use db::{DeviceRow, Role};
-pub use engine::SyncNotice;
+pub use engine::{MAX_FILE_FETCH_BYTES, SyncNotice};
 #[cfg(feature = "hub")]
 pub use hub::{HubConfig, HubHandle, OfferView};
 pub use keystore::{
