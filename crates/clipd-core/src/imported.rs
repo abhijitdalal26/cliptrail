@@ -17,7 +17,12 @@ const KEEP: usize = 500;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ImportedFile {
-    pub uri: String,
+    /// The private copy in the app's folder (Open, Share and Copy use it).
+    #[serde(default)]
+    pub path: String,
+    /// Set once the user saved it to Downloads/ClipTrail (a content URI).
+    #[serde(default)]
+    pub uri: Option<String>,
     pub mime: String,
     pub size: u64,
     pub at: i64,
@@ -78,6 +83,31 @@ impl ImportedFiles {
     }
 }
 
+/// Content type for a file name, by extension; unknown types are binary.
+pub fn mime_for(name: &str) -> &'static str {
+    let ext = name.rsplit('.').next().unwrap_or("").to_ascii_lowercase();
+    match ext.as_str() {
+        "pdf" => "application/pdf",
+        "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
+        "gif" => "image/gif",
+        "webp" => "image/webp",
+        "txt" | "log" | "md" => "text/plain",
+        "csv" => "text/csv",
+        "json" => "application/json",
+        "zip" => "application/zip",
+        "mp4" | "m4v" => "video/mp4",
+        "mp3" => "audio/mpeg",
+        "doc" => "application/msword",
+        "docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "xls" => "application/vnd.ms-excel",
+        "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "ppt" => "application/vnd.ms-powerpoint",
+        "pptx" => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        _ => "application/octet-stream",
+    }
+}
+
 /// The file name to save an imported file under: the last component of a
 /// Windows or Unix path, with characters Android and Windows both reject
 /// removed, never empty, never a dot-name.
@@ -114,13 +144,35 @@ mod tests {
     }
 
     #[test]
+    fn content_types_by_extension() {
+        assert_eq!(mime_for("Report.PDF"), "application/pdf");
+        assert_eq!(mime_for("a.b.png"), "image/png");
+        assert_eq!(mime_for("noext"), "application/octet-stream");
+    }
+
+    #[test]
+    fn old_index_entries_still_load() {
+        let dir = std::env::temp_dir().join(format!("cliptrail-imp-old-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(
+            dir.join(FILE_NAME),
+            br#"{"c1:0":{"uri":"content://x/1","mime":"application/pdf","size":5,"at":1}}"#,
+        )
+        .unwrap();
+        let f = ImportedFiles::open(&dir).get("c1", 0).unwrap();
+        assert_eq!(f.path, "");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn index_remembers_and_forgets() {
         let dir = std::env::temp_dir().join(format!("cliptrail-imp-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let idx = ImportedFiles::open(&dir);
         assert!(idx.get("c1", 0).is_none());
         let f = ImportedFile {
-            uri: "content://media/external/downloads/42".into(),
+            path: "/data/imported/c1-0/a.pdf".into(),
+            uri: Some("content://media/external/downloads/42".into()),
             mime: "application/pdf".into(),
             size: 1234,
             at: 7,
@@ -144,7 +196,8 @@ mod tests {
         let idx = ImportedFiles::open(&dir);
         for i in 0..(KEEP as i64 + 5) {
             let f = ImportedFile {
-                uri: format!("u{i}"),
+                path: format!("p{i}"),
+                uri: None,
                 mime: "x/y".into(),
                 size: 1,
                 at: i,

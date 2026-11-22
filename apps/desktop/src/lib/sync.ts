@@ -120,9 +120,9 @@ async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> 
   return mockCall(cmd, args ?? {}) as Promise<T>;
 }
 
-/** A file imported to the phone: where it is (a content URI), its type and size in bytes. */
+/** A file imported to the phone: its type and size in bytes, and whether it was saved to Downloads yet. */
 export interface ImportedFile {
-  uri: string;
+  saved: boolean;
   mime: string;
   size: number;
 }
@@ -151,6 +151,10 @@ export const syncApi = {
   importFile: (id: string, index: number) => call<ImportedFile>("sync_import_file", { id, index }),
   /** Phone: the imported copy of a file, if it was imported and is still on the phone. */
   importedFile: (id: string, index: number) => call<ImportedFile | null>("sync_imported_file", { id, index }),
+  /** Phone: put an imported file on the clipboard. */
+  copyImported: (id: string, index: number) => call<void>("sync_copy_imported", { id, index }),
+  /** Phone: save an imported file to Downloads/ClipTrail. */
+  saveImported: (id: string, index: number) => call<ImportedFile>("sync_save_imported", { id, index }),
   /** Phone: open (or share) an imported file in another app. */
   openImported: (id: string, index: number, share: boolean) => call<void>("sync_open_imported", { id, index, share }),
   /** Check a relay URL without changing anything. */
@@ -369,6 +373,8 @@ async function mockCall(cmd: string, a: Record<string, unknown>): Promise<unknow
     case "sync_save_file":
     case "sync_import_file":
     case "sync_open_imported":
+    case "sync_copy_imported":
+    case "sync_save_imported":
       throw "Files come from your computer in the phone app";
     case "sync_status":
     case "sync_restart":

@@ -57,6 +57,7 @@ class SaveArgs {
 @InvokeArg
 class UriArgs {
     var uri: String = ""
+    var path: String = ""
     var mime: String = ""
 }
 
@@ -304,13 +305,21 @@ class ClipTrailPlugin(private val activity: Activity) : Plugin(activity) {
         invoke.resolve(JSObject().put("exists", exists))
     }
 
+    /** An imported file's content:// URI: its private copy through the FileProvider, or a saved URI. */
+    private fun importedUri(args: UriArgs): Uri =
+        if (args.path.isNotEmpty()) {
+            FileProvider.getUriForFile(activity, "${activity.packageName}.fileprovider", File(args.path))
+        } else {
+            Uri.parse(args.uri)
+        }
+
     /** Open an imported file in whatever app handles its type. */
     @Command
     fun openFile(invoke: Invoke) {
         val args = invoke.parseArgs(UriArgs::class.java)
         try {
             val intent = Intent(Intent.ACTION_VIEW)
-                .setDataAndType(Uri.parse(args.uri), args.mime.ifEmpty { "*/*" })
+                .setDataAndType(importedUri(args), args.mime.ifEmpty { "*/*" })
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
             activity.startActivity(intent)
             invoke.resolve()
@@ -326,7 +335,7 @@ class ClipTrailPlugin(private val activity: Activity) : Plugin(activity) {
     fun shareFile(invoke: Invoke) {
         val args = invoke.parseArgs(UriArgs::class.java)
         try {
-            val uri = Uri.parse(args.uri)
+            val uri = importedUri(args)
             activity.contentResolver.openFileDescriptor(uri, "r")?.close()
             val send = Intent(Intent.ACTION_SEND)
                 .setType(args.mime.ifEmpty { "*/*" })

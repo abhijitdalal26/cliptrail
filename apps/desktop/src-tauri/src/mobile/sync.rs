@@ -373,6 +373,22 @@ fn prune_file_cache(dir: &std::path::Path) {
 /// Returns its path and file name.
 async fn fetch_to_out(app: &AppHandle, id: &str, index: usize) -> CmdResult<(String, String)> {
     let p = crate::commands::pipeline(app)?;
+    let (bytes, name) = fetch_named(app, id, index).await?;
+    let dir = p.config().data_dir.join(FILE_OUT_DIR);
+    let out = dir.join(&name);
+    crate::commands::blocking(move || {
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        std::fs::write(&out, bytes).map_err(|e| e.to_string())?;
+        Ok((out.to_string_lossy().into_owned(), name))
+    })
+    .await
+}
+
+/// Fetch file `index` of a copied-files clip from the computer: its bytes and
+/// a safe file name. The only place a file's content crosses the network.
+async fn fetch_named(app: &AppHandle, id: &str, index: usize) -> CmdResult<(Vec<u8>, String)> {
+    let p = crate::commands::pipeline(app)?;
     let source = {
         let (p, id) = (p.clone(), id.to_owned());
         crate::commands::blocking(move || {
@@ -394,21 +410,20 @@ async fn fetch_to_out(app: &AppHandle, id: &str, index: usize) -> CmdResult<(Str
         .fetch_file(id, index, false)
         .await
         .map_err(friendly)?;
-    let dir = p.config().data_dir.join(FILE_OUT_DIR);
-    let out = dir.join(&name);
-    crate::commands::blocking(move || {
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-        std::fs::write(&out, bytes).map_err(|e| e.to_string())?;
-        Ok((out.to_string_lossy().into_owned(), name))
-    })
-    .await
+    Ok((bytes, name))
 }
+
+/// Imported files wait here (app-private) until the user saves or shares them.
+/// Must match `file_paths.xml`.
+const IMPORT_DIR: &str = "imported";
+/// Older imports are removed past this many (Saved copies in Downloads stay).
+const IMPORT_KEEP: usize = 20;
 
 /// What the UI shows for a file that was imported to the phone.
 #[derive(Serialize)]
 pub struct ImportedView {
-    pub uri: String,
+    /// Saved to Downloads/ClipTrail yet?
+    pub saved: bool,
     pub mime: String,
     pub size: u64,
 }
@@ -416,8 +431,6 @@ pub struct ImportedView {
 #[derive(serde::Deserialize)]
 struct SavedFile {
     uri: String,
-    mime: String,
-    size: u64,
 }
 
 fn imported_index(app: &AppHandle) -> CmdResult<clipd_core::imported::ImportedFiles> {
@@ -426,39 +439,66 @@ fn imported_index(app: &AppHandle) -> CmdResult<clipd_core::imported::ImportedFi
     ))
 }
 
-/// Import: fetch file `index` of a copied-files clip from the computer (only
-/// because the user asked) into the phone's Downloads/ClipTrail.
-#[tauri::command]
-pub async fn sync_import_file(app: AppHandle, id: String, index: usize) -> CmdResult<ImportedView> {
-    let (path, name) = fetch_to_out(&app, &id, index).await?;
-    let res = super::bridge::call::<SavedFile>(
-        &app,
-        "saveToDownloads",
-        serde_json::json!({ "path": path, "name": name }),
-    )
-    .await;
-    let _ = std::fs::remove_file(&path);
-    let saved = res?;
-    imported_index(&app)?
-        .put(
-            &id,
-            index,
-            clipd_core::imported::ImportedFile {
-                uri: saved.uri.clone(),
-                mime: saved.mime.clone(),
-                size: saved.size,
-                at: clipd_core::now_millis(),
-            },
-        )
-        .map_err(|e| format!("{e:#}"))?;
-    Ok(ImportedView {
-        uri: saved.uri,
-        mime: saved.mime,
-        size: saved.size,
-    })
+fn view_of(f: &clipd_core::imported::ImportedFile) -> ImportedView {
+    ImportedView {
+        saved: f.uri.is_some(),
+        mime: f.mime.clone(),
+        size: f.size,
+    }
 }
 
-/// The imported copy of a file, if there is one and it's still on the phone.
+/// Import: fetch file `index` of a copied-files clip from the computer, only
+/// because the user tapped Import, into the app's private import folder.
+/// Copy, Share and Save work from that copy.
+#[tauri::command]
+pub async fn sync_import_file(app: AppHandle, id: String, index: usize) -> CmdResult<ImportedView> {
+    let (bytes, name) = fetch_named(&app, &id, index).await?;
+    let root = crate::commands::pipeline(&app)?
+        .config()
+        .data_dir
+        .join(IMPORT_DIR);
+    let dir_name: String = id.chars().filter(|c| c.is_ascii_alphanumeric()).collect();
+    let dir = root.join(format!("{dir_name}-{index}"));
+    let out = dir.join(&name);
+    let size = bytes.len() as u64;
+    let path = out.to_string_lossy().into_owned();
+    crate::commands::blocking(move || {
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        std::fs::write(&out, bytes).map_err(|e| e.to_string())?;
+        prune_imports(&root);
+        Ok(())
+    })
+    .await?;
+    let f = clipd_core::imported::ImportedFile {
+        path,
+        uri: None,
+        mime: clipd_core::imported::mime_for(&name).into(),
+        size,
+        at: clipd_core::now_millis(),
+    };
+    imported_index(&app)?
+        .put(&id, index, f.clone())
+        .map_err(|e| format!("{e:#}"))?;
+    Ok(view_of(&f))
+}
+
+/// Keep the newest `IMPORT_KEEP` import folders.
+fn prune_imports(root: &std::path::Path) {
+    let Ok(rd) = std::fs::read_dir(root) else {
+        return;
+    };
+    let mut dirs: Vec<_> = rd
+        .filter_map(|e| e.ok())
+        .filter_map(|e| Some((e.metadata().ok()?.modified().ok()?, e.path())))
+        .collect();
+    dirs.sort_by(|a, b| b.0.cmp(&a.0));
+    for (_, p) in dirs.into_iter().skip(IMPORT_KEEP) {
+        let _ = std::fs::remove_dir_all(p);
+    }
+}
+
+/// The imported copy of a file, if there is one that's still on the phone.
 #[tauri::command]
 pub async fn sync_imported_file(
     app: AppHandle,
@@ -469,27 +509,86 @@ pub async fn sync_imported_file(
     let Some(f) = idx.get(&id, index) else {
         return Ok(None);
     };
-    let exists = super::bridge::call::<serde_json::Value>(
-        &app,
-        "fileExists",
-        serde_json::json!({ "uri": f.uri }),
-    )
-    .await
-    .ok()
-    .and_then(|v| v.get("exists").and_then(|e| e.as_bool()))
-    .unwrap_or(false);
-    if !exists {
+    if f.path.is_empty() || !std::path::Path::new(&f.path).is_file() {
         let _ = idx.forget(&id, index);
         return Ok(None);
     }
-    Ok(Some(ImportedView {
-        uri: f.uri,
-        mime: f.mime,
-        size: f.size,
-    }))
+    // A saved copy the user deleted in Files just counts as "not saved" again.
+    if let Some(uri) = &f.uri {
+        let exists = super::bridge::call::<serde_json::Value>(
+            &app,
+            "fileExists",
+            serde_json::json!({ "uri": uri }),
+        )
+        .await
+        .ok()
+        .and_then(|v| v.get("exists").and_then(|e| e.as_bool()))
+        .unwrap_or(true);
+        if !exists {
+            let g = clipd_core::imported::ImportedFile {
+                uri: None,
+                ..f.clone()
+            };
+            let _ = idx.put(&id, index, g.clone());
+            return Ok(Some(view_of(&g)));
+        }
+    }
+    Ok(Some(view_of(&f)))
 }
 
-/// Open (`share: false`) or share (`share: true`) an imported file.
+fn imported_or_err(
+    app: &AppHandle,
+    id: &str,
+    index: usize,
+) -> CmdResult<clipd_core::imported::ImportedFile> {
+    let f = imported_index(app)?
+        .get(id, index)
+        .ok_or_else(|| "Import the file first".to_string())?;
+    if f.path.is_empty() || !std::path::Path::new(&f.path).is_file() {
+        let _ = imported_index(app)?.forget(id, index);
+        return Err("The imported file is gone from this phone. Import it again.".into());
+    }
+    Ok(f)
+}
+
+/// Put the imported file on the phone's clipboard.
+#[tauri::command]
+pub async fn sync_copy_imported(app: AppHandle, id: String, index: usize) -> CmdResult<()> {
+    let f = imported_or_err(&app, &id, index)?;
+    super::bridge::call::<serde_json::Value>(
+        &app,
+        "writeClipboard",
+        serde_json::json!({ "imagePath": f.path }),
+    )
+    .await?;
+    Ok(())
+}
+
+/// Save the imported file to the phone's Downloads/ClipTrail.
+#[tauri::command]
+pub async fn sync_save_imported(
+    app: AppHandle,
+    id: String,
+    index: usize,
+) -> CmdResult<ImportedView> {
+    let mut f = imported_or_err(&app, &id, index)?;
+    if f.uri.is_none() {
+        let name = clipd_core::imported::safe_file_name(&f.path);
+        let saved = super::bridge::call::<SavedFile>(
+            &app,
+            "saveToDownloads",
+            serde_json::json!({ "path": f.path, "name": name }),
+        )
+        .await?;
+        f.uri = Some(saved.uri);
+        imported_index(&app)?
+            .put(&id, index, f.clone())
+            .map_err(|e| format!("{e:#}"))?;
+    }
+    Ok(view_of(&f))
+}
+
+/// Share (`share: true`) or open an imported file in another app.
 #[tauri::command]
 pub async fn sync_open_imported(
     app: AppHandle,
@@ -497,22 +596,14 @@ pub async fn sync_open_imported(
     index: usize,
     share: bool,
 ) -> CmdResult<()> {
-    let idx = imported_index(&app)?;
-    let f = idx
-        .get(&id, index)
-        .ok_or_else(|| "Import the file first".to_string())?;
-    let res = super::bridge::call::<serde_json::Value>(
+    let f = imported_or_err(&app, &id, index)?;
+    super::bridge::call::<serde_json::Value>(
         &app,
         if share { "shareFile" } else { "openFile" },
-        serde_json::json!({ "uri": f.uri, "mime": f.mime }),
+        serde_json::json!({ "path": f.path, "mime": f.mime }),
     )
-    .await;
-    if let Err(e) = &res
-        && e.contains("gone")
-    {
-        let _ = idx.forget(&id, index);
-    }
-    res.map(|_| ())
+    .await
+    .map(|_| ())
 }
 
 /// Copy a file that's on the computer to the phone's clipboard.
