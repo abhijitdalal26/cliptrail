@@ -47,9 +47,7 @@ INDEX = r"""
       <h2 class="h2">See it in 45 seconds.</h2>
     </div>
     <div class="window demo-video">
-      <video controls playsinline preload="none" width="1920" height="1080" poster="{{R}}assets/video/cliptrail-launch-poster.webp" aria-label="{{B}} launch video: copy on one device, paste on another, search everything you copied and ask your AI assistant about it.">
-        <source src="{{R}}assets/video/cliptrail-launch.mp4" type="video/mp4">
-      </video>
+      <iframe src="https://www.youtube-nocookie.com/embed/Jjgs1D6tQYA?rel=0" title="{{B}} launch video" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
     </div>
   </div>
 </section>
