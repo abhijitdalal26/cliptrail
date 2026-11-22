@@ -33,3 +33,4 @@
 - [ ] Shared pinboards / team spaces
 - [ ] CLI + Raycast extension
 - [ ] Linux Wayland polish
+- [ ] Windows code signing via SignPath (deferred on purpose until the project has a following; releases ship unsigned and SmartScreen may warn. See docs/code-signing.md)

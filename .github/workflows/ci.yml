@@ -104,3 +104,15 @@ jobs:
           curl -fsS http://127.0.0.1:8787/v1/hello | grep -q '"kind":"clipd-relay"'
           docker exec relay /usr/local/bin/clipd-relay --healthcheck
           docker rm -f relay
+
+  # Known-vulnerability scan of Cargo.lock. Fails on vulnerabilities only; unmaintained
+  # crates pulled in by the Tauri/GTK stack are reported as warnings.
+  audit:
+    name: Rust dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
+      - run: cargo audit
