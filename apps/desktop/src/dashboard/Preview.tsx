@@ -655,7 +655,6 @@ function useRemoteFiles(s: ClipSummary | null, toast: (m: string) => void) {
         (e) => put(i, { s: "failed", message: errorMessage(e) }),
       );
     },
-    copyImported: (i: number) => id && run(syncApi.copyImported(id, i), "Copied"),
     save: (i: number) =>
       id &&
       run(
@@ -811,29 +810,18 @@ function RemoteFileActions({ summary: s, remote }: { summary: ClipSummary; remot
           )}
           {!done && st.s !== "failed" && (
             <div className="text-center text-[11.5px] leading-[1.4] text-fg-3">
-              Import {nm} to open, copy or save it.
+              Import {nm} to open or save it.
             </div>
           )}
-          <div className="grid grid-cols-2 gap-2.5">
-            <Button
-              icon={Copy}
-              className={big}
-              disabled={!done || lock}
-              aria-label={`Copy ${nm}`}
-              onClick={() => remote.copyImported(i)}
-            >
-              Copy
-            </Button>
-            <Button
-              icon={saved ? Check : Save}
-              className={big}
-              disabled={!done || saved || lock}
-              aria-label={saved ? `${nm} is saved to Downloads` : `Save ${nm} to Downloads`}
-              onClick={() => remote.save(i)}
-            >
-              {saved ? "Saved" : "Save"}
-            </Button>
-          </div>
+          <Button
+            icon={saved ? Check : Save}
+            className={big}
+            disabled={!done || saved || lock}
+            aria-label={saved ? `${nm} is saved to Downloads` : `Save ${nm} to Downloads`}
+            onClick={() => remote.save(i)}
+          >
+            {saved ? "Saved" : "Save"}
+          </Button>
         </>
       )}
     </>
