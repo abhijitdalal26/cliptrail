@@ -11,9 +11,11 @@ import {
   EyeOff,
   FileIcon,
   FolderOpen,
+  Loader2,
   Mail,
   MousePointerClick,
   RotateCcw,
+  Share2,
   Star,
   Timer,
   Trash2,
@@ -28,10 +30,10 @@ import { isAndroid } from "../lib/platform";
 import { KIND_META, subkindLabel } from "../lib/kinds";
 import type { Clip, ClipSummary } from "../lib/types";
 import { AppAvatar, Button, IconButton, KindBadge } from "../components/ui";
-import { platformIcon, syncApi, useOtherDevice } from "../lib/sync";
+import { platformIcon, syncApi, useOtherDevice, type ImportedFile } from "../lib/sync";
 import { Actions } from "./Actions";
 import { FilePreview } from "../components/FilePreview";
-import { mediaKind, remoteImageFile } from "../lib/media";
+import { mediaKind } from "../lib/media";
 
 interface Props {
   summary: ClipSummary | null;
@@ -229,22 +231,8 @@ function SecondaryAction({
       );
     }
     case "file":
-      if (isAndroid) {
-        return remoteImageFile(s.kind, s.files) ? (
-          <Button
-            icon={Download}
-            className={cls}
-            onClick={() =>
-              syncApi
-                .saveFile(s.id, 0)
-                .then(() => toast("Saved to Pictures › ClipTrail"))
-                .catch(fail)
-            }
-          >
-            Save to phone
-          </Button>
-        ) : null;
-      }
+      // Phone: every file has its own Import (and, for images, Copy / Save) button in the list above.
+      if (isAndroid) return null;
       return s.files.length > 0 ? (
         <Button icon={FolderOpen} className={cls} onClick={() => api.revealPath(s.files[0]).catch(fail)}>
           Open in folder
@@ -475,7 +463,7 @@ function Body({ summary: s, clip, toast }: { summary: ClipSummary; clip: Clip | 
     case "color":
       return <ColorView value={clip?.text ?? s.preview} toast={toast} />;
     case "file": {
-      if (isAndroid) return <RemoteFiles summary={s} />;
+      if (isAndroid) return <RemoteFiles summary={s} toast={toast} />;
       const media = s.files.find((f) => mediaKind(f));
       return (
         <div className="space-y-3">
@@ -573,43 +561,231 @@ function ColorView({ value, toast }: { value: string; toast: (m: string) => void
   );
 }
 
-/** Phone: copied files stay on the computer; an image's preview is fetched when the clip is opened. */
-function RemoteFiles({ summary: s }: { summary: ClipSummary }) {
+/** Phone: copied files stay on the computer; each one has an Import button, and nothing moves until it's tapped. */
+function RemoteFiles({ summary: s, toast }: { summary: ClipSummary; toast: (m: string) => void }) {
   const device = useOtherDevice(s.device_id)?.name ?? "your computer";
+  // One preview area; tapping a file in the list below shows that file (the first by default).
+  const [sel, setSel] = useState(0);
   const [attempt, setAttempt] = useState(0);
-  const image = remoteImageFile(s.kind, s.files);
+  const image = mediaKind(s.files[sel] ?? "") === "image";
   return (
     <div className="space-y-3">
       {image && (
-        <RemotePreview key={`${s.id}:${attempt}`} id={s.id} device={device} onRetry={() => setAttempt((n) => n + 1)} />
+        <RemotePreview
+          key={`${s.id}:${sel}:${attempt}`}
+          id={s.id}
+          index={sel}
+          device={device}
+          onRetry={() => setAttempt((n) => n + 1)}
+        />
       )}
-      <FilesView files={s.files} reveal={false} />
+      <div className="overflow-hidden rounded-xl border border-line">
+        {s.files.map((f, i) => (
+          <RemoteFileRow
+            key={`${s.id}:${i}`}
+            clipId={s.id}
+            index={i}
+            path={f}
+            device={device}
+            first={i === 0}
+            selected={i === sel}
+            multi={s.files.length > 1}
+            onSelect={() => setSel(i)}
+            toast={toast}
+          />
+        ))}
+      </div>
       <div className="text-[12px] leading-[1.45] text-fg-3">
-        {image
-          ? `On ${device}. Copy fetches the image now; nothing is kept on this phone unless you save it.`
-          : `On ${device}. Open it there.`}
+        {`On ${device}. Import brings just that file to this phone (Downloads › ClipTrail); files you don't import never leave your computer.`}
       </div>
     </div>
   );
 }
 
-function RemotePreview({ id, device, onRetry }: { id: string; device: string; onRetry: () => void }) {
+type ImportState =
+  | { s: "checking" }
+  | { s: "idle" }
+  | { s: "importing" }
+  | { s: "done"; file: ImportedFile }
+  | { s: "failed"; message: string };
+
+function bytesLabel(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
+
+/** One copied file: Import → Importing… → Open / Share, or the reason it failed with Try again. */
+function RemoteFileRow({
+  clipId,
+  index,
+  path,
+  device,
+  first,
+  selected,
+  multi,
+  onSelect,
+  toast,
+}: {
+  clipId: string;
+  index: number;
+  path: string;
+  device: string;
+  first: boolean;
+  selected: boolean;
+  multi: boolean;
+  onSelect: () => void;
+  toast: (m: string) => void;
+}) {
+  const [st, setSt] = useState<ImportState>({ s: "checking" });
+  const { name, dir } = splitPath(path);
+  const isImage = mediaKind(path) === "image";
+  useEffect(() => {
+    let alive = true;
+    syncApi.importedFile(clipId, index).then(
+      (f) => alive && setSt(f ? { s: "done", file: f } : { s: "idle" }),
+      () => alive && setSt({ s: "idle" }),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [clipId, index]);
+
+  const run = () => {
+    setSt({ s: "importing" });
+    syncApi.importFile(clipId, index).then(
+      (file) => setSt({ s: "done", file }),
+      (e) => setSt({ s: "failed", message: errorMessage(e) }),
+    );
+  };
+  const open = (share: boolean) =>
+    syncApi.openImported(clipId, index, share).catch((e) => {
+      const m = errorMessage(e);
+      if (/gone/i.test(m)) setSt({ s: "idle" });
+      toast(m);
+    });
+
+  return (
+    <div
+      className={cx(
+        "px-3.5 py-3",
+        !first && "border-t border-line",
+        multi && selected && "bg-accent-soft shadow-[inset_3px_0_0_var(--accent)]",
+      )}
+      aria-current={multi && selected ? "true" : undefined}
+    >
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={onSelect}
+          aria-label={`Show ${name}`}
+          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+        >
+          <span className="k-file k-tile grid h-8 w-8 shrink-0 place-items-center rounded-lg">
+            <FileIcon size={15} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[13px] font-medium text-fg">{name}</div>
+            <div className="truncate text-[11.5px] text-fg-3">
+              {st.s === "done"
+                ? `Imported · ${bytesLabel(st.file.size)} · Downloads › ClipTrail`
+                : st.s === "importing"
+                  ? `Getting it from ${device}…`
+                  : dir}
+            </div>
+          </div>
+        </button>
+        {(st.s === "idle" || st.s === "checking") && (
+          <Button size="sm" icon={Download} disabled={st.s === "checking"} onClick={run}>
+            Import
+          </Button>
+        )}
+        {st.s === "importing" && <Loader2 size={18} className="animate-spin text-fg-3" aria-label="Importing" />}
+      </div>
+      {st.s === "done" && (
+        <div className="mt-2.5 flex gap-2">
+          <Button size="sm" variant="primary" icon={ExternalLink} className="flex-1" onClick={() => open(false)}>
+            Open
+          </Button>
+          <Button size="sm" icon={Share2} className="flex-1" onClick={() => open(true)}>
+            Share
+          </Button>
+        </div>
+      )}
+      {isImage && selected && (
+        <div className="mt-2 flex gap-2">
+          <Button
+            size="sm"
+            icon={Copy}
+            className="flex-1"
+            onClick={() =>
+              syncApi
+                .copyFile(clipId, index)
+                .then(() => toast("Copied"))
+                .catch((e) => toast(errorMessage(e)))
+            }
+          >
+            Copy image
+          </Button>
+          <Button
+            size="sm"
+            icon={Download}
+            className="flex-1"
+            onClick={() =>
+              syncApi
+                .saveFile(clipId, index)
+                .then(() => toast("Saved to Pictures › ClipTrail"))
+                .catch((e) => toast(errorMessage(e)))
+            }
+          >
+            Save to Pictures
+          </Button>
+        </div>
+      )}
+      {st.s === "failed" && (
+        <div className="mt-2 flex items-center gap-2 text-[12px] leading-[1.4] text-fg-3">
+          <span className="min-w-0 flex-1">{st.message}</span>
+          <Button size="sm" onClick={run}>
+            Try again
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RemotePreview({
+  id,
+  index,
+  device,
+  onRetry,
+}: {
+  id: string;
+  index: number;
+  device: string;
+  onRetry: () => void;
+}) {
   const [path, setPath] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     let alive = true;
-    syncApi.filePreview(id, 0).then(
+    syncApi.filePreview(id, index).then(
       (p) => alive && setPath(p),
       (e) => alive && setError(errorMessage(e)),
     );
     return () => {
       alive = false;
     };
-  }, [id]);
+  }, [id, index]);
   return (
     <div className="checker grid min-h-[150px] place-items-center overflow-hidden rounded-xl shadow-[0_0_0_1px_var(--border)]">
       {path ? (
-        <img src={assetUrl(path)} alt="" draggable={false} className="block h-auto max-h-[42vh] w-full object-contain" />
+        <img
+          src={assetUrl(path)}
+          alt=""
+          draggable={false}
+          className="block h-auto max-h-[42vh] w-full object-contain"
+        />
       ) : error ? (
         <div className="px-5 py-6 text-center text-[12.5px] leading-[1.45] text-fg-3">
           {error}

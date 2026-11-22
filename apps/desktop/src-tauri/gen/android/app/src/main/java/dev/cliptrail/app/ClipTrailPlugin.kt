@@ -15,6 +15,7 @@ import android.os.PersistableBundle
 import android.os.PowerManager
 import android.os.SystemClock
 import android.provider.MediaStore
+import android.webkit.MimeTypeMap
 import android.provider.Settings
 import android.webkit.WebView
 import androidx.activity.result.ActivityResult
@@ -51,6 +52,12 @@ class DarkArgs {
 class SaveArgs {
     var path: String = ""
     var name: String = ""
+}
+
+@InvokeArg
+class UriArgs {
+    var uri: String = ""
+    var mime: String = ""
 }
 
 @InvokeArg
@@ -246,6 +253,90 @@ class ClipTrailPlugin(private val activity: Activity) : Plugin(activity) {
                 invoke.reject("Couldn't save to the phone: ${e.javaClass.simpleName}")
             }
         }.start()
+    }
+
+    private fun mimeFor(name: String): String {
+        val ext = name.substringAfterLast('.', "").lowercase()
+        return MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "application/octet-stream"
+    }
+
+    /**
+     * Import: put a file fetched from the computer into Downloads/ClipTrail (visible in the Files app).
+     * MediaStore needs no storage permission for files the app adds itself (Android 10+). Returns its URI.
+     */
+    @Command
+    fun saveToDownloads(invoke: Invoke) {
+        val args = invoke.parseArgs(SaveArgs::class.java)
+        Thread {
+            try {
+                val src = File(args.path)
+                val mime = mimeFor(args.name)
+                val resolver = activity.contentResolver
+                val values = ContentValues().apply {
+                    put(MediaStore.Downloads.DISPLAY_NAME, args.name)
+                    put(MediaStore.Downloads.MIME_TYPE, mime)
+                    put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/ClipTrail")
+                    put(MediaStore.Downloads.IS_PENDING, 1)
+                }
+                val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                    ?: throw IllegalStateException("no MediaStore entry")
+                resolver.openOutputStream(uri)?.use { out -> src.inputStream().use { it.copyTo(out) } }
+                    ?: throw IllegalStateException("no output stream")
+                values.clear()
+                values.put(MediaStore.Downloads.IS_PENDING, 0)
+                resolver.update(uri, values, null, null)
+                invoke.resolve(JSObject().put("uri", uri.toString()).put("mime", mime).put("size", src.length()))
+            } catch (e: Exception) {
+                invoke.reject("Couldn't save to the phone: ${e.javaClass.simpleName}")
+            }
+        }.start()
+    }
+
+    /** Whether an imported file is still on the phone (the user may have deleted it in Files). */
+    @Command
+    fun fileExists(invoke: Invoke) {
+        val args = invoke.parseArgs(UriArgs::class.java)
+        val exists = try {
+            activity.contentResolver.openFileDescriptor(Uri.parse(args.uri), "r")?.use { true } ?: false
+        } catch (e: Exception) {
+            false
+        }
+        invoke.resolve(JSObject().put("exists", exists))
+    }
+
+    /** Open an imported file in whatever app handles its type. */
+    @Command
+    fun openFile(invoke: Invoke) {
+        val args = invoke.parseArgs(UriArgs::class.java)
+        try {
+            val intent = Intent(Intent.ACTION_VIEW)
+                .setDataAndType(Uri.parse(args.uri), args.mime.ifEmpty { "*/*" })
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+            activity.startActivity(intent)
+            invoke.resolve()
+        } catch (e: android.content.ActivityNotFoundException) {
+            invoke.reject("No app on this phone can open this kind of file. Use Share instead.")
+        } catch (e: Exception) {
+            invoke.reject("The file is gone from this phone. Import it again.")
+        }
+    }
+
+    /** Share an imported file through the Android share sheet. */
+    @Command
+    fun shareFile(invoke: Invoke) {
+        val args = invoke.parseArgs(UriArgs::class.java)
+        try {
+            val uri = Uri.parse(args.uri)
+            activity.contentResolver.openFileDescriptor(uri, "r")?.close()
+            val send = Intent(Intent.ACTION_SEND)
+                .setType(args.mime.ifEmpty { "*/*" })
+                .putExtra(Intent.EXTRA_STREAM, uri)
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            activity.startActivity(Intent.createChooser(send, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            invoke.resolve()
+        } catch (e: Exception) {
+            invoke.reject("The file is gone from this phone. Import it again.")
+        }
     }
 
     /** The in-app "Save clipboard" button (the app is focused, so the read is allowed). */

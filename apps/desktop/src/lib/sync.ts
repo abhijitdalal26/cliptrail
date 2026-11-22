@@ -120,6 +120,13 @@ async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> 
   return mockCall(cmd, args ?? {}) as Promise<T>;
 }
 
+/** A file imported to the phone: where it is (a content URI), its type and size in bytes. */
+export interface ImportedFile {
+  uri: string;
+  mime: string;
+  size: number;
+}
+
 export const syncApi = {
   status: () => call<SyncView>("sync_status"),
   setEnabled: (enabled: boolean) => call<SyncView>("sync_set_enabled", { enabled }),
@@ -140,6 +147,12 @@ export const syncApi = {
   copyFile: (id: string, index: number) => call<void>("sync_copy_file", { id, index }),
   /** Phone: fetch a file copied on the computer into Pictures/ClipTrail. */
   saveFile: (id: string, index: number) => call<void>("sync_save_file", { id, index }),
+  /** Phone: import a file copied on the computer into Downloads/ClipTrail (only when asked). */
+  importFile: (id: string, index: number) => call<ImportedFile>("sync_import_file", { id, index }),
+  /** Phone: the imported copy of a file, if it was imported and is still on the phone. */
+  importedFile: (id: string, index: number) => call<ImportedFile | null>("sync_imported_file", { id, index }),
+  /** Phone: open (or share) an imported file in another app. */
+  openImported: (id: string, index: number, share: boolean) => call<void>("sync_open_imported", { id, index, share }),
   /** Check a relay URL without changing anything. */
   relayCheck: (url: string) => call<RelayHello>("sync_relay_check", { url }),
   /** Register this space on a relay; other devices pick it up on their next sync. */
@@ -349,9 +362,13 @@ async function mockCall(cmd: string, a: Record<string, unknown>): Promise<unknow
       return true;
     case "sync_fetch_image":
       return false;
+    case "sync_imported_file":
+      return null;
     case "sync_file_preview":
     case "sync_copy_file":
     case "sync_save_file":
+    case "sync_import_file":
+    case "sync_open_imported":
       throw "Files come from your computer in the phone app";
     case "sync_status":
     case "sync_restart":
