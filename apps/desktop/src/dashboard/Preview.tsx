@@ -15,7 +15,7 @@ import {
   Mail,
   MousePointerClick,
   RotateCcw,
-  Share2,
+  Save,
   Star,
   Timer,
   Trash2,
@@ -34,6 +34,7 @@ import { platformIcon, syncApi, useOtherDevice, type ImportedFile } from "../lib
 import { Actions } from "./Actions";
 import { FilePreview } from "../components/FilePreview";
 import { mediaKind } from "../lib/media";
+import { toast as showToast } from "../lib/toast";
 
 interface Props {
   summary: ClipSummary | null;
@@ -54,6 +55,7 @@ export function Preview({ summary, onCopy, onTogglePin, onDelete, toast, trash, 
   const [full, setFull] = useState<Clip | null>(null);
   const [tab, setTab] = useState<Tab>("details");
   const id = summary?.id;
+  const remote = useRemoteFiles(summary, toast);
 
   useEffect(() => {
     if (!id) return;
@@ -109,7 +111,7 @@ export function Preview({ summary, onCopy, onTogglePin, onDelete, toast, trash, 
         {/* The content; clicking it copies it (dragging still selects part of it) */}
         <div className="px-5 pt-3.5">
           <CopyArea enabled={!trash && !s.masked && s.kind !== "sensitive"} onCopy={() => onCopy(s.id, false)}>
-            <Body summary={s} clip={clip} toast={toast} />
+            <Body summary={s} clip={clip} toast={toast} remote={remote} />
           </CopyArea>
         </div>
 
@@ -186,10 +188,16 @@ export function Preview({ summary, onCopy, onTogglePin, onDelete, toast, trash, 
           </>
         ) : (
           <>
-            <Button variant="primary" icon={Copy} onClick={() => onCopy(s.id, false)} className="h-10 w-full text-[13px]">
-              Copy
-            </Button>
-            <SecondaryAction summary={s} clip={clip} onCopy={onCopy} toast={toast} />
+            {remote.enabled ? (
+              <RemoteFileActions summary={s} remote={remote} />
+            ) : (
+              <>
+                <Button variant="primary" icon={Copy} onClick={() => onCopy(s.id, false)} className="h-10 w-full text-[13px]">
+                  Copy
+                </Button>
+                <SecondaryAction summary={s} clip={clip} onCopy={onCopy} toast={toast} />
+              </>
+            )}
             {page && !isAndroid && (
               <Button
                 icon={ExternalLink}
@@ -443,7 +451,17 @@ function Loading() {
   );
 }
 
-function Body({ summary: s, clip, toast }: { summary: ClipSummary; clip: Clip | null; toast: (m: string) => void }) {
+function Body({
+  summary: s,
+  clip,
+  toast,
+  remote,
+}: {
+  summary: ClipSummary;
+  clip: Clip | null;
+  toast: (m: string) => void;
+  remote: RemoteFilesApi;
+}) {
   switch (s.kind) {
     case "image":
       return (
@@ -463,7 +481,7 @@ function Body({ summary: s, clip, toast }: { summary: ClipSummary; clip: Clip | 
     case "color":
       return <ColorView value={clip?.text ?? s.preview} toast={toast} />;
     case "file": {
-      if (isAndroid) return <RemoteFiles summary={s} toast={toast} />;
+      if (isAndroid) return <RemoteFiles summary={s} remote={remote} />;
       const media = s.files.find((f) => mediaKind(f));
       return (
         <div className="space-y-3">
@@ -561,12 +579,106 @@ function ColorView({ value, toast }: { value: string; toast: (m: string) => void
   );
 }
 
-/** Phone: copied files stay on the computer; each one has an Import button, and nothing moves until it's tapped. */
-function RemoteFiles({ summary: s, toast }: { summary: ClipSummary; toast: (m: string) => void }) {
-  const device = useOtherDevice(s.device_id)?.name ?? "your computer";
-  // One preview area; tapping a file in the list below shows that file (the first by default).
+type ImportState =
+  | { s: "checking" }
+  | { s: "idle" }
+  | { s: "importing" }
+  | { s: "done"; file: ImportedFile }
+  | { s: "failed"; message: string };
+
+/** "very-long-invoice-name-2026.pdf" -> "very-long-inv…2026.pdf": keeps the start and the extension visible. */
+function middleEllipsis(name: string, max = 30): string {
+  if (name.length <= max) return name;
+  const dot = name.lastIndexOf(".");
+  const tail = dot > 0 && name.length - dot <= 8 ? name.slice(dot - 4 > 0 ? dot - 4 : 0) : name.slice(-8);
+  return `${name.slice(0, max - tail.length - 1)}…${tail}`;
+}
+
+function bytesLabel(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
+
+/**
+ * Phone: the copied files of a clip stay on the computer. This holds which file is selected and, per file,
+ * whether it was imported (fetched on an explicit tap, never automatically) and saved to Downloads.
+ */
+function useRemoteFiles(s: ClipSummary | null, toast: (m: string) => void) {
+  const enabled = isAndroid && !!s && s.kind === "file";
+  const id = s?.id;
+  const n = s?.files.length ?? 0;
   const [sel, setSel] = useState(0);
+  const [states, setStates] = useState<Record<number, ImportState>>({});
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setSel(0);
+    setStates({});
+    if (!enabled || !id) return;
+    let alive = true;
+    for (let i = 0; i < n; i++) {
+      syncApi.importedFile(id, i).then(
+        (f) => alive && setStates((m) => ({ ...m, [i]: f ? { s: "done", file: f } : { s: "idle" } })),
+        () => alive && setStates((m) => ({ ...m, [i]: { s: "idle" } })),
+      );
+    }
+    return () => {
+      alive = false;
+    };
+  }, [enabled, id, n]);
+
+  const stateOf = (i: number): ImportState => states[i] ?? { s: "checking" };
+  const put = (i: number, st: ImportState) => setStates((m) => ({ ...m, [i]: st }));
+  const fail = (e: unknown) => toast(errorMessage(e));
+  /** Run one button action; others stay disabled meanwhile. */
+  const run = (p: Promise<unknown>, ok?: string) => {
+    setBusy(true);
+    p.then(
+      () => ok && toast(ok),
+      fail,
+    ).finally(() => setBusy(false));
+  };
+
+  return {
+    enabled,
+    sel,
+    setSel,
+    stateOf,
+    busy,
+    /** Fetch file i from the computer. Only ever called from a tap on Import. */
+    importFile: (i: number) => {
+      if (!id) return;
+      put(i, { s: "importing" });
+      syncApi.importFile(id, i).then(
+        (file) => put(i, { s: "done", file }),
+        (e) => put(i, { s: "failed", message: errorMessage(e) }),
+      );
+    },
+    copyImported: (i: number) => id && run(syncApi.copyImported(id, i), "Copied"),
+    save: (i: number) =>
+      id &&
+      run(
+        syncApi.saveImported(id, i).then((file) => {
+          put(i, { s: "done", file });
+          showToast({
+            message: "Saved to Downloads › ClipTrail",
+            action: { label: "Open", run: () => void syncApi.openImported(id, i).catch(fail) },
+          });
+        }),
+      ),
+    open: (i: number) => id && run(syncApi.openImported(id, i)),
+    copyImage: (i: number) => id && run(syncApi.copyFile(id, i), "Copied"),
+    saveImage: (i: number) => id && run(syncApi.saveFile(id, i), "Saved to Pictures › ClipTrail"),
+  };
+}
+type RemoteFilesApi = ReturnType<typeof useRemoteFiles>;
+
+/** Phone: one preview, the list of copied files under it; tap a file to show it. Buttons are at the bottom. */
+function RemoteFiles({ summary: s, remote }: { summary: ClipSummary; remote: RemoteFilesApi }) {
+  const device = useOtherDevice(s.device_id)?.name ?? "your computer";
   const [attempt, setAttempt] = useState(0);
+  const { sel } = remote;
   const image = mediaKind(s.files[sel] ?? "") === "image";
   return (
     <div className="space-y-3">
@@ -580,177 +692,172 @@ function RemoteFiles({ summary: s, toast }: { summary: ClipSummary; toast: (m: s
         />
       )}
       <div className="overflow-hidden rounded-xl border border-line">
-        {s.files.map((f, i) => (
-          <RemoteFileRow
-            key={`${s.id}:${i}`}
-            clipId={s.id}
-            index={i}
-            path={f}
-            device={device}
-            first={i === 0}
-            selected={i === sel}
-            multi={s.files.length > 1}
-            onSelect={() => setSel(i)}
-            toast={toast}
-          />
-        ))}
+        {s.files.map((f, i) => {
+          const { name, dir } = splitPath(f);
+          const st = remote.stateOf(i);
+          const selected = i === sel;
+          const multi = s.files.length > 1;
+          return (
+            <button
+              key={`${s.id}:${i}`}
+              type="button"
+              onClick={() => remote.setSel(i)}
+              aria-label={`Show ${name}`}
+              aria-current={multi && selected ? "true" : undefined}
+              className={cx(
+                "flex min-h-12 w-full items-center gap-3 px-3.5 py-2.5 text-left",
+                i > 0 && "border-t border-line",
+                multi && selected && "bg-accent-soft shadow-[inset_3px_0_0_var(--accent)]",
+              )}
+            >
+              <span className="k-file k-tile grid h-8 w-8 shrink-0 place-items-center rounded-lg">
+                <FileIcon size={15} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[13px] font-medium text-fg" title={name}>
+                  {middleEllipsis(name)}
+                </span>
+                <span className="block truncate text-[11.5px] text-fg-3">
+                  {st.s === "done"
+                    ? `${st.file.saved ? "Saved" : "Imported"} · ${bytesLabel(st.file.size)}${st.file.saved ? " · Downloads › ClipTrail" : ""}`
+                    : st.s === "importing"
+                      ? `Getting it from ${device}…`
+                      : st.s === "failed"
+                        ? st.message
+                        : dir}
+                </span>
+              </span>
+              {st.s === "importing" && <Loader2 size={16} className="shrink-0 animate-spin text-fg-3" />}
+              {multi && selected && st.s !== "importing" && (
+                <Check size={16} strokeWidth={2.4} className="shrink-0 text-accent-text" aria-hidden />
+              )}
+            </button>
+          );
+        })}
       </div>
       <div className="text-[12px] leading-[1.45] text-fg-3">
-        {`On ${device}. Import brings just that file to this phone (Downloads › ClipTrail); files you don't import never leave your computer.`}
+        {`On ${device}. Import brings just the selected file to this phone; files you don't import never leave your computer.`}
       </div>
     </div>
   );
 }
 
-type ImportState =
-  | { s: "checking" }
-  | { s: "idle" }
-  | { s: "importing" }
-  | { s: "done"; file: ImportedFile }
-  | { s: "failed"; message: string };
+/** Phone: the bottom buttons, acting on the selected file. Import is the only thing that fetches it. */
+function RemoteFileActions({ summary: s, remote }: { summary: ClipSummary; remote: RemoteFilesApi }) {
+  const i = remote.sel;
+  const path = s.files[i] ?? "";
+  const image = mediaKind(path) === "image";
+  const st = remote.stateOf(i);
+  const done = st.s === "done";
+  const saved = done && st.file.saved;
+  const lock = remote.busy;
+  const big = "h-12 w-full text-[13.5px]";
+  const nm = middleEllipsis(splitPath(path).name, 24);
+  const importing = st.s === "importing";
 
-function bytesLabel(n: number): string {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
-  return `${(n / 1024 / 1024).toFixed(1)} MB`;
-}
-
-/** One copied file: Import → Importing… → Open / Share, or the reason it failed with Try again. */
-function RemoteFileRow({
-  clipId,
-  index,
-  path,
-  device,
-  first,
-  selected,
-  multi,
-  onSelect,
-  toast,
-}: {
-  clipId: string;
-  index: number;
-  path: string;
-  device: string;
-  first: boolean;
-  selected: boolean;
-  multi: boolean;
-  onSelect: () => void;
-  toast: (m: string) => void;
-}) {
-  const [st, setSt] = useState<ImportState>({ s: "checking" });
-  const { name, dir } = splitPath(path);
-  const isImage = mediaKind(path) === "image";
-  useEffect(() => {
-    let alive = true;
-    syncApi.importedFile(clipId, index).then(
-      (f) => alive && setSt(f ? { s: "done", file: f } : { s: "idle" }),
-      () => alive && setSt({ s: "idle" }),
-    );
-    return () => {
-      alive = false;
-    };
-  }, [clipId, index]);
-
-  const run = () => {
-    setSt({ s: "importing" });
-    syncApi.importFile(clipId, index).then(
-      (file) => setSt({ s: "done", file }),
-      (e) => setSt({ s: "failed", message: errorMessage(e) }),
-    );
-  };
-  const open = (share: boolean) =>
-    syncApi.openImported(clipId, index, share).catch((e) => {
-      const m = errorMessage(e);
-      if (/gone/i.test(m)) setSt({ s: "idle" });
-      toast(m);
-    });
+  const importBtn = (label: string) => (
+    <Button
+      variant="primary"
+      icon={importing ? Loader2 : Download}
+      className={cx(big, importing && "[&>svg]:animate-spin")}
+      disabled={importing || st.s === "checking" || lock}
+      aria-label={`${label} ${nm}`}
+      onClick={() => remote.importFile(i)}
+    >
+      {importing ? "Importing…" : label}
+    </Button>
+  );
 
   return (
-    <div
-      className={cx(
-        "px-3.5 py-3",
-        !first && "border-t border-line",
-        multi && selected && "bg-accent-soft shadow-[inset_3px_0_0_var(--accent)]",
-      )}
-      aria-current={multi && selected ? "true" : undefined}
-    >
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={onSelect}
-          aria-label={`Show ${name}`}
-          className="flex min-w-0 flex-1 items-center gap-3 text-left"
-        >
-          <span className="k-file k-tile grid h-8 w-8 shrink-0 place-items-center rounded-lg">
-            <FileIcon size={15} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-[13px] font-medium text-fg">{name}</div>
-            <div className="truncate text-[11.5px] text-fg-3">
-              {st.s === "done"
-                ? `Imported · ${bytesLabel(st.file.size)} · Downloads › ClipTrail`
-                : st.s === "importing"
-                  ? `Getting it from ${device}…`
-                  : dir}
-            </div>
-          </div>
-        </button>
-        {(st.s === "idle" || st.s === "checking") && (
-          <Button size="sm" icon={Download} disabled={st.s === "checking"} onClick={run}>
-            Import
-          </Button>
-        )}
-        {st.s === "importing" && <Loader2 size={18} className="animate-spin text-fg-3" aria-label="Importing" />}
-      </div>
-      {st.s === "done" && (
-        <div className="mt-2.5 flex gap-2">
-          <Button size="sm" variant="primary" icon={ExternalLink} className="flex-1" onClick={() => open(false)}>
-            Open
-          </Button>
-          <Button size="sm" icon={Share2} className="flex-1" onClick={() => open(true)}>
-            Share
-          </Button>
-        </div>
-      )}
-      {isImage && selected && (
-        <div className="mt-2 flex gap-2">
+    <>
+      {st.s === "failed" && <div className="text-[12px] leading-[1.4] text-fg-3">{st.message}</div>}
+      {image ? (
+        <>
           <Button
-            size="sm"
+            variant="primary"
             icon={Copy}
-            className="flex-1"
-            onClick={() =>
-              syncApi
-                .copyFile(clipId, index)
-                .then(() => toast("Copied"))
-                .catch((e) => toast(errorMessage(e)))
-            }
+            className={big}
+            disabled={lock}
+            aria-label={`Copy ${nm}`}
+            onClick={() => remote.copyImage(i)}
           >
-            Copy image
+            Copy
           </Button>
-          <Button
-            size="sm"
-            icon={Download}
-            className="flex-1"
-            onClick={() =>
-              syncApi
-                .saveFile(clipId, index)
-                .then(() => toast("Saved to Pictures › ClipTrail"))
-                .catch((e) => toast(errorMessage(e)))
-            }
-          >
-            Save to Pictures
-          </Button>
-        </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            <Button
+              icon={Download}
+              className={big}
+              disabled={lock}
+              aria-label={`Save ${nm} to Pictures`}
+              onClick={() => remote.saveImage(i)}
+            >
+              Save
+            </Button>
+            {done ? (
+              <Button
+                icon={ExternalLink}
+                className={big}
+                disabled={lock}
+                aria-label={`Open ${nm}`}
+                onClick={() => remote.open(i)}
+              >
+                Open
+              </Button>            ) : (
+              <Button
+                icon={importing ? Loader2 : Download}
+                className={cx(big, importing && "[&>svg]:animate-spin")}
+                disabled={importing || st.s === "checking" || lock}
+                onClick={() => remote.importFile(i)}
+              >
+                {importing ? "Importing…" : st.s === "failed" ? "Try again" : "Import"}
+              </Button>
+            )}
+          </div>
+        </>
+      ) : (
+        <>
+          {done ? (
+            <Button
+              variant="primary"
+              icon={ExternalLink}
+              className={big}
+              disabled={lock}
+              aria-label={`Open ${nm}`}
+              onClick={() => remote.open(i)}
+            >
+              Open
+            </Button>
+          ) : (
+            importBtn(st.s === "failed" ? "Try again" : "Import")
+          )}
+          {!done && st.s !== "failed" && (
+            <div className="text-center text-[11.5px] leading-[1.4] text-fg-3">
+              Import {nm} to open, copy or save it.
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-2.5">
+            <Button
+              icon={Copy}
+              className={big}
+              disabled={!done || lock}
+              aria-label={`Copy ${nm}`}
+              onClick={() => remote.copyImported(i)}
+            >
+              Copy
+            </Button>
+            <Button
+              icon={saved ? Check : Save}
+              className={big}
+              disabled={!done || saved || lock}
+              aria-label={saved ? `${nm} is saved to Downloads` : `Save ${nm} to Downloads`}
+              onClick={() => remote.save(i)}
+            >
+              {saved ? "Saved" : "Save"}
+            </Button>
+          </div>
+        </>
       )}
-      {st.s === "failed" && (
-        <div className="mt-2 flex items-center gap-2 text-[12px] leading-[1.4] text-fg-3">
-          <span className="min-w-0 flex-1">{st.message}</span>
-          <Button size="sm" onClick={run}>
-            Try again
-          </Button>
-        </div>
-      )}
-    </div>
+    </>
   );
 }
 

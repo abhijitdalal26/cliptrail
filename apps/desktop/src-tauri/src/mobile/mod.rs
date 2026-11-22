@@ -156,6 +156,8 @@ pub fn run() {
             sync::sync_import_file,
             sync::sync_imported_file,
             sync::sync_open_imported,
+            sync::sync_copy_imported,
+            sync::sync_save_imported,
             cmd::list_clips,
             cmd::get_clip,
             cmd::stats,
