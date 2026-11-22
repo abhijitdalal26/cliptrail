@@ -668,6 +668,14 @@ function useRemoteFiles(s: ClipSummary | null, toast: (m: string) => void) {
         }),
       ),
     open: (i: number) => id && run(syncApi.openImported(id, i)),
+    /** Images have no Import step: Open fetches the full image when tapped, then opens it. */
+    openImage: (i: number) =>
+      id &&
+      run(
+        (stateOf(i).s === "done" ? Promise.resolve() : syncApi.importFile(id, i).then((file) => put(i, { s: "done", file }))).then(
+          () => syncApi.openImported(id, i),
+        ),
+      ),
     copyImage: (i: number) => id && run(syncApi.copyFile(id, i), "Copied"),
     saveImage: (i: number) => id && run(syncApi.saveFile(id, i), "Saved to Pictures › ClipTrail"),
   };
@@ -718,7 +726,7 @@ function RemoteFiles({ summary: s, remote }: { summary: ClipSummary; remote: Rem
                   {middleEllipsis(name)}
                 </span>
                 <span className="block truncate text-[11.5px] text-fg-3">
-                  {st.s === "done"
+                  {st.s === "done" && mediaKind(f) !== "image"
                     ? `${st.file.saved ? "Saved" : "Imported"} · ${bytesLabel(st.file.size)}${st.file.saved ? " · Downloads › ClipTrail" : ""}`
                     : st.s === "importing"
                       ? `Getting it from ${device}…`
@@ -793,25 +801,15 @@ function RemoteFileActions({ summary: s, remote }: { summary: ClipSummary; remot
             >
               Save
             </Button>
-            {done ? (
-              <Button
-                icon={ExternalLink}
-                className={big}
-                disabled={lock}
-                aria-label={`Open ${nm}`}
-                onClick={() => remote.open(i)}
-              >
-                Open
-              </Button>            ) : (
-              <Button
-                icon={importing ? Loader2 : Download}
-                className={cx(big, importing && "[&>svg]:animate-spin")}
-                disabled={importing || st.s === "checking" || lock}
-                onClick={() => remote.importFile(i)}
-              >
-                {importing ? "Importing…" : st.s === "failed" ? "Try again" : "Import"}
-              </Button>
-            )}
+            <Button
+              icon={ExternalLink}
+              className={big}
+              disabled={lock}
+              aria-label={`Open ${nm}`}
+              onClick={() => remote.openImage(i)}
+            >
+              Open
+            </Button>
           </div>
         </>
       ) : (
