@@ -668,14 +668,6 @@ function useRemoteFiles(s: ClipSummary | null, toast: (m: string) => void) {
         }),
       ),
     open: (i: number) => id && run(syncApi.openImported(id, i)),
-    /** Images have no Import step: Open fetches the full image when tapped, then opens it. */
-    openImage: (i: number) =>
-      id &&
-      run(
-        (stateOf(i).s === "done" ? Promise.resolve() : syncApi.importFile(id, i).then((file) => put(i, { s: "done", file }))).then(
-          () => syncApi.openImported(id, i),
-        ),
-      ),
     copyImage: (i: number) => id && run(syncApi.copyFile(id, i), "Copied"),
     saveImage: (i: number) => id && run(syncApi.saveFile(id, i), "Saved to Pictures › ClipTrail"),
   };
@@ -791,26 +783,15 @@ function RemoteFileActions({ summary: s, remote }: { summary: ClipSummary; remot
           >
             Copy
           </Button>
-          <div className="grid grid-cols-2 gap-2.5">
-            <Button
-              icon={Download}
-              className={big}
-              disabled={lock}
-              aria-label={`Save ${nm} to Pictures`}
-              onClick={() => remote.saveImage(i)}
-            >
-              Save
-            </Button>
-            <Button
-              icon={ExternalLink}
-              className={big}
-              disabled={lock}
-              aria-label={`Open ${nm}`}
-              onClick={() => remote.openImage(i)}
-            >
-              Open
-            </Button>
-          </div>
+          <Button
+            icon={Download}
+            className={big}
+            disabled={lock}
+            aria-label={`Save ${nm} to Pictures`}
+            onClick={() => remote.saveImage(i)}
+          >
+            Save
+          </Button>
         </>
       ) : (
         <>
