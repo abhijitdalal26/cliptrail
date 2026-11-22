@@ -45,7 +45,6 @@ INDEX = r"""
     <div class="section-head center">
       <span class="eyebrow">Demo</span>
       <h2 class="h2">See it in 45 seconds.</h2>
-      <p class="lede">Copy on the laptop, paste on the phone, and ask your AI what you copied. Turn the sound on for the voiceover.</p>
     </div>
     <div class="window demo-video">
       <video controls playsinline preload="none" width="1920" height="1080" poster="{{R}}assets/video/cliptrail-launch-poster.webp" aria-label="{{B}} launch video: copy on one device, paste on another, search everything you copied and ask your AI assistant about it.">
