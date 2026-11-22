@@ -819,31 +819,31 @@ function RemoteFileActions({ summary: s, remote }: { summary: ClipSummary; remot
           {done ? (
             <Button
               variant="primary"
-              icon={Copy}
+              icon={ExternalLink}
               className={big}
               disabled={lock}
-              aria-label={`Copy ${nm}`}
-              onClick={() => remote.copyImported(i)}
+              aria-label={`Open ${nm}`}
+              onClick={() => remote.open(i)}
             >
-              Copy
+              Open
             </Button>
           ) : (
             importBtn(st.s === "failed" ? "Try again" : "Import")
           )}
           {!done && st.s !== "failed" && (
             <div className="text-center text-[11.5px] leading-[1.4] text-fg-3">
-              Import {nm} to copy, open or save it.
+              Import {nm} to open, copy or save it.
             </div>
           )}
           <div className="grid grid-cols-2 gap-2.5">
             <Button
-              icon={ExternalLink}
+              icon={Copy}
               className={big}
               disabled={!done || lock}
-              aria-label={`Open ${nm}`}
-              onClick={() => remote.open(i)}
+              aria-label={`Copy ${nm}`}
+              onClick={() => remote.copyImported(i)}
             >
-              Open
+              Copy
             </Button>
             <Button
               icon={saved ? Check : Save}
