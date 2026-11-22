@@ -155,8 +155,8 @@ export const syncApi = {
   copyImported: (id: string, index: number) => call<void>("sync_copy_imported", { id, index }),
   /** Phone: save an imported file to Downloads/ClipTrail. */
   saveImported: (id: string, index: number) => call<ImportedFile>("sync_save_imported", { id, index }),
-  /** Phone: open (or share) an imported file in another app. */
-  openImported: (id: string, index: number, share: boolean) => call<void>("sync_open_imported", { id, index, share }),
+  /** Phone: open an imported file in another app (Android's "open with" chooser). */
+  openImported: (id: string, index: number) => call<void>("sync_open_imported", { id, index }),
   /** Check a relay URL without changing anything. */
   relayCheck: (url: string) => call<RelayHello>("sync_relay_check", { url }),
   /** Register this space on a relay; other devices pick it up on their next sync. */

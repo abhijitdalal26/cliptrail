@@ -16,7 +16,6 @@ import {
   MousePointerClick,
   RotateCcw,
   Save,
-  Share2,
   Star,
   Timer,
   Trash2,
@@ -664,12 +663,11 @@ function useRemoteFiles(s: ClipSummary | null, toast: (m: string) => void) {
           put(i, { s: "done", file });
           showToast({
             message: "Saved to Downloads › ClipTrail",
-            action: { label: "Open", run: () => void syncApi.openImported(id, i, false).catch(fail) },
+            action: { label: "Open", run: () => void syncApi.openImported(id, i).catch(fail) },
           });
         }),
       ),
-    share: (i: number) => id && run(syncApi.openImported(id, i, true)),
-    open: (i: number) => id && run(syncApi.openImported(id, i, false)),
+    open: (i: number) => id && run(syncApi.openImported(id, i)),
     copyImage: (i: number) => id && run(syncApi.copyFile(id, i), "Copied"),
     saveImage: (i: number) => id && run(syncApi.saveFile(id, i), "Saved to Pictures › ClipTrail"),
   };
@@ -754,7 +752,6 @@ function RemoteFileActions({ summary: s, remote }: { summary: ClipSummary; remot
   const saved = done && st.file.saved;
   const lock = remote.busy;
   const big = "h-12 w-full text-[13.5px]";
-  const small = "h-12 w-full flex-col gap-0.5 px-1 text-[12px] [&>svg]:h-[17px] [&>svg]:w-[17px]";
   const nm = middleEllipsis(splitPath(path).name, 24);
   const importing = st.s === "importing";
 
@@ -797,10 +794,15 @@ function RemoteFileActions({ summary: s, remote }: { summary: ClipSummary; remot
               Save
             </Button>
             {done ? (
-              <Button icon={Share2} className={big} disabled={lock} onClick={() => remote.share(i)}>
-                Share
-              </Button>
-            ) : (
+              <Button
+                icon={ExternalLink}
+                className={big}
+                disabled={lock}
+                aria-label={`Open ${nm}`}
+                onClick={() => remote.open(i)}
+              >
+                Open
+              </Button>            ) : (
               <Button
                 icon={importing ? Loader2 : Download}
                 className={cx(big, importing && "[&>svg]:animate-spin")}
@@ -830,13 +832,13 @@ function RemoteFileActions({ summary: s, remote }: { summary: ClipSummary; remot
           )}
           {!done && st.s !== "failed" && (
             <div className="text-center text-[11.5px] leading-[1.4] text-fg-3">
-              Import {nm} to open, copy, save or share it.
+              Import {nm} to copy, open or save it.
             </div>
           )}
-          <div className="grid grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-2 gap-2.5">
             <Button
               icon={ExternalLink}
-              className={small}
+              className={big}
               disabled={!done || lock}
               aria-label={`Open ${nm}`}
               onClick={() => remote.open(i)}
@@ -845,21 +847,12 @@ function RemoteFileActions({ summary: s, remote }: { summary: ClipSummary; remot
             </Button>
             <Button
               icon={saved ? Check : Save}
-              className={small}
+              className={big}
               disabled={!done || saved || lock}
               aria-label={saved ? `${nm} is saved to Downloads` : `Save ${nm} to Downloads`}
               onClick={() => remote.save(i)}
             >
               {saved ? "Saved" : "Save"}
-            </Button>
-            <Button
-              icon={Share2}
-              className={small}
-              disabled={!done || lock}
-              aria-label={`Share ${nm}`}
-              onClick={() => remote.share(i)}
-            >
-              Share
             </Button>
           </div>
         </>

@@ -588,18 +588,13 @@ pub async fn sync_save_imported(
     Ok(view_of(&f))
 }
 
-/// Share (`share: true`) or open an imported file in another app.
+/// Open an imported file in another app (Android's "open with" chooser).
 #[tauri::command]
-pub async fn sync_open_imported(
-    app: AppHandle,
-    id: String,
-    index: usize,
-    share: bool,
-) -> CmdResult<()> {
+pub async fn sync_open_imported(app: AppHandle, id: String, index: usize) -> CmdResult<()> {
     let f = imported_or_err(&app, &id, index)?;
     super::bridge::call::<serde_json::Value>(
         &app,
-        if share { "shareFile" } else { "openFile" },
+        "openFile",
         serde_json::json!({ "path": f.path, "mime": f.mime }),
     )
     .await
