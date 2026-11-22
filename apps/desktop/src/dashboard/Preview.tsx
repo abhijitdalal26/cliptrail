@@ -655,7 +655,6 @@ function useRemoteFiles(s: ClipSummary | null, toast: (m: string) => void) {
         (e) => put(i, { s: "failed", message: errorMessage(e) }),
       );
     },
-    copyImported: (i: number) => id && run(syncApi.copyImported(id, i), "Copied"),
     save: (i: number) =>
       id &&
       run(
@@ -718,7 +717,7 @@ function RemoteFiles({ summary: s, remote }: { summary: ClipSummary; remote: Rem
                   {middleEllipsis(name)}
                 </span>
                 <span className="block truncate text-[11.5px] text-fg-3">
-                  {st.s === "done"
+                  {st.s === "done" && mediaKind(f) !== "image"
                     ? `${st.file.saved ? "Saved" : "Imported"} · ${bytesLabel(st.file.size)}${st.file.saved ? " · Downloads › ClipTrail" : ""}`
                     : st.s === "importing"
                       ? `Getting it from ${device}…`
@@ -783,36 +782,15 @@ function RemoteFileActions({ summary: s, remote }: { summary: ClipSummary; remot
           >
             Copy
           </Button>
-          <div className="grid grid-cols-2 gap-2.5">
-            <Button
-              icon={Download}
-              className={big}
-              disabled={lock}
-              aria-label={`Save ${nm} to Pictures`}
-              onClick={() => remote.saveImage(i)}
-            >
-              Save
-            </Button>
-            {done ? (
-              <Button
-                icon={ExternalLink}
-                className={big}
-                disabled={lock}
-                aria-label={`Open ${nm}`}
-                onClick={() => remote.open(i)}
-              >
-                Open
-              </Button>            ) : (
-              <Button
-                icon={importing ? Loader2 : Download}
-                className={cx(big, importing && "[&>svg]:animate-spin")}
-                disabled={importing || st.s === "checking" || lock}
-                onClick={() => remote.importFile(i)}
-              >
-                {importing ? "Importing…" : st.s === "failed" ? "Try again" : "Import"}
-              </Button>
-            )}
-          </div>
+          <Button
+            icon={Download}
+            className={big}
+            disabled={lock}
+            aria-label={`Save ${nm} to Pictures`}
+            onClick={() => remote.saveImage(i)}
+          >
+            Save
+          </Button>
         </>
       ) : (
         <>
@@ -832,29 +810,18 @@ function RemoteFileActions({ summary: s, remote }: { summary: ClipSummary; remot
           )}
           {!done && st.s !== "failed" && (
             <div className="text-center text-[11.5px] leading-[1.4] text-fg-3">
-              Import {nm} to open, copy or save it.
+              Import {nm} to open or save it.
             </div>
           )}
-          <div className="grid grid-cols-2 gap-2.5">
-            <Button
-              icon={Copy}
-              className={big}
-              disabled={!done || lock}
-              aria-label={`Copy ${nm}`}
-              onClick={() => remote.copyImported(i)}
-            >
-              Copy
-            </Button>
-            <Button
-              icon={saved ? Check : Save}
-              className={big}
-              disabled={!done || saved || lock}
-              aria-label={saved ? `${nm} is saved to Downloads` : `Save ${nm} to Downloads`}
-              onClick={() => remote.save(i)}
-            >
-              {saved ? "Saved" : "Save"}
-            </Button>
-          </div>
+          <Button
+            icon={saved ? Check : Save}
+            className={big}
+            disabled={!done || saved || lock}
+            aria-label={saved ? `${nm} is saved to Downloads` : `Save ${nm} to Downloads`}
+            onClick={() => remote.save(i)}
+          >
+            {saved ? "Saved" : "Save"}
+          </Button>
         </>
       )}
     </>
