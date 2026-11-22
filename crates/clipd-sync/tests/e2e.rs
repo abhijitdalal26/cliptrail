@@ -551,6 +551,33 @@ async fn copied_documents_import_on_request_only() {
     let err = a.fetch_file(&id_of("big.iso"), 0, false).await.unwrap_err();
     assert!(format!("{err:#}").contains("too big"), "{err:#}");
 
+    // A paired device can't make the computer read a file by syncing a clip
+    // that lists it: only clips copied on the computer itself are served.
+    ap.ingest(RawClip {
+        content: RawContent::Files(vec![secret.to_string_lossy().into_owned()]),
+        source_app: None,
+        captured_at: now_millis(),
+        source_url: None,
+    })
+    .unwrap();
+    wait("phone's file clip reaches the computer", || {
+        hp.store()
+            .list(&ListQuery {
+                kind: Some(Kind::File),
+                ..Default::default()
+            })
+            .unwrap()
+            .iter()
+            .any(|c| c.files[0].ends_with("never-copied.pdf"))
+    })
+    .await;
+    let injected = id_of("never-copied.pdf");
+    let err = a.fetch_file(&injected, 0, false).await.unwrap_err();
+    assert!(
+        format!("{err:#}").contains("isn't on the computer"),
+        "{err:#}"
+    );
+
     // A clip that isn't in this history can't be used to read other files.
     let err = a.fetch_file("no-such-clip", 0, false).await.unwrap_err();
     assert!(
