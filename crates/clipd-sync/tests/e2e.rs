@@ -450,6 +450,25 @@ async fn copied_documents_import_on_request_only() {
         source_url: None,
     })
     .unwrap();
+    // Three images copied together: a preview per file, by index.
+    let shots: Vec<_> = [[200u8, 30, 30], [30, 200, 30], [30, 30, 200]]
+        .iter()
+        .enumerate()
+        .map(|(n, c)| {
+            let f = files.0.join(format!("shot{n}.png"));
+            image::RgbaImage::from_pixel(100, 60, image::Rgba([c[0], c[1], c[2], 255]))
+                .save(&f)
+                .unwrap();
+            f.to_string_lossy().into_owned()
+        })
+        .collect();
+    hp.ingest(RawClip {
+        content: RawContent::Files(shots),
+        source_app: Some("explorer.exe".into()),
+        captured_at: now_millis(),
+        source_url: None,
+    })
+    .unwrap();
     for f in [&pdf, &big] {
         hp.ingest(RawClip {
             content: RawContent::Files(vec![f.to_string_lossy().into_owned()]),
@@ -483,7 +502,7 @@ async fn copied_documents_import_on_request_only() {
             })
             .unwrap()
     };
-    wait("all file clips on the phone", || list().len() == 3).await;
+    wait("all file clips on the phone", || list().len() == 4).await;
     wait("phone connected", || a.status().is_ok_and(|s| s.connected)).await;
     let id_of = |name: &str| {
         list()
@@ -509,6 +528,20 @@ async fn copied_documents_import_on_request_only() {
         b"%PDF-invoice"
     );
     assert!(a.fetch_file(&multi, 2, false).await.is_err());
+
+    // Each image of a multi-image clip has its own preview, not just the first.
+    let shots = id_of("shot0.png");
+    let mut seen = Vec::new();
+    for n in 0..3 {
+        let png = a.fetch_file(&shots, n, true).await.unwrap();
+        let px = image::load_from_memory(&png)
+            .unwrap()
+            .to_rgba8()
+            .get_pixel(5, 5)
+            .0;
+        assert!(!seen.contains(&px), "preview {n} repeats an earlier file");
+        seen.push(px);
+    }
 
     // Not an image: no preview, with a message that says so.
     let err = a.fetch_file(&pdf_id, 0, true).await.unwrap_err();

@@ -112,10 +112,7 @@ export interface PairedNotice {
   check_code: string;
 }
 
-async function call<T>(
-  cmd: string,
-  args?: Record<string, unknown>,
-): Promise<T> {
+async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
   if (isTauri) {
     const { invoke } = await import("@tauri-apps/api/core");
     return invoke<T>(cmd, args);
@@ -132,8 +129,7 @@ export interface ImportedFile {
 
 export const syncApi = {
   status: () => call<SyncView>("sync_status"),
-  setEnabled: (enabled: boolean) =>
-    call<SyncView>("sync_set_enabled", { enabled }),
+  setEnabled: (enabled: boolean) => call<SyncView>("sync_set_enabled", { enabled }),
   setPort: (port: number) => call<SyncView>("sync_set_port", { port }),
   restart: () => call<SyncView>("sync_restart"),
   createOffer: () => call<OfferView>("sync_create_offer"),
@@ -146,31 +142,23 @@ export const syncApi = {
   /** Phone: download a synced image's full size. */
   fetchImage: (id: string) => call<boolean>("sync_fetch_image", { id }),
   /** Phone: preview of a file copied on the computer (fetched once, cached); returns its path. */
-  filePreview: (id: string, index: number) =>
-    call<string>("sync_file_preview", { id, index }),
+  filePreview: (id: string, index: number) => call<string>("sync_file_preview", { id, index }),
   /** Phone: fetch a file copied on the computer and put it on the phone's clipboard. */
-  copyFile: (id: string, index: number) =>
-    call<void>("sync_copy_file", { id, index }),
+  copyFile: (id: string, index: number) => call<void>("sync_copy_file", { id, index }),
   /** Phone: fetch a file copied on the computer into Pictures/ClipTrail. */
-  saveFile: (id: string, index: number) =>
-    call<void>("sync_save_file", { id, index }),
+  saveFile: (id: string, index: number) => call<void>("sync_save_file", { id, index }),
   /** Phone: import a file copied on the computer into Downloads/ClipTrail (only when asked). */
-  importFile: (id: string, index: number) =>
-    call<ImportedFile>("sync_import_file", { id, index }),
+  importFile: (id: string, index: number) => call<ImportedFile>("sync_import_file", { id, index }),
   /** Phone: the imported copy of a file, if it was imported and is still on the phone. */
-  importedFile: (id: string, index: number) =>
-    call<ImportedFile | null>("sync_imported_file", { id, index }),
+  importedFile: (id: string, index: number) => call<ImportedFile | null>("sync_imported_file", { id, index }),
   /** Phone: open (or share) an imported file in another app. */
-  openImported: (id: string, index: number, share: boolean) =>
-    call<void>("sync_open_imported", { id, index, share }),
+  openImported: (id: string, index: number, share: boolean) => call<void>("sync_open_imported", { id, index, share }),
   /** Check a relay URL without changing anything. */
   relayCheck: (url: string) => call<RelayHello>("sync_relay_check", { url }),
   /** Register this space on a relay; other devices pick it up on their next sync. */
-  relayAdd: (url: string, invite: string | null) =>
-    call<SyncView>("sync_relay_add", { url, invite }),
+  relayAdd: (url: string, invite: string | null) => call<SyncView>("sync_relay_add", { url, invite }),
   /** Stop using a relay on every device; `purge` also deletes this space's data on it. */
-  relayRemove: (url: string, purge: boolean) =>
-    call<SyncView>("sync_relay_remove", { url, purge }),
+  relayRemove: (url: string, purge: boolean) => call<SyncView>("sync_relay_remove", { url, purge }),
 };
 
 // ---- shared store ----
@@ -211,12 +199,9 @@ export function useSyncView(): SyncView | null {
 }
 
 /** The other device a clip was last copied on; null for this device. */
-export function useOtherDevice(
-  deviceId: string,
-): Pick<DeviceView, "name" | "platform"> | null {
+export function useOtherDevice(deviceId: string): Pick<DeviceView, "name" | "platform"> | null {
   const v = useSyncView();
-  if (!v || !v.status.configured || deviceId === v.status.device_id)
-    return null;
+  if (!v || !v.status.configured || deviceId === v.status.device_id) return null;
   const d = v.status.devices.find((x) => x.id === deviceId);
   if (d) return { name: d.name, platform: d.platform };
   const name = v.names[deviceId];
@@ -224,21 +209,13 @@ export function useOtherDevice(
 }
 
 /** Name and platform of any device clips came from; this one is "This computer" / "This phone". */
-export function useDeviceInfo(): (
-  id: string,
-) => Pick<DeviceView, "name" | "platform"> {
+export function useDeviceInfo(): (id: string) => Pick<DeviceView, "name" | "platform"> {
   const v = useSyncView();
   return (id) => {
     const here = !v?.status.configured || id === v.status.device_id;
-    if (here)
-      return {
-        name: isAndroid ? "This phone" : "This computer",
-        platform: isAndroid ? "android" : "",
-      };
+    if (here) return { name: isAndroid ? "This phone" : "This computer", platform: isAndroid ? "android" : "" };
     const d = v.status.devices.find((x) => x.id === id);
-    return d
-      ? { name: d.name, platform: d.platform }
-      : { name: v.names[id] ?? "Another device", platform: "" };
+    return d ? { name: d.name, platform: d.platform } : { name: v.names[id] ?? "Another device", platform: "" };
   };
 }
 
@@ -322,13 +299,10 @@ function mockQr(seed: number): string {
   let rects = "";
   for (let y = 0; y < n; y++)
     for (let x = 0; x < n; x++) {
-      const finder =
-        (x < 7 && y < 7) || (x >= n - 7 && y < 7) || (x < 7 && y >= n - 7);
+      const finder = (x < 7 && y < 7) || (x >= n - 7 && y < 7) || (x < 7 && y >= n - 7);
       const on = finder
-        ? !(x % 6 === 1 || y % 6 === 1) ||
-          (x % 6 >= 2 && x % 6 <= 4 && y % 6 >= 2 && y % 6 <= 4)
-        : (Math.imul(x * 73 + y * 151 + seed * 31, 0x9e3779b1) >>> 13) % 2 ===
-          0;
+        ? !(x % 6 === 1 || y % 6 === 1) || (x % 6 >= 2 && x % 6 <= 4 && y % 6 >= 2 && y % 6 <= 4)
+        : (Math.imul(x * 73 + y * 151 + seed * 31, 0x9e3779b1) >>> 13) % 2 === 0;
       if (on) rects += `<rect x="${x + 2}" y="${y + 2}" width="1" height="1"/>`;
     }
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${n + 4} ${n + 4}"><rect width="100%" height="100%" fill="#fff"/><g fill="#000">${rects}</g></svg>`;
@@ -353,15 +327,11 @@ if (isAndroid) {
   };
 }
 
-async function mockCall(
-  cmd: string,
-  a: Record<string, unknown>,
-): Promise<unknown> {
+async function mockCall(cmd: string, a: Record<string, unknown>): Promise<unknown> {
   switch (cmd) {
     case "sync_pair": {
       await new Promise((r) => setTimeout(r, 700));
-      if (!String(a.uri).startsWith("cliptrail://pair"))
-        throw "That isn't a ClipTrail pairing link";
+      if (!String(a.uri).startsWith("cliptrail://pair")) throw "That isn't a ClipTrail pairing link";
       const st = mock.view.status;
       const now = Date.now();
       mock.view.status = {
@@ -374,26 +344,8 @@ async function mockCall(
         connected: true,
         hosts: ["192.168.1.23:47821"],
         devices: [
-          {
-            id: MOCK_SELF,
-            name: "DESKTOP-MOCK",
-            platform: "windows",
-            paired_at: now - 86_400_000 * 9,
-            last_seen: now,
-            revoked_at: null,
-            is_self: false,
-            online: true,
-          },
-          {
-            id: st.device_id,
-            name: "Galaxy S23 FE",
-            platform: "android",
-            paired_at: now,
-            last_seen: now,
-            revoked_at: null,
-            is_self: true,
-            online: true,
-          },
+          { id: MOCK_SELF, name: "DESKTOP-MOCK", platform: "windows", paired_at: now - 86_400_000 * 9, last_seen: now, revoked_at: null, is_self: false, online: true },
+          { id: st.device_id, name: "Galaxy S23 FE", platform: "android", paired_at: now, last_seen: now, revoked_at: null, is_self: true, online: true },
         ],
       };
       return {
@@ -406,15 +358,7 @@ async function mockCall(
       } satisfies PairOutcome;
     }
     case "sync_unpair":
-      mock.view.status = {
-        ...mock.view.status,
-        configured: false,
-        role: null,
-        hub_name: null,
-        connected: false,
-        devices: [],
-        hosts: [],
-      };
+      mock.view.status = { ...mock.view.status, configured: false, role: null, hub_name: null, connected: false, devices: [], hosts: [] };
       return true;
     case "sync_fetch_image":
       return false;
@@ -450,57 +394,33 @@ async function mockCall(
     case "sync_relay_check": {
       await new Promise((r) => setTimeout(r, 400));
       const url = String(a.url).trim();
-      if (
-        !/^https:\/\/|^http:\/\/(localhost|127\.|192\.168\.)/.test(url) &&
-        url.includes("://")
-      )
+      if (!/^https:\/\/|^http:\/\/(localhost|127\.|192\.168\.)/.test(url) && url.includes("://"))
         throw "Use an https:// address (plain http only works on your own network)";
       return {
         proto: 1,
         kind: "clipd-relay",
         version: "0.1.0",
         registration: url.includes("invite") ? "invite" : "open",
-        limits: {
-          max_event_bytes: 1 << 20,
-          max_blob_bytes: 48 << 20,
-          max_space_bytes: 256 << 20,
-          max_devices: 16,
-          retention_days: 30,
-        },
+        limits: { max_event_bytes: 1 << 20, max_blob_bytes: 48 << 20, max_space_bytes: 256 << 20, max_devices: 16, retention_days: 30 },
       } satisfies RelayHello;
     }
     case "sync_relay_add": {
       await new Promise((r) => setTimeout(r, 600));
       const relays = mock.view.status.relays ?? [];
       const url = String(a.url).trim().replace(/\/+$/, "");
-      if (relays.some((r) => r.url === url))
-        throw `${url} is already one of this space's relays`;
+      if (relays.some((r) => r.url === url)) throw `${url} is already one of this space's relays`;
       mock.view.status.relays = [
         ...relays,
-        {
-          url,
-          state: "standby",
-          connected: false,
-          enrolled: true,
-          added_at: Date.now(),
-          last_ok: Date.now(),
-          last_error: null,
-          pull_seq: 0,
-          push_seq: 0,
-        },
+        { url, state: "standby", connected: false, enrolled: true, added_at: Date.now(), last_ok: Date.now(), last_error: null, pull_seq: 0, push_seq: 0 },
       ];
       return mockView();
     }
     case "sync_relay_remove":
-      mock.view.status.relays = (mock.view.status.relays ?? []).filter(
-        (r) => r.url !== a.url,
-      );
+      mock.view.status.relays = (mock.view.status.relays ?? []).filter((r) => r.url !== a.url);
       return mockView();
     case "sync_revoke":
       mock.view.status.devices = mock.view.status.devices.map((d) =>
-        d.id === a.deviceId
-          ? { ...d, revoked_at: Date.now(), online: false }
-          : d,
+        d.id === a.deviceId ? { ...d, revoked_at: Date.now(), online: false } : d,
       );
       return null;
     default:

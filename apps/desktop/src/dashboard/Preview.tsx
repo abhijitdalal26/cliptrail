@@ -23,31 +23,17 @@ import {
 import { api, assetUrl, errorMessage } from "../lib/api";
 import { appName } from "../lib/apps";
 import { cx } from "../lib/cx";
-import {
-  fullDate,
-  isLightColor,
-  parseColor,
-  parseUrl,
-  plural,
-  relative,
-  splitPath,
-  untilLabel,
-} from "../lib/format";
+import { fullDate, isLightColor, parseColor, parseUrl, plural, relative, splitPath, untilLabel } from "../lib/format";
 import { useHighlighted } from "../lib/highlight";
 import { MOD } from "../lib/hooks";
 import { isAndroid } from "../lib/platform";
 import { KIND_META, subkindLabel } from "../lib/kinds";
 import type { Clip, ClipSummary } from "../lib/types";
 import { AppAvatar, Button, IconButton, KindBadge } from "../components/ui";
-import {
-  platformIcon,
-  syncApi,
-  useOtherDevice,
-  type ImportedFile,
-} from "../lib/sync";
+import { platformIcon, syncApi, useOtherDevice, type ImportedFile } from "../lib/sync";
 import { Actions } from "./Actions";
 import { FilePreview } from "../components/FilePreview";
-import { mediaKind, remoteImageFile } from "../lib/media";
+import { mediaKind } from "../lib/media";
 
 interface Props {
   summary: ClipSummary | null;
@@ -64,16 +50,7 @@ interface Props {
 type Tab = "details" | "actions";
 
 /** The clip panel: title and favorite/delete on top, then the content (click to copy), details and the actions. */
-export function Preview({
-  summary,
-  onCopy,
-  onTogglePin,
-  onDelete,
-  toast,
-  trash,
-  onRestore,
-  onPurge,
-}: Props) {
+export function Preview({ summary, onCopy, onTogglePin, onDelete, toast, trash, onRestore, onPurge }: Props) {
   const [full, setFull] = useState<Clip | null>(null);
   const [tab, setTab] = useState<Tab>("details");
   const id = summary?.id;
@@ -91,14 +68,12 @@ export function Preview({
   }, [id]);
 
   if (!summary) return <NoSelection />;
-  const clip: Clip | null =
-    full && full.id === summary.id ? { ...full, ...summary } : null;
+  const clip: Clip | null = full && full.id === summary.id ? { ...full, ...summary } : null;
   const s = summary;
   const sub = subkindLabel(s.kind, s.subkind);
   // Images copied in a browser remember the page (see clipd-capture cfhtml).
   const page = s.kind === "image" ? parseUrl(s.preview) : null;
-  const hasActions =
-    !trash && !s.masked && !["sensitive", "image", "file"].includes(s.kind);
+  const hasActions = !trash && !s.masked && !["sensitive", "image", "file"].includes(s.kind);
   const shownTab: Tab = hasActions ? tab : "details";
 
   return (
@@ -115,9 +90,7 @@ export function Preview({
           {!trash && (
             <div className="-mt-0.5 -mr-1.5 flex shrink-0 items-center">
               <button
-                aria-label={
-                  s.pinned ? "Remove from favorites" : "Add to favorites"
-                }
+                aria-label={s.pinned ? "Remove from favorites" : "Add to favorites"}
                 aria-pressed={s.pinned}
                 title={`${s.pinned ? "Remove from favorites" : "Add to favorites"} (${MOD}+P)`}
                 onClick={() => onTogglePin(s)}
@@ -126,46 +99,27 @@ export function Preview({
                   s.pinned ? "text-[#f5b301]" : "text-fg-3 hover:text-fg",
                 )}
               >
-                <Star
-                  size={17}
-                  strokeWidth={2}
-                  className={cx(s.pinned && "fill-current")}
-                />
+                <Star size={17} strokeWidth={2} className={cx(s.pinned && "fill-current")} />
               </button>
-              <IconButton
-                icon={Trash2}
-                label="Move to Trash"
-                shortcut="Del"
-                tone="danger"
-                onClick={() => onDelete(s)}
-              />
+              <IconButton icon={Trash2} label="Move to Trash" shortcut="Del" tone="danger" onClick={() => onDelete(s)} />
             </div>
           )}
         </div>
 
         {/* The content; clicking it copies it (dragging still selects part of it) */}
         <div className="px-5 pt-3.5">
-          <CopyArea
-            enabled={!trash && !s.masked && s.kind !== "sensitive"}
-            onCopy={() => onCopy(s.id, false)}
-          >
+          <CopyArea enabled={!trash && !s.masked && s.kind !== "sensitive"} onCopy={() => onCopy(s.id, false)}>
             <Body summary={s} clip={clip} toast={toast} />
           </CopyArea>
         </div>
 
         {/* Tabs */}
         <div className="mt-3 flex gap-5 border-b border-line px-5">
-          <TabButton
-            on={shownTab === "details"}
-            onClick={() => setTab("details")}
-          >
+          <TabButton on={shownTab === "details"} onClick={() => setTab("details")}>
             Details
           </TabButton>
           {hasActions && (
-            <TabButton
-              on={shownTab === "actions"}
-              onClick={() => setTab("actions")}
-            >
+            <TabButton on={shownTab === "actions"} onClick={() => setTab("actions")}>
               Quick actions
             </TabButton>
           )}
@@ -193,20 +147,14 @@ export function Preview({
                 <button
                   className="truncate text-accent-text hover:underline"
                   title={s.preview}
-                  onClick={() =>
-                    void api
-                      .openUrl(s.preview)
-                      .catch((e) => toast(errorMessage(e)))
-                  }
+                  onClick={() => void api.openUrl(s.preview).catch((e) => toast(errorMessage(e)))}
                 >
                   {page.host}
                 </button>
               </Row>
             )}
             <DeviceRow deviceId={s.device_id} />
-            <Row label={s.kind === "image" ? "Resolution" : "Size"}>
-              {sizeLabel(s)}
-            </Row>
+            <Row label={s.kind === "image" ? "Resolution" : "Size"}>{sizeLabel(s)}</Row>
             <Row label="Copied">
               <span title={fullDate(s.created_at)}>
                 {s.copy_count === 1
@@ -215,12 +163,8 @@ export function Preview({
               </span>
             </Row>
             {clip?.html && <Row label="Format">Rich text</Row>}
-            {s.expires_at && (
-              <Row label="Expires">in {untilLabel(s.expires_at)}</Row>
-            )}
-            {trash && s.deleted_at && (
-              <Row label="Deleted">{fullDate(s.deleted_at)}</Row>
-            )}
+            {s.expires_at && <Row label="Expires">in {untilLabel(s.expires_at)}</Row>}
+            {trash && s.deleted_at && <Row label="Deleted">{fullDate(s.deleted_at)}</Row>}
           </dl>
         ) : (
           <div className="pt-4">
@@ -233,49 +177,25 @@ export function Preview({
       <div className="space-y-2 border-t border-line px-5 py-4">
         {trash ? (
           <>
-            <Button
-              variant="primary"
-              icon={RotateCcw}
-              onClick={() => onRestore?.(s)}
-              className="h-10 w-full text-[13px]"
-            >
+            <Button variant="primary" icon={RotateCcw} onClick={() => onRestore?.(s)} className="h-10 w-full text-[13px]">
               Restore
             </Button>
-            <Button
-              variant="danger"
-              icon={Trash2}
-              onClick={() => onPurge?.(s)}
-              className="h-9 w-full"
-            >
+            <Button variant="danger" icon={Trash2} onClick={() => onPurge?.(s)} className="h-9 w-full">
               Delete forever
             </Button>
           </>
         ) : (
           <>
-            <Button
-              variant="primary"
-              icon={Copy}
-              onClick={() => onCopy(s.id, false)}
-              className="h-10 w-full text-[13px]"
-            >
+            <Button variant="primary" icon={Copy} onClick={() => onCopy(s.id, false)} className="h-10 w-full text-[13px]">
               Copy
             </Button>
-            <SecondaryAction
-              summary={s}
-              clip={clip}
-              onCopy={onCopy}
-              toast={toast}
-            />
+            <SecondaryAction summary={s} clip={clip} onCopy={onCopy} toast={toast} />
             {page && !isAndroid && (
               <Button
                 icon={ExternalLink}
                 className="h-9 w-full"
                 title={s.preview}
-                onClick={() =>
-                  void api
-                    .openUrl(s.preview)
-                    .catch((e) => toast(errorMessage(e)))
-                }
+                onClick={() => void api.openUrl(s.preview).catch((e) => toast(errorMessage(e)))}
               >
                 Open page
               </Button>
@@ -305,38 +225,16 @@ function SecondaryAction({
     case "link": {
       const url = clip?.text ?? s.preview;
       return (
-        <Button
-          icon={ExternalLink}
-          className={cls}
-          onClick={() => api.openUrl(url).catch(fail)}
-        >
+        <Button icon={ExternalLink} className={cls} onClick={() => api.openUrl(url).catch(fail)}>
           Open in browser
         </Button>
       );
     }
     case "file":
-      if (isAndroid) {
-        return remoteImageFile(s.kind, s.files) ? (
-          <Button
-            icon={Download}
-            className={cls}
-            onClick={() =>
-              syncApi
-                .saveFile(s.id, 0)
-                .then(() => toast("Saved to Pictures › ClipTrail"))
-                .catch(fail)
-            }
-          >
-            Save to phone
-          </Button>
-        ) : null;
-      }
+      // Phone: every file has its own Import (and, for images, Copy / Save) button in the list above.
+      if (isAndroid) return null;
       return s.files.length > 0 ? (
-        <Button
-          icon={FolderOpen}
-          className={cls}
-          onClick={() => api.revealPath(s.files[0]).catch(fail)}
-        >
+        <Button icon={FolderOpen} className={cls} onClick={() => api.revealPath(s.files[0]).catch(fail)}>
           Open in folder
         </Button>
       ) : null;
@@ -373,11 +271,7 @@ function SecondaryAction({
     case "contact": {
       const v = clip?.text ?? s.preview;
       return s.subkind === "email" || v.includes("@") ? (
-        <Button
-          icon={Mail}
-          className={cls}
-          onClick={() => api.openUrl(`mailto:${v}`).catch(fail)}
-        >
+        <Button icon={Mail} className={cls} onClick={() => api.openUrl(`mailto:${v}`).catch(fail)}>
           Write email
         </Button>
       ) : null;
@@ -386,12 +280,7 @@ function SecondaryAction({
       return null;
     default:
       return clip?.html ? (
-        <Button
-          icon={ClipboardType}
-          className={cls}
-          onClick={() => onCopy(s.id, true)}
-          title="Copy without formatting"
-        >
+        <Button icon={ClipboardType} className={cls} onClick={() => onCopy(s.id, true)} title="Copy without formatting">
           Copy as plain text
         </Button>
       ) : null;
@@ -407,16 +296,12 @@ function clipTitle(s: ClipSummary): string {
       return parseUrl(s.preview)?.host ?? s.preview;
     case "file": {
       const { name } = splitPath(s.files[0] ?? s.preview);
-      return s.files.length > 1
-        ? `${name} and ${s.files.length - 1} more`
-        : name;
+      return s.files.length > 1 ? `${name} and ${s.files.length - 1} more` : name;
     }
     case "sensitive":
       return subkindLabel("sensitive", s.subkind) ?? "Sensitive";
     case "code":
-      return (
-        firstLine(s.preview) || (subkindLabel("code", s.subkind) ?? "Code")
-      );
+      return firstLine(s.preview) || (subkindLabel("code", s.subkind) ?? "Code");
     default:
       return firstLine(s.preview) || KIND_META[s.kind].label;
   }
@@ -430,31 +315,16 @@ function firstLine(text: string): string {
 /** "Nov 5, 7:22 PM" (with the year when it isn't this year). */
 function shortDate(ms: number): string {
   const d = new Date(ms);
-  return format(
-    d,
-    d.getFullYear() === new Date().getFullYear()
-      ? "MMM d, h:mm a"
-      : "MMM d, yyyy, h:mm a",
-  );
+  return format(d, d.getFullYear() === new Date().getFullYear() ? "MMM d, h:mm a" : "MMM d, yyyy, h:mm a");
 }
 
-function TabButton({
-  on,
-  onClick,
-  children,
-}: {
-  on: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
+function TabButton({ on, onClick, children }: { on: boolean; onClick: () => void; children: ReactNode }) {
   return (
     <button
       onClick={onClick}
       className={cx(
         "-mb-px border-b-2 pt-1 pb-2 text-[12.5px] font-medium transition-colors",
-        on
-          ? "border-accent text-fg"
-          : "border-transparent text-fg-3 hover:text-fg-2",
+        on ? "border-accent text-fg" : "border-transparent text-fg-3 hover:text-fg-2",
       )}
     >
       {children}
@@ -463,11 +333,9 @@ function TabButton({
 }
 
 function sizeLabel(s: ClipSummary): string {
-  if (s.kind === "image")
-    return s.width && s.height ? `${s.width} × ${s.height}` : "—";
+  if (s.kind === "image") return s.width && s.height ? `${s.width} × ${s.height}` : "—";
   if (s.kind === "file") return plural(s.files.length, "item");
-  if (s.line_count > 1)
-    return `${plural(s.char_count, "character")} · ${plural(s.line_count, "line")}`;
+  if (s.line_count > 1) return `${plural(s.char_count, "character")} · ${plural(s.line_count, "line")}`;
   return plural(s.char_count, "character");
 }
 
@@ -482,25 +350,13 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 
 /** Device row in the details list (only shown for clips from another device). */
 /** "Copied 2 min ago · Chrome", or the device when the app isn't known. */
-function MetaLine({
-  summary: s,
-  trash,
-}: {
-  summary: ClipSummary;
-  trash?: boolean;
-}) {
+function MetaLine({ summary: s, trash }: { summary: ClipSummary; trash?: boolean }) {
   const other = useOtherDevice(s.device_id);
-  const where = s.source_app
-    ? appName(s.source_app)
-    : other
-      ? `on ${other.name}`
-      : null;
+  const where = s.source_app ? appName(s.source_app) : other ? `on ${other.name}` : null;
   return (
     <div className="mt-1 flex items-center gap-1.5 text-[12px] text-fg-3">
       <span className="shrink-0">
-        {trash && s.deleted_at
-          ? `Deleted ${relative(s.deleted_at)}`
-          : `Copied ${relative(s.last_seen_at)}`}
+        {trash && s.deleted_at ? `Deleted ${relative(s.deleted_at)}` : `Copied ${relative(s.last_seen_at)}`}
       </span>
       {where && (
         <>
@@ -513,15 +369,7 @@ function MetaLine({
 }
 
 /** Wraps the clip content: a click copies it, with a brief "Copied" badge. */
-function CopyArea({
-  enabled,
-  onCopy,
-  children,
-}: {
-  enabled: boolean;
-  onCopy: () => void;
-  children: ReactNode;
-}) {
+function CopyArea({ enabled, onCopy, children }: { enabled: boolean; onCopy: () => void; children: ReactNode }) {
   const [copied, setCopied] = useState(false);
   const timer = useRef(0);
   useEffect(() => () => window.clearTimeout(timer.current), []);
@@ -532,12 +380,7 @@ function CopyArea({
       onClick={(e) => {
         // Buttons inside the content (colour values, show in folder) do their own thing,
         // and a click that ends a text selection keeps the selection instead.
-        if (
-          (e.target as HTMLElement).closest(
-            "button, a, input, select, textarea",
-          )
-        )
-          return;
+        if ((e.target as HTMLElement).closest("button, a, input, select, textarea")) return;
         if (window.getSelection()?.toString()) return;
         onCopy();
         setCopied(true);
@@ -555,11 +398,7 @@ function CopyArea({
             : "bg-panel text-fg-2 opacity-0 group-hover/copy:opacity-100",
         )}
       >
-        {copied ? (
-          <Check size={13} strokeWidth={2.6} />
-        ) : (
-          <Copy size={12} strokeWidth={2.2} />
-        )}
+        {copied ? <Check size={13} strokeWidth={2.6} /> : <Copy size={12} strokeWidth={2.2} />}
         {copied ? "Copied" : "Click to copy"}
       </span>
     </div>
@@ -587,12 +426,8 @@ function NoSelection() {
         <div className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-xl bg-hover text-fg-3">
           <MousePointerClick size={20} strokeWidth={1.8} />
         </div>
-        <div className="text-[13px] font-medium text-fg-2">
-          Select a clip to preview it
-        </div>
-        <div className="mt-1 text-[12px] text-fg-3">
-          Use ↑ ↓ to move, Enter to copy
-        </div>
+        <div className="text-[13px] font-medium text-fg-2">Select a clip to preview it</div>
+        <div className="mt-1 text-[12px] text-fg-3">Use ↑ ↓ to move, Enter to copy</div>
       </div>
     </div>
   );
@@ -602,25 +437,13 @@ function Loading() {
   return (
     <div className="space-y-2.5">
       {[92, 100, 76, 88, 54].map((w, i) => (
-        <div
-          key={i}
-          className="skeleton h-3 rounded"
-          style={{ width: `${w}%` }}
-        />
+        <div key={i} className="skeleton h-3 rounded" style={{ width: `${w}%` }} />
       ))}
     </div>
   );
 }
 
-function Body({
-  summary: s,
-  clip,
-  toast,
-}: {
-  summary: ClipSummary;
-  clip: Clip | null;
-  toast: (m: string) => void;
-}) {
+function Body({ summary: s, clip, toast }: { summary: ClipSummary; clip: Clip | null; toast: (m: string) => void }) {
   switch (s.kind) {
     case "image":
       return (
@@ -634,11 +457,7 @@ function Body({
         </div>
       );
     case "code":
-      return clip ? (
-        <CodeBlock code={clip.text ?? s.preview} lang={s.subkind} />
-      ) : (
-        <Loading />
-      );
+      return clip ? <CodeBlock code={clip.text ?? s.preview} lang={s.subkind} /> : <Loading />;
     case "link":
       return <LinkView url={clip?.text ?? s.preview} />;
     case "color":
@@ -668,21 +487,13 @@ function Body({
   }
 }
 
-export function CodeBlock({
-  code,
-  lang,
-}: {
-  code: string;
-  lang: string | null;
-}) {
+export function CodeBlock({ code, lang }: { code: string; lang: string | null }) {
   const html = useHighlighted(code, lang);
   const lines = code.split("\n").length;
   return (
     <div className="overflow-hidden rounded-xl border border-line bg-panel-2">
       <div className="flex items-center justify-between border-b border-line px-3 py-1.5 text-[11px] text-fg-3">
-        <span className="font-medium">
-          {subkindLabel("code", lang) ?? "Plain text"}
-        </span>
+        <span className="font-medium">{subkindLabel("code", lang) ?? "Plain text"}</span>
         <span className="tabular-nums">{plural(lines, "line")}</span>
       </div>
       <div className="scroll-y flex max-h-[38vh] overflow-x-auto">
@@ -704,20 +515,12 @@ export function CodeBlock({
 function LinkView({ url }: { url: string }) {
   return (
     <div className="overflow-hidden rounded-xl border border-line bg-panel-2">
-      <div className="code px-4 py-3 text-[12px] leading-[1.6] break-all text-fg-2">
-        {url}
-      </div>
+      <div className="code px-4 py-3 text-[12px] leading-[1.6] break-all text-fg-2">{url}</div>
     </div>
   );
 }
 
-function ColorView({
-  value,
-  toast,
-}: {
-  value: string;
-  toast: (m: string) => void;
-}) {
+function ColorView({ value, toast }: { value: string; toast: (m: string) => void }) {
   const c = parseColor(value);
   if (!c) return <div className="code text-[13px]">{value}</div>;
   const light = isLightColor(c.hex);
@@ -731,14 +534,9 @@ function ColorView({
       <div className="checker overflow-hidden rounded-xl shadow-[inset_0_0_0_1px_var(--border)]">
         <div
           className="flex h-40 items-end p-4"
-          style={{
-            background: c.css,
-            color: light ? "rgb(0 0 0 / 0.75)" : "rgb(255 255 255 / 0.92)",
-          }}
+          style={{ background: c.css, color: light ? "rgb(0 0 0 / 0.75)" : "rgb(255 255 255 / 0.92)" }}
         >
-          <span className="code text-[20px] font-semibold tracking-tight">
-            {value}
-          </span>
+          <span className="code text-[20px] font-semibold tracking-tight">{value}</span>
         </div>
       </div>
       <div className="divide-y divide-[var(--border)] overflow-hidden rounded-xl border border-line">
@@ -755,10 +553,7 @@ function ColorView({
           >
             <span className="w-9 text-[11px] font-semibold text-fg-3">{k}</span>
             <span className="code flex-1 text-[12.5px] text-fg">{v}</span>
-            <Clipboard
-              size={13}
-              className="text-fg-4 opacity-0 transition-opacity group-hover:opacity-100"
-            />
+            <Clipboard size={13} className="text-fg-4 opacity-0 transition-opacity group-hover:opacity-100" />
           </button>
         ))}
       </div>
@@ -767,26 +562,10 @@ function ColorView({
 }
 
 /** Phone: copied files stay on the computer; each one has an Import button, and nothing moves until it's tapped. */
-function RemoteFiles({
-  summary: s,
-  toast,
-}: {
-  summary: ClipSummary;
-  toast: (m: string) => void;
-}) {
+function RemoteFiles({ summary: s, toast }: { summary: ClipSummary; toast: (m: string) => void }) {
   const device = useOtherDevice(s.device_id)?.name ?? "your computer";
-  const [attempt, setAttempt] = useState(0);
-  const image = remoteImageFile(s.kind, s.files);
   return (
     <div className="space-y-3">
-      {image && (
-        <RemotePreview
-          key={`${s.id}:${attempt}`}
-          id={s.id}
-          device={device}
-          onRetry={() => setAttempt((n) => n + 1)}
-        />
-      )}
       <div className="overflow-hidden rounded-xl border border-line">
         {s.files.map((f, i) => (
           <RemoteFileRow
@@ -837,7 +616,9 @@ function RemoteFileRow({
   toast: (m: string) => void;
 }) {
   const [st, setSt] = useState<ImportState>({ s: "checking" });
+  const [attempt, setAttempt] = useState(0);
   const { name, dir } = splitPath(path);
+  const isImage = mediaKind(path) === "image";
   useEffect(() => {
     let alive = true;
     syncApi.importedFile(clipId, index).then(
@@ -865,6 +646,17 @@ function RemoteFileRow({
 
   return (
     <div className={cx("px-3.5 py-3", !first && "border-t border-line")}>
+      {isImage && (
+        <div className="mb-3">
+          <RemotePreview
+            key={`${clipId}:${index}:${attempt}`}
+            id={clipId}
+            index={index}
+            device={device}
+            onRetry={() => setAttempt((n) => n + 1)}
+          />
+        </div>
+      )}
       <div className="flex items-center gap-3">
         <span className="k-file k-tile grid h-8 w-8 shrink-0 place-items-center rounded-lg">
           <FileIcon size={15} />
@@ -880,41 +672,49 @@ function RemoteFileRow({
           </div>
         </div>
         {(st.s === "idle" || st.s === "checking") && (
-          <Button
-            size="sm"
-            icon={Download}
-            disabled={st.s === "checking"}
-            onClick={run}
-          >
+          <Button size="sm" icon={Download} disabled={st.s === "checking"} onClick={run}>
             Import
           </Button>
         )}
-        {st.s === "importing" && (
-          <Loader2
-            size={18}
-            className="animate-spin text-fg-3"
-            aria-label="Importing"
-          />
-        )}
+        {st.s === "importing" && <Loader2 size={18} className="animate-spin text-fg-3" aria-label="Importing" />}
       </div>
       {st.s === "done" && (
         <div className="mt-2.5 flex gap-2">
+          <Button size="sm" variant="primary" icon={ExternalLink} className="flex-1" onClick={() => open(false)}>
+            Open
+          </Button>
+          <Button size="sm" icon={Share2} className="flex-1" onClick={() => open(true)}>
+            Share
+          </Button>
+        </div>
+      )}
+      {isImage && (
+        <div className="mt-2 flex gap-2">
           <Button
             size="sm"
-            variant="primary"
-            icon={ExternalLink}
+            icon={Copy}
             className="flex-1"
-            onClick={() => open(false)}
+            onClick={() =>
+              syncApi
+                .copyFile(clipId, index)
+                .then(() => toast("Copied"))
+                .catch((e) => toast(errorMessage(e)))
+            }
           >
-            Open
+            Copy image
           </Button>
           <Button
             size="sm"
-            icon={Share2}
+            icon={Download}
             className="flex-1"
-            onClick={() => open(true)}
+            onClick={() =>
+              syncApi
+                .saveFile(clipId, index)
+                .then(() => toast("Saved to Pictures › ClipTrail"))
+                .catch((e) => toast(errorMessage(e)))
+            }
           >
-            Share
+            Save to Pictures
           </Button>
         </div>
       )}
@@ -932,10 +732,12 @@ function RemoteFileRow({
 
 function RemotePreview({
   id,
+  index,
   device,
   onRetry,
 }: {
   id: string;
+  index: number;
   device: string;
   onRetry: () => void;
 }) {
@@ -943,14 +745,14 @@ function RemotePreview({
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     let alive = true;
-    syncApi.filePreview(id, 0).then(
+    syncApi.filePreview(id, index).then(
       (p) => alive && setPath(p),
       (e) => alive && setError(errorMessage(e)),
     );
     return () => {
       alive = false;
     };
-  }, [id]);
+  }, [id, index]);
   return (
     <div className="checker grid min-h-[150px] place-items-center overflow-hidden rounded-xl shadow-[0_0_0_1px_var(--border)]">
       {path ? (
@@ -970,21 +772,13 @@ function RemotePreview({
           </div>
         </div>
       ) : (
-        <div className="text-[12.5px] text-fg-3">
-          Getting the preview from {device}…
-        </div>
+        <div className="text-[12.5px] text-fg-3">Getting the preview from {device}…</div>
       )}
     </div>
   );
 }
 
-function FilesView({
-  files,
-  reveal = true,
-}: {
-  files: string[];
-  reveal?: boolean;
-}) {
+function FilesView({ files, reveal = true }: { files: string[]; reveal?: boolean }) {
   return (
     <div className="overflow-hidden rounded-xl border border-line">
       {files.map((f, i) => {
@@ -992,18 +786,13 @@ function FilesView({
         return (
           <div
             key={f + i}
-            className={cx(
-              "group flex items-center gap-3 px-3.5 py-2.5",
-              i > 0 && "border-t border-line",
-            )}
+            className={cx("group flex items-center gap-3 px-3.5 py-2.5", i > 0 && "border-t border-line")}
           >
             <span className="k-file k-tile grid h-8 w-8 shrink-0 place-items-center rounded-lg">
               <FileIcon size={15} />
             </span>
             <div className="min-w-0 flex-1">
-              <div className="truncate text-[13px] font-medium text-fg">
-                {name}
-              </div>
+              <div className="truncate text-[13px] font-medium text-fg">{name}</div>
               <div className="truncate text-[11.5px] text-fg-3">{dir}</div>
             </div>
             {reveal && (
@@ -1021,13 +810,7 @@ function FilesView({
   );
 }
 
-function SensitiveView({
-  clip,
-  summary,
-}: {
-  clip: Clip | null;
-  summary: ClipSummary;
-}) {
+function SensitiveView({ clip, summary }: { clip: Clip | null; summary: ClipSummary }) {
   const [shown, setShown] = useState(false);
   return (
     <div className="space-y-3">
@@ -1038,9 +821,7 @@ function SensitiveView({
         {shown && clip?.text ? (
           <div className="code text-[14px] break-all text-fg">{clip.text}</div>
         ) : (
-          <div className="text-[20px] tracking-[0.25em] text-fg-3">
-            ••••••••••••
-          </div>
+          <div className="text-[20px] tracking-[0.25em] text-fg-3">••••••••••••</div>
         )}
         <div className="mt-3 flex items-center gap-1.5 text-[12px] text-fg-3">
           {shown ? <EyeOff size={13} /> : <Eye size={13} />}
@@ -1050,14 +831,9 @@ function SensitiveView({
       <div className="flex items-start gap-2.5 rounded-xl bg-hover px-3.5 py-3 text-[12px] leading-[1.5] text-fg-2">
         <Timer size={14} className="mt-0.5 shrink-0 text-fg-3" />
         <span>
-          Detected as{" "}
-          {subkindLabel("sensitive", summary.subkind)?.toLowerCase() ??
-            "sensitive"}
-          . Masked, excluded from search
-          {summary.expires_at
-            ? `, and deleted automatically in ${untilLabel(summary.expires_at)}`
-            : ""}
-          .
+          Detected as {subkindLabel("sensitive", summary.subkind)?.toLowerCase() ?? "sensitive"}. Masked, excluded from
+          search
+          {summary.expires_at ? `, and deleted automatically in ${untilLabel(summary.expires_at)}` : ""}.
         </span>
       </div>
     </div>
@@ -1069,12 +845,8 @@ function ContactView({ value, sub }: { value: string; sub: string | null }) {
   return (
     <div>
       <div className="k-contact rounded-xl border border-line bg-panel-2 px-4 py-4">
-        <div className="text-[17px] font-semibold tracking-[-0.01em] break-all text-fg">
-          {value}
-        </div>
-        <div className="mt-1 text-[12px] text-fg-3">
-          {email ? "Email address" : "Phone number"}
-        </div>
+        <div className="text-[17px] font-semibold tracking-[-0.01em] break-all text-fg">{value}</div>
+        <div className="mt-1 text-[12px] text-fg-3">{email ? "Email address" : "Phone number"}</div>
       </div>
     </div>
   );
