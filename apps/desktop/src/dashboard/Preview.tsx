@@ -564,8 +564,21 @@ function ColorView({ value, toast }: { value: string; toast: (m: string) => void
 /** Phone: copied files stay on the computer; each one has an Import button, and nothing moves until it's tapped. */
 function RemoteFiles({ summary: s, toast }: { summary: ClipSummary; toast: (m: string) => void }) {
   const device = useOtherDevice(s.device_id)?.name ?? "your computer";
+  // One preview area; tapping a file in the list below shows that file (the first by default).
+  const [sel, setSel] = useState(0);
+  const [attempt, setAttempt] = useState(0);
+  const image = mediaKind(s.files[sel] ?? "") === "image";
   return (
     <div className="space-y-3">
+      {image && (
+        <RemotePreview
+          key={`${s.id}:${sel}:${attempt}`}
+          id={s.id}
+          index={sel}
+          device={device}
+          onRetry={() => setAttempt((n) => n + 1)}
+        />
+      )}
       <div className="overflow-hidden rounded-xl border border-line">
         {s.files.map((f, i) => (
           <RemoteFileRow
@@ -575,6 +588,9 @@ function RemoteFiles({ summary: s, toast }: { summary: ClipSummary; toast: (m: s
             path={f}
             device={device}
             first={i === 0}
+            selected={i === sel}
+            multi={s.files.length > 1}
+            onSelect={() => setSel(i)}
             toast={toast}
           />
         ))}
@@ -606,6 +622,9 @@ function RemoteFileRow({
   path,
   device,
   first,
+  selected,
+  multi,
+  onSelect,
   toast,
 }: {
   clipId: string;
@@ -613,10 +632,12 @@ function RemoteFileRow({
   path: string;
   device: string;
   first: boolean;
+  selected: boolean;
+  multi: boolean;
+  onSelect: () => void;
   toast: (m: string) => void;
 }) {
   const [st, setSt] = useState<ImportState>({ s: "checking" });
-  const [attempt, setAttempt] = useState(0);
   const { name, dir } = splitPath(path);
   const isImage = mediaKind(path) === "image";
   useEffect(() => {
@@ -645,32 +666,35 @@ function RemoteFileRow({
     });
 
   return (
-    <div className={cx("px-3.5 py-3", !first && "border-t border-line")}>
-      {isImage && (
-        <div className="mb-3">
-          <RemotePreview
-            key={`${clipId}:${index}:${attempt}`}
-            id={clipId}
-            index={index}
-            device={device}
-            onRetry={() => setAttempt((n) => n + 1)}
-          />
-        </div>
+    <div
+      className={cx(
+        "px-3.5 py-3",
+        !first && "border-t border-line",
+        multi && selected && "bg-accent-soft shadow-[inset_3px_0_0_var(--accent)]",
       )}
+      aria-current={multi && selected ? "true" : undefined}
+    >
       <div className="flex items-center gap-3">
-        <span className="k-file k-tile grid h-8 w-8 shrink-0 place-items-center rounded-lg">
-          <FileIcon size={15} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-[13px] font-medium text-fg">{name}</div>
-          <div className="truncate text-[11.5px] text-fg-3">
-            {st.s === "done"
-              ? `Imported · ${bytesLabel(st.file.size)} · Downloads › ClipTrail`
-              : st.s === "importing"
-                ? `Getting it from ${device}…`
-                : dir}
+        <button
+          type="button"
+          onClick={onSelect}
+          aria-label={`Show ${name}`}
+          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+        >
+          <span className="k-file k-tile grid h-8 w-8 shrink-0 place-items-center rounded-lg">
+            <FileIcon size={15} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[13px] font-medium text-fg">{name}</div>
+            <div className="truncate text-[11.5px] text-fg-3">
+              {st.s === "done"
+                ? `Imported · ${bytesLabel(st.file.size)} · Downloads › ClipTrail`
+                : st.s === "importing"
+                  ? `Getting it from ${device}…`
+                  : dir}
+            </div>
           </div>
-        </div>
+        </button>
         {(st.s === "idle" || st.s === "checking") && (
           <Button size="sm" icon={Download} disabled={st.s === "checking"} onClick={run}>
             Import
@@ -688,7 +712,7 @@ function RemoteFileRow({
           </Button>
         </div>
       )}
-      {isImage && (
+      {isImage && selected && (
         <div className="mt-2 flex gap-2">
           <Button
             size="sm"
