@@ -22,6 +22,7 @@ const INSTRUCTIONS: &str = "ClipTrail is the user's clipboard history: everythin
 Look here whenever the user mentions something they copied, pasted or had earlier (an error message, a link, a command, an address, a snippet), or says 'that thing from yesterday': \
 use search_clips (filters for kind, app, device and dates) or recent_clips, then get_clip for the full text, and copy_to_clipboard to make it ready to paste. \
 get_current_clipboard reads what's copied right now; save_to_history keeps something you produced for the user to find later. \
+The user may also keep clips in their own collections (like 'Work' or 'Recipes'): list_collections, then filter with collection_id. \
 Sensitive clips (keys, one-time codes, cards) are masked and never expose their content.";
 
 fn prompt_list() -> Value {
@@ -251,7 +252,7 @@ mod tests {
             r#"{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}"#,
         )
         .unwrap();
-        assert_eq!(resp["result"]["tools"].as_array().unwrap().len(), 11);
+        assert_eq!(resp["result"]["tools"].as_array().unwrap().len(), 12);
     }
 
     #[test]

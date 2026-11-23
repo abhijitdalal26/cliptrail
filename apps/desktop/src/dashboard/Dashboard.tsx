@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { format, startOfDay } from "date-fns";
-import { AlertTriangle, CalendarDays, Flame, Keyboard } from "lucide-react";
+import { AlertTriangle, CalendarDays, Flame, FolderInput, Keyboard, Pencil } from "lucide-react";
 import { api, errorMessage, isTauri, listen, onClipsChanged } from "../lib/api";
 import { appName } from "../lib/apps";
 import { dayKey, plural } from "../lib/format";
@@ -8,7 +8,9 @@ import { heatmapStart } from "../lib/heat";
 import { isTypingTarget, useDebounced, useEvent, useTick } from "../lib/hooks";
 import { KIND_META } from "../lib/kinds";
 import { dismiss, toast } from "../lib/toast";
-import type { CaptureState, ClipSummary, ListQuery, Stats } from "../lib/types";
+import type { CaptureState, ClipSummary, Collection, ListQuery, Stats } from "../lib/types";
+import { collectionsLoaded, moveClip, useCollections } from "../lib/collections";
+import { CollectionDialog, CollectionIcon } from "../components/Collections";
 import { useClips } from "../lib/useClips";
 import { RECENT_DAYS, type View } from "../lib/view";
 import { Button, Chip, Segmented } from "../components/ui";
@@ -41,6 +43,10 @@ export function Dashboard() {
   const [jump, setJump] = useState<{ key: string; before: number } | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [modal, setModal] = useState<"settings" | "shortcuts" | null>(null);
+  /** New (null) or edit (a collection) dialog; undefined = closed. */
+  const [collectionDialog, setCollectionDialog] = useState<Collection | null | undefined>(undefined);
+  const collections = useCollections();
+  const collection = view.type === "collection" ? (collections.find((c) => c.id === view.id) ?? null) : null;
 
   const [stats, setStats] = useState<Stats | null>(null);
   const [apps, setApps] = useState<string[]>([]);
@@ -62,6 +68,7 @@ export function Dashboard() {
     return {
       kind: view.type === "kind" ? view.kind : null,
       pinned_only: view.type === "favorites",
+      collection_id: view.type === "collection" ? view.id : null,
       source_app: app,
       device_id: device,
       search: debounced || null,
@@ -77,6 +84,13 @@ export function Dashboard() {
 
   // A new filter starts at the newest matching clip.
   useEffect(() => setSelectedId(null), [query]);
+
+  // The open collection was deleted (here or on another device).
+  useEffect(() => {
+    if (view.type === "collection" && collectionsLoaded() && !collections.some((c) => c.id === view.id)) {
+      setView({ type: "dashboard" });
+    }
+  }, [view, collections]);
 
   // ---------- pending deletes (undo) ----------
   const [pending, setPending] = useState<Set<string>>(new Set());
@@ -301,9 +315,15 @@ export function Dashboard() {
     setSearch("");
   };
 
+  /** A clip dragged onto a collection in the sidebar. */
+  const dropClip = useEvent((clipId: string, c: Collection) => {
+    const clip = visible.find((x) => x.id === clipId);
+    if (clip) moveClip(clip, c, collections);
+  });
+
   // ---------- keyboard ----------
   const onKey = useEvent((e: KeyboardEvent) => {
-    if (modal) return;
+    if (modal || collectionDialog !== undefined) return;
     const typing = isTypingTarget(e.target);
     const inSearch = e.target === searchRef.current;
     const mod = e.ctrlKey || e.metaKey;
@@ -346,7 +366,7 @@ export function Dashboard() {
   }, [onKey]);
 
   // ---------- derived ----------
-  const TITLES: Record<Exclude<View["type"], "kind">, string> = {
+  const TITLES: Record<Exclude<View["type"], "kind" | "collection">, string> = {
     dashboard: "Dashboard",
     favorites: "Favorites",
     recent: "Recent",
@@ -357,8 +377,14 @@ export function Dashboard() {
     recent: `Copied in the last ${RECENT_DAYS} days`,
     favorites: "Starred clips are kept until you remove them",
     trash: "Deleted clips are removed for good after 30 days",
+    collection: "Clips here are kept until you remove them",
   };
-  const title = view.type === "kind" ? KIND_META[view.kind].plural : TITLES[view.type];
+  const title =
+    view.type === "kind"
+      ? KIND_META[view.kind].plural
+      : view.type === "collection"
+        ? (collection?.name ?? "Collection")
+        : TITLES[view.type];
   const subtitle = SUBTITLES[view.type];
   const byKind = new Map(stats?.by_kind ?? []);
   const titleCount =
@@ -370,8 +396,11 @@ export function Dashboard() {
           ? stats?.trashed
           : view.type === "kind"
             ? byKind.get(view.kind)
-            : undefined;
-  const showRange = view.type === "dashboard" || view.type === "kind" || view.type === "favorites";
+            : view.type === "collection"
+              ? collection?.count
+              : undefined;
+  const showRange =
+    view.type === "dashboard" || view.type === "kind" || view.type === "favorites" || view.type === "collection";
 
   const heat = useMemo(() => {
     if (!dayCounts) return null;
@@ -442,6 +471,9 @@ export function Dashboard() {
           onToggleCapture={() => void (capture.paused ? api.resumeCapture() : api.pauseCapture(null))}
           onSettings={() => setModal("settings")}
           onShortcuts={() => setModal("shortcuts")}
+          onNewCollection={() => setCollectionDialog(null)}
+          onEditCollection={(c) => setCollectionDialog(c)}
+          onDropClip={dropClip}
         />
 
         <main className="flex min-w-0 flex-1 overflow-hidden rounded-tl-[14px] border-t border-l border-line bg-panel shadow-card">
@@ -450,6 +482,11 @@ export function Dashboard() {
             <div className="flex items-center gap-3 px-6 pt-4 pb-2">
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline gap-2">
+                  {collection && (
+                    <span className="grid h-5 w-5 shrink-0 place-items-center self-center">
+                      <CollectionIcon collection={collection} size={17} />
+                    </span>
+                  )}
                   <h1 className="truncate text-[17px] font-semibold tracking-[-0.02em] text-fg">{title}</h1>
                   {titleCount != null && (
                     <span className="text-[12.5px] text-fg-3 tabular-nums">{titleCount.toLocaleString()}</span>
@@ -457,6 +494,11 @@ export function Dashboard() {
                 </div>
                 {subtitle && <div className="truncate text-[12px] text-fg-3">{subtitle}</div>}
               </div>
+              {collection && (
+                <Button size="sm" variant="ghost" icon={Pencil} onClick={() => setCollectionDialog(collection)}>
+                  Edit
+                </Button>
+              )}
               {inTrash &&
                 visible.length > 0 &&
                 (confirmEmpty ? (
@@ -547,6 +589,11 @@ export function Dashboard() {
                 dayCounts={filtered || inTrash ? null : dayCounts}
                 top={view.type === "dashboard" && !debounced ? top : null}
                 trash={inTrash}
+                emptyState={
+                  collection && !debounced && !app && !device && range === "any" && !jump ? (
+                    <CollectionEmpty name={collection.name} />
+                  ) : undefined
+                }
                 onLoadMore={clips.loadMore}
                 onSelect={select}
                 onCopy={copyById}
@@ -574,6 +621,18 @@ export function Dashboard() {
       <Welcome />
       {modal === "settings" && <SettingsDialog onClose={() => setModal(null)} />}
       {modal === "shortcuts" && <ShortcutsSheet onClose={() => setModal(null)} />}
+      {collectionDialog !== undefined && (
+        <CollectionDialog
+          collection={collectionDialog ?? undefined}
+          onClose={() => setCollectionDialog(undefined)}
+          onSaved={(c) => {
+            if (!collectionDialog) setView({ type: "collection", id: c.id });
+          }}
+          onDeleted={(c) => {
+            if (view.type === "collection" && view.id === c.id) setView({ type: "dashboard" });
+          }}
+        />
+      )}
       <Toasts />
     </div>
   );
@@ -623,6 +682,21 @@ function useTrash(enabled: boolean) {
   }, []);
 
   return { items, loading, hasMore, refresh, loadMore, patch };
+}
+
+function CollectionEmpty({ name }: { name: string }) {
+  return (
+    <div className="anim-fade flex flex-col items-center px-8 pt-16 pb-10 text-center">
+      <div className="mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-hover text-fg-3">
+        <FolderInput size={22} strokeWidth={1.8} />
+      </div>
+      <div className="text-[14px] font-semibold text-fg">Nothing in “{name}” yet</div>
+      <div className="mt-1 max-w-[320px] text-[12.5px] leading-[1.55] text-fg-3">
+        Open any clip and use <span className="font-medium text-fg-2">Save to collection</span>, or drag clips onto
+        “{name}” in the sidebar. Clips saved here are never cleaned up.
+      </div>
+    </div>
+  );
 }
 
 function Stat({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) {

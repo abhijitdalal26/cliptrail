@@ -35,10 +35,13 @@ const MAX_SYNCED_IMAGE_SIDE: u32 = 32_768;
 pub enum JournalOp {
     /// New clip or a repeat copy (last_seen_at / copy_count moved).
     Upsert,
-    /// Pinned flag changed.
+    /// User state changed: the pinned flag or the collection it's in.
     Pin,
     /// Clip deleted by the user (not by retention or expiry).
     Delete,
+    /// A collection was made, changed or deleted. `clip_id` is the
+    /// collection's id; `content_hash` is empty.
+    Collection,
 }
 
 impl JournalOp {
@@ -47,6 +50,7 @@ impl JournalOp {
             "upsert" => Some(JournalOp::Upsert),
             "pin" => Some(JournalOp::Pin),
             "delete" => Some(JournalOp::Delete),
+            "collection" => Some(JournalOp::Collection),
             _ => None,
         }
     }

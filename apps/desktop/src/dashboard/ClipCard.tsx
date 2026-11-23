@@ -7,6 +7,8 @@ import { useHighlighted } from "../lib/highlight";
 import { subkindLabel } from "../lib/kinds";
 import type { ClipSummary } from "../lib/types";
 import { KindTile } from "../components/ui";
+import { CollectionIcon } from "../components/Collections";
+import { CLIP_DRAG_TYPE, useCollections } from "../lib/collections";
 import { FileMedia } from "../components/FilePreview";
 import { mediaKind } from "../lib/media";
 import { isAndroid } from "../lib/platform";
@@ -31,6 +33,12 @@ export const ClipCard = memo(function ClipCard({ clip, selected, onSelect, onCop
       aria-selected={selected}
       onMouseDown={() => onSelect(clip.id)}
       onDoubleClick={() => !readOnly && onCopy(clip.id)}
+      // Drag onto a collection in the sidebar to save it there.
+      draggable={!readOnly}
+      onDragStart={(e) => {
+        e.dataTransfer.setData(CLIP_DRAG_TYPE, clip.id);
+        e.dataTransfer.effectAllowed = "move";
+      }}
       className={cx(
         "group relative flex gap-3 rounded-[11px] px-3 py-2.5 transition-colors duration-150",
         selected
@@ -175,15 +183,29 @@ function RowButton({
 }
 
 function Leading({ clip }: { clip: ClipSummary }) {
+  const collections = useCollections();
+  const col = clip.collection_id ? collections.find((c) => c.id === clip.collection_id) : undefined;
+  let tile;
   if (clip.kind === "color") {
     const c = parseColor(clip.preview);
-    return (
-      <span className="checker mt-0.5 h-[30px] w-[30px] shrink-0 overflow-hidden rounded-[9px] shadow-[inset_0_0_0_1px_var(--border)]">
+    tile = (
+      <span className="checker mt-0.5 block h-[30px] w-[30px] overflow-hidden rounded-[9px] shadow-[inset_0_0_0_1px_var(--border)]">
         <span className="block h-full w-full" style={{ background: c?.css ?? "transparent" }} />
       </span>
     );
+  } else {
+    tile = <KindTile kind={clip.kind} className="mt-0.5" />;
   }
-  return <KindTile kind={clip.kind} className="mt-0.5" />;
+  if (!col) return <span className="flex shrink-0 items-start">{tile}</span>;
+  // Saved to a collection: its icon on the tile's corner.
+  return (
+    <span className="relative flex shrink-0 items-start self-start" title={`In “${col.name}”`}>
+      {tile}
+      <span className="absolute -right-1.5 -bottom-1 grid h-[17px] w-[17px] place-items-center rounded-full bg-panel shadow-[0_0_0_1px_var(--border)]">
+        <CollectionIcon collection={col} size={10} />
+      </span>
+    </span>
+  );
 }
 
 /** Copied files: name and folder; images and videos also get a preview from the real file. */

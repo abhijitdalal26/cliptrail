@@ -60,7 +60,8 @@ fn prune(app: &AppHandle) {
     }
 }
 
-/// Delete unpinned clips older than the retention window.
+/// Delete clips older than the retention window, except pinned ones and
+/// clips saved to a collection.
 pub fn apply_retention(app: &AppHandle) {
     let state = app.state::<AppState>();
     let Some(days) = state.settings().retention_days else {
@@ -87,7 +88,10 @@ pub fn apply_retention(app: &AppHandle) {
                 break;
             }
         };
-        for c in rows.iter().filter(|c| !c.pinned) {
+        for c in rows
+            .iter()
+            .filter(|c| !c.pinned && c.collection_id.is_none())
+        {
             // Retention is per device: don't delete the clip on synced devices.
             if guard("retention delete", || p.delete_local(&c.id)).is_ok() {
                 removed += 1;

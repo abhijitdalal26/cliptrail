@@ -7,6 +7,7 @@
 //! Rule: never log or put clip content into errors. Log ids, kinds, sizes.
 
 pub mod classify;
+pub mod collections;
 pub mod dbkey;
 pub mod imagefile;
 pub mod imported;
@@ -18,6 +19,7 @@ pub mod transform;
 pub mod trash;
 
 pub use classify::classify_text;
+pub use collections::{CollectionFields, CollectionState};
 pub use imagefile::{read_image, write_image};
 pub use model::*;
 pub use pipeline::{ClearScope, Pipeline, PipelineConfig, preview_png};

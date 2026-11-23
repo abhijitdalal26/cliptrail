@@ -44,11 +44,15 @@ pub struct SeqEnvelope {
 pub enum Event {
     /// A clip was copied (or copied again: receivers merge by hash).
     ClipAdded(Box<ClipAdded>),
-    /// Pinned flag changed at `at`.
+    /// The clip's user state changed at `at`: pinned flag and collection.
     ClipUpdated {
         hash: String,
         pinned: bool,
         at: Millis,
+        /// Collection id, Some("") = in none. Absent from builds without
+        /// collections: receivers keep the collection they have.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        collection: Option<String>,
     },
     /// Tombstone: receivers wipe the clip unless they copied it after `at`.
     ClipDeleted { hash: String, at: Millis },
@@ -56,6 +60,35 @@ pub enum Event {
     /// relays devices should sync through and their enroll keys. Only ever
     /// travels sealed. Old builds skip it as an unknown event.
     SpaceConfig(SpaceConfig),
+    /// A collection was made, changed or deleted (full state, last writer
+    /// wins by `(at, sender)`). Old builds skip it as an unknown event.
+    CollectionUpdated(CollectionEvent),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CollectionEvent {
+    pub id: String,
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
+    pub position: i64,
+    pub created_at: Millis,
+    pub at: Millis,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub deleted: bool,
+}
+
+/// Pseudo content hash of a collection's events: SHA-256 of a fixed
+/// prefix and its id, so each collection gets its own compaction tag.
+pub fn collection_hash(id: &str) -> Vec<u8> {
+    use sha2::{Digest, Sha256};
+    Sha256::new()
+        .chain_update(b"cliptrail-collection-v1\0")
+        .chain_update(id.as_bytes())
+        .finalize()
+        .to_vec()
 }
 
 /// Pseudo content hash of [`Event::SpaceConfig`] (base64url of
@@ -121,20 +154,29 @@ impl Event {
             Event::ClipUpdated { .. } => "ClipUpdated",
             Event::ClipDeleted { .. } => "ClipDeleted",
             Event::SpaceConfig(_) => "SpaceConfig",
+            Event::CollectionUpdated(_) => "CollectionUpdated",
         }
     }
 
-    /// The content hash this event is about (base64url).
-    pub fn hash_b64(&self) -> &str {
+    /// The content hash this event is about (base64url); None for
+    /// collection events (see [`collection_hash`]).
+    pub fn hash_b64(&self) -> Option<&str> {
         match self {
-            Event::ClipAdded(c) => &c.hash,
-            Event::ClipUpdated { hash, .. } | Event::ClipDeleted { hash, .. } => hash,
-            Event::SpaceConfig(_) => CONFIG_HASH_B64,
+            Event::ClipAdded(c) => Some(&c.hash),
+            Event::ClipUpdated { hash, .. } | Event::ClipDeleted { hash, .. } => Some(hash),
+            Event::SpaceConfig(_) => Some(CONFIG_HASH_B64),
+            Event::CollectionUpdated(_) => None,
         }
     }
 
     pub fn hash(&self) -> Result<Vec<u8>, EnvelopeError> {
-        let h = unb64(self.hash_b64()).map_err(|_| EnvelopeError::Shape("hash"))?;
+        let Some(b) = self.hash_b64() else {
+            return match self {
+                Event::CollectionUpdated(c) if valid_id(&c.id) => Ok(collection_hash(&c.id)),
+                _ => Err(EnvelopeError::Shape("collection id")),
+            };
+        };
+        let h = unb64(b).map_err(|_| EnvelopeError::Shape("hash"))?;
         if h.len() != 32 {
             return Err(EnvelopeError::Shape("hash"));
         }
@@ -362,7 +404,51 @@ mod tests {
             hash: "short".into(),
             pinned: true,
             at: 1,
+            collection: None,
         };
+        assert!(bad.hash().is_err());
+    }
+
+    #[test]
+    fn clip_updated_from_older_builds_has_no_collection() {
+        let old = format!(
+            "{{\"t\":\"ClipUpdated\",\"hash\":\"{}\",\"pinned\":true,\"at\":3}}",
+            b64(&[2; 32])
+        );
+        let Event::ClipUpdated { collection, .. } = serde_json::from_str(&old).unwrap() else {
+            panic!("not ClipUpdated");
+        };
+        assert_eq!(collection, None);
+    }
+
+    #[test]
+    fn collection_events_have_their_own_tag() {
+        let e = Event::CollectionUpdated(CollectionEvent {
+            id: "01COL".into(),
+            name: "Work".into(),
+            icon: None,
+            color: Some("blue".into()),
+            position: 0,
+            created_at: 1,
+            at: 2,
+            deleted: false,
+        });
+        let json = serde_json::to_string(&e).unwrap();
+        assert!(json.starts_with("{\"t\":\"CollectionUpdated\""), "{json}");
+        assert!(!json.contains("deleted"), "{json}");
+        assert_eq!(serde_json::from_str::<Event>(&json).unwrap(), e);
+        assert_eq!(e.hash().unwrap(), collection_hash("01COL"));
+        assert_ne!(collection_hash("01COL"), collection_hash("01COM"));
+        let bad = Event::CollectionUpdated(CollectionEvent {
+            id: "../x".into(),
+            name: "x".into(),
+            icon: None,
+            color: None,
+            position: 0,
+            created_at: 0,
+            at: 0,
+            deleted: false,
+        });
         assert!(bad.hash().is_err());
     }
 }

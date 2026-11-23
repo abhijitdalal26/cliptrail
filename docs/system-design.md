@@ -160,6 +160,7 @@ sequenceDiagram
 - **Echo suppression:** sender writes its own hash into a quiet window so its watcher doesn't re-capture the clip it just pasted/synced (decentpaste pattern).
 - **Deletes propagate** as tombstones; content is wiped, not just hidden.
 - **Conflicts:** last-writer-wins on `pinned/section/deleted`; clip bodies are immutable so conflicts are rare and cheap.
+- **Collections (as built):** user folders in `collections` (clips.db, migration v4; `clipd-core/src/collections.rs`), a clip in at most one (`clips.collection_id`), kept like pinned clips. A clip's collection travels in `ClipUpdated` next to `pinned` (optional `collection` field, `""` = none; absent from older builds = unchanged) under the same per-clip clock. Definitions travel as `CollectionUpdated` (full state, LWW by `(at, sender)`, tombstones on delete), tagged by `SHA-256("cliptrail-collection-v1\0" ‖ id)` for hub compaction; relays get them untagged. `sync.db` v3 records the state each clock last set, so a clip whose add arrives after its pin/collection event (compaction reorders them) still gets it.
 - **Relay ACL:** each `space` is a bucket; devices authenticate with a per-device bearer token issued at pairing; revoked devices' tokens die immediately. *(Superseded for the relay by [ADR 0001](adr/0001-off-lan-sync.md): per-device Ed25519 request signatures, the relay stores only public keys; enroll key shared in a sealed `SpaceConfig` event.)*
 
 ## 6. Crypto & pairing

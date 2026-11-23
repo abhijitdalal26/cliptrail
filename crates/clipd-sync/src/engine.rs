@@ -8,8 +8,8 @@ use std::sync::Arc;
 
 use anyhow::{Context, Result, bail};
 use clipd_core::{
-    ClipWithHash, IngestOutcome, JournalOp, Kind, ListQuery, Pipeline, PipelineConfig, SyncedClip,
-    SyncedImage, now_millis,
+    ClipWithHash, CollectionState, IngestOutcome, JournalOp, Kind, ListQuery, Pipeline,
+    PipelineConfig, SyncedClip, SyncedImage, now_millis,
 };
 use image::{ImageFormat, imageops};
 use serde::Serialize;
@@ -17,7 +17,8 @@ use serde::Serialize;
 use crate::crypto::{SecretKey, SpaceKeys, aad, b64, unb64};
 use crate::db::{Role, SpaceState, SyncDb};
 use crate::envelope::{
-    ClipAdded, Envelope, Event, ImageRef, RelayConfig, SpaceConfig, blob_aad, file_aad,
+    ClipAdded, CollectionEvent, Envelope, Event, ImageRef, RelayConfig, SpaceConfig, blob_aad,
+    file_aad,
 };
 use crate::keystore::{KeyStore, MASTER_KEY};
 
@@ -235,16 +236,29 @@ impl Engine {
                 }
                 JournalOp::Pin => {
                     if let Some(c) = self.pipeline.store().get_by_hash(&e.content_hash)? {
-                        self.db
-                            .set_pin_clock(&e.content_hash, e.at, self.device_id())?;
+                        let s = &c.clip.summary;
+                        let collection = s.collection_id.clone().unwrap_or_default();
+                        self.db.set_state_clock(
+                            &e.content_hash,
+                            e.at,
+                            self.device_id(),
+                            s.pinned,
+                            Some(&collection),
+                        )?;
                         out.push(LocalEvent {
                             event: Event::ClipUpdated {
                                 hash: b64(&e.content_hash),
-                                pinned: c.clip.summary.pinned,
+                                pinned: s.pinned,
                                 at: e.at,
+                                collection: Some(collection),
                             },
                             blob: None,
                         });
+                    }
+                }
+                JournalOp::Collection => {
+                    if let Some(st) = self.pipeline.store().collection_state(&e.clip_id)? {
+                        out.push(collection_event(st));
                     }
                 }
                 JournalOp::Delete => {
@@ -274,7 +288,14 @@ impl Engine {
             limit: Some(limit),
             ..Default::default()
         })?;
-        let mut out = Vec::new();
+        // Collections first, so clips find theirs.
+        let mut out: Vec<LocalEvent> = self
+            .pipeline
+            .store()
+            .collection_states()?
+            .into_iter()
+            .map(collection_event)
+            .collect();
         for s in rows.iter().rev().filter(|s| !s.masked) {
             let Some(hash) = self.pipeline.store().content_hash(&s.id)? else {
                 continue;
@@ -287,12 +308,13 @@ impl Engine {
                     self.db.put_blob_index(blob_id, h)?;
                 }
                 out.push(ev);
-                if s.pinned {
+                if s.pinned || s.collection_id.is_some() {
                     out.push(LocalEvent {
                         event: Event::ClipUpdated {
                             hash: b64(&hash),
-                            pinned: true,
+                            pinned: s.pinned,
                             at: s.last_seen_at,
+                            collection: Some(s.collection_id.clone().unwrap_or_default()),
                         },
                         blob: None,
                     });
@@ -354,6 +376,8 @@ impl Engine {
                         return Ok(Applied::default());
                     }
                 };
+                // Its pin / collection may have arrived before the clip did.
+                self.apply_state(&hash, clock.pinned, clock.collection.as_deref())?;
                 let mut blob = None;
                 // Empty blob_id = sender kept the image thumbnail-only;
                 // nothing to fetch.
@@ -376,7 +400,12 @@ impl Engine {
                     blob,
                 })
             }
-            Event::ClipUpdated { pinned, at, .. } => {
+            Event::ClipUpdated {
+                pinned,
+                at,
+                collection,
+                ..
+            } => {
                 let newer = match (clock.pin_at, clock.pin_dev.as_deref()) {
                     (None, _) => true,
                     (Some(p), dev) => *at > p || (*at == p && Some(from_device) > dev),
@@ -384,12 +413,29 @@ impl Engine {
                 if !newer {
                     return Ok(Applied::default());
                 }
-                self.db.set_pin_clock(&hash, *at, from_device)?;
+                self.db
+                    .set_state_clock(&hash, *at, from_device, *pinned, collection.as_deref())?;
+                let changed = self.apply_state(&hash, Some(*pinned), collection.as_deref())?;
+                Ok(Applied {
+                    changed,
+                    blob: None,
+                })
+            }
+            Event::CollectionUpdated(c) => {
                 let changed = self
                     .pipeline
                     .store()
-                    .set_pinned_synced(&hash, *pinned)?
-                    .is_some();
+                    .apply_collection_synced(&CollectionState {
+                        id: c.id.clone(),
+                        name: c.name.clone(),
+                        icon: c.icon.clone(),
+                        color: c.color.clone(),
+                        position: c.position,
+                        created_at: c.created_at,
+                        updated_at: c.at,
+                        updated_dev: from_device.to_owned(),
+                        deleted: c.deleted,
+                    })?;
                 Ok(Applied {
                     changed,
                     blob: None,
@@ -405,6 +451,26 @@ impl Engine {
             }
             Event::SpaceConfig(c) => self.apply_space_config(c),
         }
+    }
+
+    /// Set a clip's pinned flag and collection from sync (None = leave
+    /// as is; collection "" = none). True when a clip had this hash.
+    fn apply_state(
+        &self,
+        hash: &[u8],
+        pinned: Option<bool>,
+        collection: Option<&str>,
+    ) -> Result<bool> {
+        let store = self.pipeline.store();
+        let mut found = false;
+        if let Some(p) = pinned {
+            found |= store.set_pinned_synced(hash, p)?.is_some();
+        }
+        if let Some(c) = collection {
+            let c = Some(c).filter(|c| !c.is_empty());
+            found |= store.set_collection_synced(hash, c)?.is_some();
+        }
+        Ok(found)
     }
 
     /// A newer space config replaces the local relay list (cursors of
@@ -673,4 +739,20 @@ fn shrink_thumb(png: &[u8]) -> Option<Vec<u8>> {
         }
     }
     None
+}
+
+fn collection_event(st: CollectionState) -> LocalEvent {
+    LocalEvent {
+        event: Event::CollectionUpdated(CollectionEvent {
+            id: st.id,
+            name: st.name,
+            icon: st.icon,
+            color: st.color,
+            position: st.position,
+            created_at: st.created_at,
+            at: st.updated_at,
+            deleted: st.deleted,
+        }),
+        blob: None,
+    }
 }

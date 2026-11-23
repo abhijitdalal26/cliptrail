@@ -126,6 +126,10 @@ pub struct ClipSummary {
     pub pinned: bool,
     pub masked: bool,
     pub expires_at: Option<Millis>,
+    /// The user's collection this clip was saved to, if any (see
+    /// [`Collection`]). Like pinned clips, these are kept forever.
+    #[serde(default)]
+    pub collection_id: Option<String>,
 }
 
 /// A full clip: summary plus the complete body.
@@ -148,6 +152,8 @@ pub struct ListQuery {
     /// Full-text / substring search. Empty or None = no text filter.
     pub search: Option<String>,
     pub pinned_only: bool,
+    /// Only clips saved to this collection.
+    pub collection_id: Option<String>,
     pub source_app: Option<String>,
     /// Only clips first copied on this device (a synced device id).
     pub device_id: Option<String>,
@@ -162,6 +168,24 @@ pub struct ListQuery {
     pub before_id: Option<String>,
     /// Max rows, default 100.
     pub limit: Option<u32>,
+}
+
+/// A folder the user made for clips ("Work", "Recipes"). A clip is in at
+/// most one collection. Collections sync between paired devices.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Collection {
+    /// ULID.
+    pub id: String,
+    pub name: String,
+    /// One emoji shown before the name, if the user chose one.
+    pub icon: Option<String>,
+    /// Accent color key from the UI palette ("blue", "green", ...).
+    pub color: Option<String>,
+    /// Sidebar order, ascending.
+    pub position: i64,
+    pub created_at: Millis,
+    /// Clips in it right now.
+    pub count: i64,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

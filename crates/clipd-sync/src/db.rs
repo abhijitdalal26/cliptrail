@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::envelope::{Envelope, SeqEnvelope};
 
-const MIGRATIONS: &[&str] = &[SCHEMA_V1, SCHEMA_V2];
+const MIGRATIONS: &[&str] = &[SCHEMA_V1, SCHEMA_V2, SCHEMA_V3];
 
 const SCHEMA_V1: &str = r#"
 CREATE TABLE state (
@@ -114,6 +114,14 @@ CREATE TABLE relay_blobs (
 );
 "#;
 
+/// v3: the user state an event last set on a clip, so it can be applied
+/// when the clip itself arrives later (log compaction can reorder a clip's
+/// add after its pin). `collection`: NULL = never set, '' = none.
+const SCHEMA_V3: &str = r#"
+ALTER TABLE clocks ADD COLUMN pinned INTEGER;
+ALTER TABLE clocks ADD COLUMN collection TEXT;
+"#;
+
 /// A relay as stored locally.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RelayRow {
@@ -166,6 +174,11 @@ pub struct Clock {
     pub pin_at: Option<Millis>,
     pub pin_dev: Option<String>,
     pub deleted_at: Option<Millis>,
+    /// Pinned flag of the newest user-state event.
+    pub pinned: Option<bool>,
+    /// Collection of the newest user-state event that carried one
+    /// (Some("") = in no collection).
+    pub collection: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -447,6 +460,8 @@ impl SyncDb {
             "ClipAdded" => "('ClipAdded')",
             "ClipUpdated" => "('ClipUpdated')",
             "SpaceConfig" => "('SpaceConfig')",
+            // Tagged by the collection id, never a clip's.
+            "CollectionUpdated" => "('CollectionUpdated')",
             _ => "('ClipAdded', 'ClipUpdated')",
         };
         tx.execute(
@@ -520,13 +535,16 @@ impl SyncDb {
         Ok(self
             .conn()
             .query_row(
-                "SELECT pin_at, pin_dev, deleted_at FROM clocks WHERE content_hash = ?1",
+                "SELECT pin_at, pin_dev, deleted_at, pinned, collection FROM clocks \
+                 WHERE content_hash = ?1",
                 [hash],
                 |r| {
                     Ok(Clock {
                         pin_at: r.get(0)?,
                         pin_dev: r.get(1)?,
                         deleted_at: r.get(2)?,
+                        pinned: r.get(3)?,
+                        collection: r.get(4)?,
                     })
                 },
             )
@@ -539,6 +557,27 @@ impl SyncDb {
             "INSERT INTO clocks (content_hash, pin_at, pin_dev) VALUES (?1, ?2, ?3) \
              ON CONFLICT(content_hash) DO UPDATE SET pin_at = ?2, pin_dev = ?3",
             params![hash, at, dev],
+        )?;
+        Ok(())
+    }
+
+    /// Advance the user-state clock and record the state it set.
+    /// `collection` None leaves the recorded collection as it was (the
+    /// event came from a build without collections).
+    pub fn set_state_clock(
+        &self,
+        hash: &[u8],
+        at: Millis,
+        dev: &str,
+        pinned: bool,
+        collection: Option<&str>,
+    ) -> Result<()> {
+        self.conn().execute(
+            "INSERT INTO clocks (content_hash, pin_at, pin_dev, pinned, collection) \
+                 VALUES (?1, ?2, ?3, ?4, ?5) \
+             ON CONFLICT(content_hash) DO UPDATE SET pin_at = ?2, pin_dev = ?3, pinned = ?4, \
+                 collection = coalesce(?5, collection)",
+            params![hash, at, dev, pinned, collection],
         )?;
         Ok(())
     }
