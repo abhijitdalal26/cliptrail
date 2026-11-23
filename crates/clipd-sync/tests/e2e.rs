@@ -328,6 +328,79 @@ async fn hub_and_clients_sync_everything() {
     hub.shutdown().await;
 }
 
+/// A phone that pairs again (reinstall, or unpair + pair) replaces its old
+/// entry instead of being listed twice, and a dead remembered address
+/// doesn't keep a client from the hub.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn pairing_again_replaces_the_old_entry() {
+    let hub_dir = TempDir::new("rehub");
+    let hub_ks = Arc::new(MemoryKeyStore::default());
+    let hub = hub::start(HubConfig {
+        data_dir: hub_dir.0.clone(),
+        keystore: hub_ks.clone(),
+        port: 0,
+        bind: IpAddr::V4(Ipv4Addr::LOCALHOST),
+        advertise: Some(vec!["127.0.0.1".into()]),
+        name: "Test Hub".into(),
+    })
+    .await
+    .unwrap();
+    let pair = async |dir: &TempDir, ks: &Arc<MemoryKeyStore>, name: &str| {
+        let offer = hub.create_offer();
+        client::pair(&dir.0, ks.clone(), &offer.uri, name, "android")
+            .await
+            .unwrap();
+        pipeline(&dir.0).config().device_id.clone()
+    };
+    let active = |hub: &hub::HubHandle| -> Vec<String> {
+        hub.status()
+            .unwrap()
+            .devices
+            .into_iter()
+            .filter(|d| !d.is_self && d.revoked_at.is_none())
+            .map(|d| d.id)
+            .collect()
+    };
+
+    // The same phone twice: the first entry is retired.
+    let (old_dir, old_ks) = (TempDir::new("old"), Arc::new(MemoryKeyStore::default()));
+    let (new_dir, new_ks) = (TempDir::new("new"), Arc::new(MemoryKeyStore::default()));
+    let old_id = pair(&old_dir, &old_ks, "Phone").await;
+    let new_id = pair(&new_dir, &new_ks, "Phone").await;
+    assert_eq!(active(&hub), vec![new_id.clone()]);
+    assert!(
+        clipd_sync::status(&hub_dir.0, &*hub_ks)
+            .unwrap()
+            .devices
+            .iter()
+            .any(|d| d.id == old_id && d.revoked_at.is_some())
+    );
+
+    // A dead address first in the list doesn't stop the client.
+    let db = SyncDb::open(&new_dir.0.join("sync.db")).unwrap();
+    let mut space = db.space().unwrap().unwrap();
+    space.hub_hosts.insert(0, "127.0.0.1:1".into());
+    db.save_space(&space).unwrap();
+    drop(db);
+    let phone = start_client(&new_dir.0, &new_ks);
+    wait("phone connects", || phone.status().unwrap().connected).await;
+    let hosts = phone.status().unwrap().hosts;
+    assert_eq!(hosts[0], format!("127.0.0.1:{}", hub.port()), "{hosts:?}");
+
+    // Another phone with the same name that's online now is a different
+    // phone: it stays.
+    let (twin_dir, twin_ks) = (TempDir::new("twin"), Arc::new(MemoryKeyStore::default()));
+    let twin_id = pair(&twin_dir, &twin_ks, "Phone").await;
+    let mut ids = active(&hub);
+    ids.sort();
+    let mut want = vec![new_id, twin_id];
+    want.sort();
+    assert_eq!(ids, want);
+
+    phone.shutdown().await;
+    hub.shutdown().await;
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn copied_files_are_fetched_on_demand() {
     let (hub_dir, a_dir, files) = (

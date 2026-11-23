@@ -600,49 +600,100 @@ async fn expect_ok(resp: reqwest::Response, what: &str) -> Result<Vec<u8>> {
     Ok(resp.bytes().await.context(what.to_owned())?.to_vec())
 }
 
+/// How long to wait for hubs to answer a discovery probe.
+const DISCOVERY_WAIT: Duration = Duration::from_millis(1500);
+
+/// `hello` from one candidate address; None when it doesn't answer.
+async fn hello(sh: &Shared, host: &str) -> Option<crate::wire::Hello> {
+    let resp = sh
+        .http
+        .get(format!("http://{host}/v1/hello"))
+        .timeout(Duration::from_secs(3))
+        .send()
+        .await
+        .ok()?;
+    let body = expect_ok(resp, "hello").await.ok()?;
+    serde_json::from_slice(&body).ok()
+}
+
+/// The first of `candidates` (in order) that is this space's hub. All are
+/// asked at once, so stale addresses cost one timeout, not one each.
+/// `other_hub`: set when an address answered as a different hub.
+async fn first_hub(
+    sh: &Shared,
+    space: &SpaceState,
+    candidates: &[String],
+    other_hub: &mut Option<String>,
+) -> Option<(String, crate::wire::Hello)> {
+    let hellos = futures_util::future::join_all(candidates.iter().map(|h| hello(sh, h))).await;
+    for (host, hello) in candidates.iter().zip(hellos) {
+        match hello {
+            Some(h) if h.space_id == space.space_id => return Some((host.clone(), h)),
+            Some(_) => {
+                other_hub.get_or_insert_with(|| host.clone());
+            }
+            None => {}
+        }
+    }
+    None
+}
+
+/// Ports the hub may listen on, from the addresses we knew.
+fn hub_ports(hosts: &[String]) -> Vec<u16> {
+    let mut ports = Vec::new();
+    let known = hosts
+        .iter()
+        .filter_map(|h| h.rsplit_once(':')?.1.parse::<u16>().ok());
+    for p in known.chain([crate::DEFAULT_PORT]) {
+        if !ports.contains(&p) && ports.len() < 4 {
+            ports.push(p);
+        }
+    }
+    ports
+}
+
 async fn pick_host(sh: &Shared) -> Result<String> {
     let engine = sh.engine.clone();
     let space = blocking(move || engine.db.space()?.context("sync not set up")).await?;
-    for host in &space.hub_hosts {
-        let Ok(resp) = sh
-            .http
-            .get(format!("http://{host}/v1/hello"))
-            .timeout(Duration::from_secs(3))
-            .send()
-            .await
-        else {
-            continue;
-        };
-        let Ok(body) = expect_ok(resp, "hello").await else {
-            continue;
-        };
-        let Ok(hello) = serde_json::from_slice::<crate::wire::Hello>(&body) else {
-            continue;
-        };
-        if hello.space_id != space.space_id {
-            bail!("the device at {host} is a different ClipTrail hub");
-        }
-        // Remember: working host first, then any new addresses of the hub.
-        let mut hosts = vec![host.clone()];
-        for h in hello.hosts.iter().chain(space.hub_hosts.iter()) {
-            if !hosts.contains(h) {
-                hosts.push(h.clone());
+    let mut other_hub = None;
+    let mut found = first_hub(sh, &space, &space.hub_hosts, &mut other_hub).await;
+    if found.is_none() {
+        // The hub may have moved (another Wi-Fi, a new DHCP lease): ask
+        // the LAN where it is now.
+        let ports = hub_ports(&space.hub_hosts);
+        let seen = crate::discovery::find_hub(&space.space_id, &ports, DISCOVERY_WAIT).await;
+        if !seen.is_empty() {
+            found = first_hub(sh, &space, &seen, &mut other_hub).await;
+            if found.is_some() {
+                tracing::info!("found the hub at a new address");
             }
         }
-        hosts.truncate(8);
-        if hosts != space.hub_hosts {
-            let engine = sh.engine.clone();
-            let mut s = space.clone();
-            s.hub_hosts = hosts;
-            blocking(move || engine.db.save_space(&s)).await?;
-        }
-        return Ok(host.clone());
     }
-    bail!(
-        "hub \"{}\" not reachable at {}",
-        space.hub_name,
-        space.hub_hosts.join(", ")
-    )
+    let Some((host, hello)) = found else {
+        if let Some(host) = other_hub {
+            bail!("the device at {host} is a different ClipTrail hub");
+        }
+        bail!(
+            "hub \"{}\" not reachable at {}",
+            space.hub_name,
+            space.hub_hosts.join(", ")
+        );
+    };
+    // Remember: working host first, then any new addresses of the hub.
+    let mut hosts = vec![host.clone()];
+    for h in hello.hosts.iter().chain(space.hub_hosts.iter()) {
+        if !hosts.contains(h) {
+            hosts.push(h.clone());
+        }
+    }
+    hosts.truncate(8);
+    if hosts != space.hub_hosts {
+        let engine = sh.engine.clone();
+        let mut s = space.clone();
+        s.hub_hosts = hosts;
+        blocking(move || engine.db.save_space(&s)).await?;
+    }
+    Ok(host)
 }
 
 async fn session(sh: &Arc<Shared>) -> Result<()> {

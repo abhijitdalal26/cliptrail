@@ -15,6 +15,9 @@
 //! | PUT/GET | `/v1/blobs/{blob_id}` | sealed full image (nonce ‖ ct) |
 //! | DELETE | `/v1/devices/me` | unpair the calling device |
 //!
+//! On the same port over UDP it answers LAN discovery probes
+//! ([`crate::discovery`]) so devices find it after its address changed.
+//!
 //! When the space has relays, the hub also runs a bridge
 //! ([`crate::relay_link`]) that forwards this log to them and pulls what
 //! off-LAN devices posted there into it.
@@ -104,7 +107,34 @@ struct Hub {
     local: Notify,
     stop: watch::Receiver<bool>,
     port: u16,
-    hosts: Vec<String>,
+    /// Fixed QR hosts from [`HubConfig::advertise`]; None = this
+    /// machine's LAN addresses, looked up on every use (they change with
+    /// the network).
+    advertise: Option<Vec<String>>,
+    loopback: bool,
+}
+
+impl Hub {
+    /// `host:port` addresses to hand out right now.
+    fn hosts(&self) -> Vec<String> {
+        let hosts = match &self.advertise {
+            Some(v) => v.clone(),
+            // A loopback-bound hub is only reachable on this machine;
+            // advertising LAN IPs would produce unusable pair links.
+            None if self.loopback => vec!["127.0.0.1".to_string()],
+            None => lan_ipv4s(),
+        };
+        hosts
+            .into_iter()
+            .map(|h| {
+                if h.contains(':') {
+                    h
+                } else {
+                    format!("{h}:{}", self.port)
+                }
+            })
+            .collect()
+    }
 }
 
 fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -156,25 +186,15 @@ pub async fn start(cfg: HubConfig) -> Result<HubHandle> {
         .with_context(|| format!("couldn't listen on port {port} (in use or blocked)"))?;
     let addr = listener.local_addr()?;
     engine.db.set("port", &addr.port().to_string())?;
-    let hosts = advertise
-        .unwrap_or_else(|| {
-            // A loopback-bound hub is only reachable on this machine;
-            // advertising LAN IPs would produce unusable pair links.
-            if bind.is_loopback() {
-                vec!["127.0.0.1".to_string()]
-            } else {
-                lan_ipv4s()
-            }
-        })
-        .into_iter()
-        .map(|h| {
-            if h.contains(':') {
-                h
-            } else {
-                format!("{h}:{}", addr.port())
-            }
-        })
-        .collect::<Vec<_>>();
+    // Discovery shares the port number over UDP. Optional: without it,
+    // devices still reach the addresses they know.
+    let discovery = match tokio::net::UdpSocket::bind((bind, addr.port())).await {
+        Ok(s) => Some(s),
+        Err(e) => {
+            tracing::warn!("LAN discovery off (UDP port {}): {e}", addr.port());
+            None
+        }
+    };
 
     let (stop_tx, stop_rx) = watch::channel(false);
     let (tx, _) = broadcast::channel(1024);
@@ -189,7 +209,8 @@ pub async fn start(cfg: HubConfig) -> Result<HubHandle> {
         local: Notify::new(),
         stop: stop_rx.clone(),
         port: addr.port(),
-        hosts,
+        advertise,
+        loopback: bind.is_loopback(),
     });
 
     let app = router(hub.clone());
@@ -238,7 +259,8 @@ pub async fn start(cfg: HubConfig) -> Result<HubHandle> {
             tokio::select! {
                 m = log_rx.recv() => match m {
                     Ok(HubMsg::Event(_)) | Err(broadcast::error::RecvError::Lagged(_)) => waker.wake(),
-                    Ok(HubMsg::Revoked(_)) => {}
+                    // The bridge drops revoked devices' relay keys.
+                    Ok(HubMsg::Revoked(_)) => waker.wake(),
                     Err(broadcast::error::RecvError::Closed) => break,
                 },
                 _ = crate::engine::stopped(&mut stop_fwd) => break,
@@ -246,11 +268,21 @@ pub async fn start(cfg: HubConfig) -> Result<HubHandle> {
         }
     });
 
+    let mut tasks = vec![server, pump, forward];
+    if let Some(sock) = discovery {
+        tasks.push(tokio::spawn(crate::discovery::serve(
+            sock,
+            hub.engine.space.space_id.clone(),
+            addr.port(),
+            hub.stop.clone(),
+        )));
+    }
+
     tracing::info!(port = addr.port(), "sync hub listening");
     Ok(HubHandle {
         hub,
         stop: stop_tx,
-        tasks: vec![server, pump, forward],
+        tasks,
         addr,
         relays,
     })
@@ -272,17 +304,15 @@ impl HubHandle {
     /// Make a new one-time pairing QR (valid 10 minutes).
     pub fn create_offer(&self) -> OfferView {
         let now = now_millis();
-        let uri = lock(&self.hub.offers).create(
-            self.hub.hosts.clone(),
-            &self.hub.engine.space.hub_name,
-            now,
-        );
+        let hosts = self.hub.hosts();
+        let uri =
+            lock(&self.hub.offers).create(hosts.clone(), &self.hub.engine.space.hub_name, now);
         let text = uri.to_uri();
         OfferView {
             svg: qr_svg(&text),
             uri: text,
             expires_at: now + crate::pairing::OFFER_TTL_MS,
-            hosts: self.hub.hosts.clone(),
+            hosts,
         }
     }
 
@@ -343,7 +373,7 @@ impl HubHandle {
             running: true,
             connected: online.values().any(|n| *n > 0),
             port: Some(self.hub.port),
-            hosts: self.hub.hosts.clone(),
+            hosts: self.hub.hosts(),
             devices,
             outbox: 0,
             pending_images: e.db.pending_blob_count()?,
@@ -597,7 +627,7 @@ async fn hello(State(hub): State<Arc<Hub>>) -> Result<axum::Json<Hello>, ApiErro
         hub_device_id: e.space.device_id.clone(),
         hub_name: e.space.hub_name.clone(),
         head_seq: e.db.head_seq()?,
-        hosts: hub.hosts.clone(),
+        hosts: hub.hosts(),
     }))
 }
 
@@ -652,6 +682,7 @@ async fn pair(State(hub): State<Arc<Hub>>, body: Bytes) -> Result<Response, ApiE
         Some(&sealed),
     )?;
     tracing::info!(device = %dev.device_id, platform = %dev.platform, "device paired");
+    retire_replaced(&hub, &dev.device_id, &dev.name, &dev.platform);
     let _ = hub.notices.send(SyncNotice::Paired {
         device_id: dev.device_id,
         name: dev.name,
@@ -660,6 +691,35 @@ async fn pair(State(hub): State<Arc<Hub>>, body: Bytes) -> Result<Response, ApiE
     });
     let _ = hub.notices.send(SyncNotice::StatusChanged);
     Ok(axum::Json(resp).into_response())
+}
+
+/// A phone that reinstalled ClipTrail (or unpaired and paired again) comes
+/// back with a new device id. Revoke its old entries, same name and
+/// platform, so it isn't listed twice. A device that's connected right now
+/// is a different one and stays.
+fn retire_replaced(hub: &Hub, new_id: &str, name: &str, platform: &str) {
+    let Ok(devices) = hub.engine.db.devices() else {
+        return;
+    };
+    let online = lock(&hub.online).clone();
+    for d in devices {
+        let stale = !d.is_self
+            && d.id != new_id
+            && d.revoked_at.is_none()
+            && d.name == name
+            && d.platform == platform
+            && online.get(&d.id).is_none_or(|n| *n == 0);
+        if stale
+            && hub
+                .engine
+                .db
+                .revoke_device(&d.id, now_millis())
+                .unwrap_or(false)
+        {
+            let _ = hub.tx.send(HubMsg::Revoked(d.id.clone()));
+            tracing::info!(device = %d.id, "replaced by a new pairing; revoked");
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
