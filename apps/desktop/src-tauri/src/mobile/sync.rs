@@ -227,6 +227,18 @@ pub async fn sync_restart() -> CmdResult<SyncView> {
     view().await
 }
 
+/// "Try now": reconnect to the computer immediately (and look for it on the
+/// Wi-Fi if its address changed). Starts sync if it isn't running.
+#[tauri::command]
+pub async fn sync_reconnect() -> CmdResult<SyncView> {
+    let running = lock(&CTL.running).clone();
+    match running {
+        Some(c) => c.reconnect_now(),
+        None => restart().await,
+    }
+    view().await
+}
+
 #[tauri::command]
 pub fn sync_create_offer() -> CmdResult<()> {
     Err("Pair from your computer: ClipTrail › Settings › Devices › Pair a phone".into())

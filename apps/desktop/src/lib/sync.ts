@@ -132,6 +132,8 @@ export const syncApi = {
   setEnabled: (enabled: boolean) => call<SyncView>("sync_set_enabled", { enabled }),
   setPort: (port: number) => call<SyncView>("sync_set_port", { port }),
   restart: () => call<SyncView>("sync_restart"),
+  /** Phone: try to reach the computer now instead of at the next retry (also looks for it on the Wi-Fi). */
+  reconnect: () => call<SyncView>("sync_reconnect"),
   createOffer: () => call<OfferView>("sync_create_offer"),
   cancelOffer: () => call<void>("sync_cancel_offer"),
   revoke: (deviceId: string) => call<void>("sync_revoke", { deviceId }),
@@ -181,6 +183,23 @@ export function refreshSync() {
     .status()
     .then(setSyncView)
     .catch(() => undefined);
+}
+
+/** Ask the phone to reach its computer now; resolves true once it's
+ *  connected, false if it still isn't after a few seconds. */
+export async function reconnectNow(timeoutMs = 8000): Promise<boolean> {
+  setSyncView(await syncApi.reconnect());
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (current?.status.connected) return true;
+    await new Promise((r) => setTimeout(r, 700));
+    try {
+      setSyncView(await syncApi.status());
+    } catch {
+      // keep trying until the deadline
+    }
+  }
+  return !!current?.status.connected;
 }
 
 function subscribe(cb: () => void) {
@@ -378,6 +397,7 @@ async function mockCall(cmd: string, a: Record<string, unknown>): Promise<unknow
       throw "Files come from your computer in the phone app";
     case "sync_status":
     case "sync_restart":
+    case "sync_reconnect":
       return mockView();
     case "sync_set_enabled":
       mock.view.enabled = Boolean(a.enabled);

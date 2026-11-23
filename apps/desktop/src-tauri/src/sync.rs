@@ -254,6 +254,23 @@ pub async fn sync_set_port(app: AppHandle, port: u16) -> CmdResult<SyncView> {
     view(&app).await
 }
 
+/// "Try now" on a computer paired to another hub; restarts a stopped hub.
+#[tauri::command]
+pub async fn sync_reconnect(app: AppHandle) -> CmdResult<SyncView> {
+    let client_running = match &*lock(&app.state::<SyncState>().running) {
+        Some(Running::Client(c)) => {
+            c.reconnect_now();
+            true
+        }
+        Some(Running::Hub(_)) => true,
+        None => false,
+    };
+    if !client_running {
+        restart(&app).await;
+    }
+    view(&app).await
+}
+
 /// Retry after an error (e.g. the port was busy).
 #[tauri::command]
 pub async fn sync_restart(app: AppHandle) -> CmdResult<SyncView> {
