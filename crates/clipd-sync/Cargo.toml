@@ -9,7 +9,7 @@ repository.workspace = true
 [features]
 default = ["hub", "os-keychain"]
 # The LAN hub server (desktop only). Clients (Android) build without it.
-hub = ["dep:axum", "dep:if-addrs", "dep:qrcode"]
+hub = ["dep:axum", "dep:qrcode"]
 # Store keys in the OS keychain (Windows Credential Manager, macOS Keychain).
 # Elsewhere (Linux, Android) keys go to a 0600 file or a platform store
 # plugged in through the `KeyStore` trait.
@@ -49,7 +49,8 @@ ed25519-dalek = { version = "3", default-features = false, features = ["fast", "
 axum = { version = "0.8", optional = true, default-features = false, features = ["http1", "json", "query", "tokio", "ws"] }
 # Re-encode oversized thumbnails so they always fit the inline sync limit.
 image.workspace = true
-if-addrs = { version = "0.15", optional = true }
+# Interface addresses: the hub's QR hosts, the client's discovery broadcasts.
+if-addrs = "0.15"
 qrcode = { version = "0.14", optional = true, default-features = false, features = ["svg"] }
 keyring-core = { version = "1", optional = true }
 

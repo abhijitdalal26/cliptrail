@@ -18,6 +18,7 @@ pub mod auth;
 pub mod client;
 pub mod crypto;
 pub mod db;
+pub mod discovery;
 pub mod engine;
 pub mod envelope;
 #[cfg(feature = "hub")]
