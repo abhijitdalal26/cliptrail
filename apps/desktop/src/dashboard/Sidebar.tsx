@@ -5,7 +5,9 @@ import {
   Keyboard,
   LayoutDashboard,
   Pause,
+  Pencil,
   Play,
+  Plus,
   Settings,
   Star,
   Trash2,
@@ -15,7 +17,9 @@ import { cx } from "../lib/cx";
 import { compact } from "../lib/format";
 import { moveKind, useKindOrder } from "../lib/kindOrder";
 import { KIND_META } from "../lib/kinds";
-import type { CaptureState, Kind, Stats } from "../lib/types";
+import type { CaptureState, Collection, Kind, Stats } from "../lib/types";
+import { CLIP_DRAG_TYPE, moveCollection, reorderCollections, useCollections } from "../lib/collections";
+import { CollectionIcon } from "../components/Collections";
 import { platformIcon, useDeviceInfo } from "../lib/sync";
 import { sameView, type View } from "../lib/view";
 import { AppAvatar, IconButton } from "../components/ui";
@@ -34,6 +38,10 @@ interface Props {
   onToggleCapture: () => void;
   onSettings: () => void;
   onShortcuts: () => void;
+  onNewCollection: () => void;
+  onEditCollection: (c: Collection) => void;
+  /** A clip was dropped on a collection. */
+  onDropClip: (clipId: string, c: Collection) => void;
 }
 
 export function Sidebar(p: Props) {
@@ -118,6 +126,14 @@ export function Sidebar(p: Props) {
           count={p.stats?.trashed}
           active={sameView(p.view, { type: "trash" })}
           onClick={() => p.onView({ type: "trash" })}
+        />
+
+        <CollectionsSection
+          view={p.view}
+          onView={p.onView}
+          onNew={p.onNewCollection}
+          onEdit={p.onEditCollection}
+          onDropClip={p.onDropClip}
         />
 
         <SectionLabel>Categories</SectionLabel>
@@ -243,9 +259,167 @@ export function Sidebar(p: Props) {
   );
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function SectionLabel({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
   return (
-    <div className="mt-4 mb-1 px-2.5 text-[11px] font-semibold tracking-[0.04em] text-fg-3 uppercase">{children}</div>
+    <div className="mt-4 mb-1 flex h-5 items-center justify-between pr-1 pl-2.5">
+      <span className="text-[11px] font-semibold tracking-[0.04em] text-fg-3 uppercase">{children}</span>
+      {action}
+    </div>
+  );
+}
+
+/** The user's collections: click to open, drag to reorder, drop clips on them. */
+function CollectionsSection({
+  view,
+  onView,
+  onNew,
+  onEdit,
+  onDropClip,
+}: {
+  view: View;
+  onView: (v: View) => void;
+  onNew: () => void;
+  onEdit: (c: Collection) => void;
+  onDropClip: (clipId: string, c: Collection) => void;
+}) {
+  const collections = useCollections();
+  const [drag, setDrag] = useState<{ id: string; to: number } | null>(null);
+  const [dropOn, setDropOn] = useState<string | null>(null);
+  const list = useRef<HTMLDivElement>(null);
+  const dragged = useRef(false);
+  const shown = drag ? moveCollection(collections, drag.id, drag.to) : collections;
+
+  const slotAt = (y: number, id: string) =>
+    Array.from(list.current?.children ?? [])
+      .filter((el) => (el as HTMLElement).dataset.collection !== id)
+      .filter((el) => {
+        const r = el.getBoundingClientRect();
+        return r.top + r.height / 2 < y;
+      }).length;
+
+  const startDrag = (e: React.PointerEvent, id: string) => {
+    if (e.button !== 0) return;
+    const startY = e.clientY;
+    let to: number | null = null;
+    dragged.current = false;
+    const move = (ev: PointerEvent) => {
+      if (to == null && Math.abs(ev.clientY - startY) < 5) return;
+      to = slotAt(ev.clientY, id);
+      dragged.current = true;
+      setDrag({ id, to });
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      setDrag(null);
+      if (to != null) void reorderCollections(moveCollection(collections, id, to));
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
+
+  const keyMove = (e: React.KeyboardEvent, id: string) => {
+    if (!e.altKey || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return;
+    e.preventDefault();
+    const i = collections.findIndex((c) => c.id === id);
+    void reorderCollections(moveCollection(collections, id, e.key === "ArrowUp" ? i - 1 : i + 1));
+  };
+
+  return (
+    <>
+      <SectionLabel
+        action={<IconButton icon={Plus} label="New collection" size={22} tooltipSide="top" onClick={onNew} />}
+      >
+        Collections
+      </SectionLabel>
+      {collections.length === 0 ? (
+        <button
+          onClick={onNew}
+          className="flex h-[30px] w-full items-center gap-2.5 rounded-lg border border-dashed border-line-strong px-2.5 text-[12.5px] text-fg-3 transition-colors hover:border-accent hover:text-fg"
+        >
+          <Plus size={14} strokeWidth={2} className="shrink-0" />
+          New collection
+        </button>
+      ) : (
+        <div ref={list}>
+          {shown.map((c) => {
+            const active = sameView(view, { type: "collection", id: c.id });
+            const lifted = drag?.id === c.id;
+            return (
+              <div
+                key={c.id}
+                data-collection={c.id}
+                className="group/col relative"
+                onDragOver={(e) => {
+                  if (!e.dataTransfer.types.includes(CLIP_DRAG_TYPE)) return;
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                  setDropOn(c.id);
+                }}
+                onDragLeave={() => setDropOn((d) => (d === c.id ? null : d))}
+                onDrop={(e) => {
+                  const id = e.dataTransfer.getData(CLIP_DRAG_TYPE);
+                  setDropOn(null);
+                  if (id) {
+                    e.preventDefault();
+                    onDropClip(id, c);
+                  }
+                }}
+              >
+                <button
+                  onClick={() => {
+                    if (dragged.current) {
+                      dragged.current = false;
+                      return;
+                    }
+                    onView({ type: "collection", id: c.id });
+                  }}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onPointerDown={(e) => startDrag(e, c.id)}
+                  onKeyDown={(e) => keyMove(e, c.id)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    onEdit(c);
+                  }}
+                  aria-label={`${c.name}, ${c.count === 1 ? "1 clip" : `${c.count} clips`}`}
+                  aria-current={active ? "page" : undefined}
+                  title="Drag to reorder (or Alt+↑ / Alt+↓) · right-click to edit"
+                  className={cx(
+                    "flex h-[30px] w-full items-center gap-2.5 rounded-lg px-2.5 text-[13px] transition-colors duration-150",
+                    active ? "bg-active font-medium text-fg" : "text-fg-2 hover:bg-hover hover:text-fg",
+                    lifted && "relative z-10 bg-panel shadow-soft ring-1 ring-[var(--border-strong)] select-none",
+                    dropOn === c.id && "bg-accent-soft text-fg ring-2 ring-accent",
+                  )}
+                >
+                  <span className="grid w-4 shrink-0 place-items-center">
+                    <CollectionIcon collection={c} />
+                  </span>
+                  <span className="flex-1 truncate text-left">{c.name}</span>
+                  {c.count > 0 && (
+                    <span
+                      className={cx(
+                        "text-[11.5px] tabular-nums group-hover/col:opacity-0",
+                        active ? "text-fg-2" : "text-fg-3",
+                      )}
+                    >
+                      {compact(c.count)}
+                    </span>
+                  )}
+                </button>
+                <button
+                  aria-label={`Edit “${c.name}”`}
+                  title="Edit"
+                  onClick={() => onEdit(c)}
+                  className="absolute top-1/2 right-1 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-md text-fg-3 opacity-0 transition-opacity group-hover/col:opacity-100 hover:bg-hover hover:text-fg focus-visible:opacity-100"
+                >
+                  <Pencil size={12} strokeWidth={2} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </>
   );
 }
 

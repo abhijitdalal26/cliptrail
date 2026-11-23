@@ -2,7 +2,18 @@
 // browser). Serves ~150 realistic clips of every kind over ~60 days.
 
 import { applyMock, availableMock } from "./mockTransforms";
-import type { CaptureState, Clip, DayCount, Kind, ListQuery, Settings, SettingsView, Stats, Transform } from "./types";
+import type {
+  CaptureState,
+  Clip,
+  Collection,
+  DayCount,
+  Kind,
+  ListQuery,
+  Settings,
+  SettingsView,
+  Stats,
+  Transform,
+} from "./types";
 
 // ---------- deterministic randomness ----------
 let seed = 20261101;
@@ -527,6 +538,35 @@ function generate(): Clip[] {
 const db: Clip[] = generate();
 const trash: Clip[] = [];
 
+// ---------- collections ----------
+type MockCollection = Omit<Collection, "count">;
+const collections: MockCollection[] = [
+  { id: "col-work", name: "Work", icon: "💼", color: "blue", position: 0, created_at: NOW - 20 * DAY },
+  { id: "col-recipes", name: "Recipes", icon: "🍳", color: "orange", position: 1, created_at: NOW - 9 * DAY },
+];
+db.filter((c) => c.kind === "code")
+  .slice(0, 4)
+  .forEach((c) => (c.collection_id = "col-work"));
+db.filter((c) => c.kind === "link")
+  .slice(0, 2)
+  .forEach((c) => (c.collection_id = "col-recipes"));
+
+function collectionList(): Collection[] {
+  return [...collections]
+    .sort((a, b) => a.position - b.position)
+    .map((c) => ({ ...c, count: db.filter((x) => x.collection_id === c.id).length }));
+}
+
+function collectionName(name: unknown, except?: string): string {
+  const n = String(name ?? "").split(/\s+/).filter(Boolean).join(" ");
+  if (!n) throw "Give the collection a name";
+  if ([...n].length > 40) throw "Keep the name under 40 characters";
+  if (collections.some((c) => c.id !== except && c.name.toLowerCase() === n.toLowerCase())) {
+    throw `You already have a collection called "${n}"`;
+  }
+  return n;
+}
+
 // ---------- event bus ----------
 type Cb = (p: unknown) => void;
 const subs = new Map<string, Set<Cb>>();
@@ -558,6 +598,7 @@ function list(q: ListQuery) {
   let rows = db.filter((c) => {
     if (q.kind && c.kind !== q.kind) return false;
     if (q.pinned_only && !c.pinned) return false;
+    if (q.collection_id && c.collection_id !== q.collection_id) return false;
     if (q.source_app && c.source_app !== q.source_app) return false;
     if (q.from != null && c.last_seen_at < q.from) return false;
     if (q.to != null && c.last_seen_at >= q.to) return false;
@@ -671,6 +712,60 @@ export async function handle(cmd: string, a: Record<string, unknown>): Promise<u
     case "set_pinned": {
       const c = db.find((x) => x.id === a.id);
       if (c) c.pinned = a.pinned as boolean;
+      return null;
+    }
+    case "list_collections":
+      return collectionList();
+    case "create_collection": {
+      const c: MockCollection = {
+        id: `col-${Date.now().toString(36)}`,
+        name: collectionName(a.name),
+        icon: (a.icon as string | null) ?? null,
+        color: (a.color as string | null) ?? null,
+        position: collections.length,
+        created_at: Date.now(),
+      };
+      collections.push(c);
+      publish("clips-updated", null);
+      return collectionList().find((x) => x.id === c.id);
+    }
+    case "update_collection": {
+      const c = collections.find((x) => x.id === a.id);
+      if (!c) throw "That collection no longer exists";
+      c.name = collectionName(a.name, c.id);
+      c.icon = (a.icon as string | null) ?? null;
+      c.color = (a.color as string | null) ?? null;
+      publish("clips-updated", null);
+      return collectionList().find((x) => x.id === c.id);
+    }
+    case "reorder_collections": {
+      (a.ids as string[]).forEach((id, i) => {
+        const c = collections.find((x) => x.id === id);
+        if (c) c.position = i;
+      });
+      publish("clips-updated", null);
+      return null;
+    }
+    case "delete_collection": {
+      const i = collections.findIndex((x) => x.id === a.id);
+      if (i < 0) throw "That collection no longer exists";
+      collections.splice(i, 1);
+      let n = 0;
+      for (const c of db) {
+        if (c.collection_id === a.id) {
+          c.collection_id = null;
+          n++;
+        }
+      }
+      publish("clips-updated", null);
+      return n;
+    }
+    case "set_clip_collection": {
+      const to = (a.collectionId as string | null) ?? null;
+      if (to && !collections.some((x) => x.id === to)) throw "That collection no longer exists";
+      const c = db.find((x) => x.id === a.id);
+      if (c) c.collection_id = to;
+      publish("clips-updated", null);
       return null;
     }
     case "delete_clip": {

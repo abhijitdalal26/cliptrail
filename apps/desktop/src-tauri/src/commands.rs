@@ -9,7 +9,8 @@ use std::sync::Arc;
 #[cfg(desktop)]
 use clipd_capture::WriteContent;
 use clipd_core::{
-    ClearScope, Clip, ClipSummary, DayCount, Kind, ListQuery, Millis, Pipeline, Stats, Transform,
+    ClearScope, Clip, ClipSummary, Collection, CollectionFields, DayCount, Kind, ListQuery, Millis,
+    Pipeline, Stats, Transform,
 };
 use serde::Serialize;
 #[cfg(desktop)]
@@ -87,6 +88,80 @@ pub async fn source_apps(app: AppHandle) -> CmdResult<Vec<String>> {
 pub async fn set_pinned(app: AppHandle, id: String, pinned: bool) -> CmdResult<()> {
     let p = pipeline(&app)?;
     blocking(move || guard("pinning", || p.store().set_pinned(&id, pinned))).await?;
+    notify_updated(&app);
+    Ok(())
+}
+
+// ---- collections ---------------------------------------------------------
+
+/// Errors here are for the user ("You already have a collection called …").
+fn plain<T>(r: anyhow::Result<T>) -> CmdResult<T> {
+    r.map_err(|e| format!("{e:#}"))
+}
+
+#[tauri::command]
+pub async fn list_collections(app: AppHandle) -> CmdResult<Vec<Collection>> {
+    let p = pipeline(&app)?;
+    blocking(move || guard("listing collections", || p.store().collections())).await
+}
+
+#[tauri::command]
+pub async fn create_collection(
+    app: AppHandle,
+    name: String,
+    icon: Option<String>,
+    color: Option<String>,
+) -> CmdResult<Collection> {
+    let p = pipeline(&app)?;
+    let c = blocking(move || plain(p.create_collection(CollectionFields { name, icon, color })))
+        .await?;
+    notify_updated(&app);
+    Ok(c)
+}
+
+#[tauri::command]
+pub async fn update_collection(
+    app: AppHandle,
+    id: String,
+    name: String,
+    icon: Option<String>,
+    color: Option<String>,
+) -> CmdResult<Collection> {
+    let p = pipeline(&app)?;
+    let c =
+        blocking(move || plain(p.update_collection(&id, CollectionFields { name, icon, color })))
+            .await?;
+    notify_updated(&app);
+    Ok(c)
+}
+
+#[tauri::command]
+pub async fn reorder_collections(app: AppHandle, ids: Vec<String>) -> CmdResult<()> {
+    let p = pipeline(&app)?;
+    blocking(move || plain(p.reorder_collections(&ids))).await?;
+    notify_updated(&app);
+    Ok(())
+}
+
+/// Delete a collection; its clips stay in the history. Returns how many
+/// clips were in it.
+#[tauri::command]
+pub async fn delete_collection(app: AppHandle, id: String) -> CmdResult<usize> {
+    let p = pipeline(&app)?;
+    let n = blocking(move || plain(p.delete_collection(&id))).await?;
+    notify_updated(&app);
+    Ok(n)
+}
+
+/// Save a clip to a collection, or take it out (`collection_id` null).
+#[tauri::command]
+pub async fn set_clip_collection(
+    app: AppHandle,
+    id: String,
+    collection_id: Option<String>,
+) -> CmdResult<()> {
+    let p = pipeline(&app)?;
+    blocking(move || plain(p.store().set_collection(&id, collection_id.as_deref()))).await?;
     notify_updated(&app);
     Ok(())
 }

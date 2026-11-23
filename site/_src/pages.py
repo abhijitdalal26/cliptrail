@@ -480,6 +480,23 @@ CHANGELOG = r"""
         </div>
 
         <div class="cl-group">
+          <h3>Collections</h3>
+          <ul>
+            <li>Make your own <strong>collections</strong> (Work, Recipes, Project X…) with a name, an emoji and a colour, and save any clip to one from the clip panel or by dragging it onto the collection in the sidebar. A clip is in one collection at a time, so saving it elsewhere moves it; every change can be undone.</li>
+            <li>Clips in a collection are kept forever, like favorites. Deleting a collection keeps its clips.</li>
+            <li>Collections sync between your devices and work on Android too (chips at the top, the folder button on a clip). AI assistants can list them and search inside one.</li>
+          </ul>
+        </div>
+
+        <div class="cl-group">
+          <h3>Sync</h3>
+          <ul>
+            <li>Your phone finds your computer again on its own after the computer changes network or gets a new address (a different Wi-Fi, a hotspot, a new router lease). Before, it kept trying the old address until you paired again.</li>
+            <li>Pairing the same phone again (after a reinstall) replaces its old entry instead of listing the phone twice.</li>
+          </ul>
+        </div>
+
+        <div class="cl-group">
           <h3>Security</h3>
           <ul>
             <li>Files your computer hands to a paired device are now limited to files copied on that computer. Before, a paired device could ask it for a file by syncing a clip that named it. Update your computer to this version.</li>

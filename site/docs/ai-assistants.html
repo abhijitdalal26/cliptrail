@@ -95,13 +95,14 @@
 <p>Without the desktop app (servers, scripts), build the standalone server instead: <code>cargo install --locked --git https://github.com/abhijitdalal26/cliptrail clipd-mcp</code>, and use <code>clipd-mcp</code> as the command. Both read the same history folder; set <code>CLIPTRAIL_DATA_DIR</code> to use another one.</p>
 
 <h2 id="tools">What the assistant can do</h2>
-<p>The server offers eleven tools. Eight only read; the other three are small conveniences that change nothing you already have. There is <strong>no tool to delete or edit a clip</strong>.</p>
+<p>The server offers twelve tools. Nine only read; the other three are small conveniences that change nothing you already have. There is <strong>no tool to delete or edit a clip</strong>.</p>
 <div class="table-wrap"><table>
   <thead><tr><th scope="col">Tool</th><th scope="col">What it does</th></tr></thead>
   <tbody>
-    <tr><td><code>search_clips</code></td><td>Full-text search, with optional filters for kind, source app, device (your phone or this computer), pinned only and a date range (<code>from</code> / <code>to</code> as <code>YYYY-MM-DD</code>). Returns summaries.</td></tr>
+    <tr><td><code>search_clips</code></td><td>Full-text search, with optional filters for kind, source app, device (your phone or this computer), collection, pinned only and a date range (<code>from</code> / <code>to</code> as <code>YYYY-MM-DD</code>). Returns summaries.</td></tr>
     <tr><td><code>recent_clips</code></td><td>Newest clips first, same filters, no query: "what did I copy recently?"</td></tr>
     <tr><td><code>get_clip</code></td><td>One clip's full body by id or unique id prefix.</td></tr>
+    <tr><td><code>list_collections</code></td><td>Your collections (Work, Recipes, …) with their clip counts, so the assistant can look inside one: "what's in my Work collection?"</td></tr>
     <tr><td><code>clip_stats</code></td><td>Totals: clips per kind, pinned count, top source apps.</td></tr>
     <tr><td><code>list_source_apps</code></td><td>The apps your clips came from, handy for filtering.</td></tr>
     <tr><td><code>day_counts</code></td><td>Clips per calendar day for the last N days (default 30, up to 365).</td></tr>

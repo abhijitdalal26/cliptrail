@@ -75,15 +75,27 @@
 <p>Filters combine with search and with each other:</p>
 <div class="def-grid">
   <div class="def"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg> Dashboard / Favorites</b><p>Everything (the Dashboard), or only the clips you starred with <kbd>Ctrl</kbd> <kbd>P</kbd>.</p></div>
+  <div class="def"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg> Collections</b><p>Your own folders, such as Work or Recipes. See <a href="#collections">Collections</a>.</p></div>
   <div class="def"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.41 0l8.59-8.59a1 1 0 0 0 0-1.41Z"/><circle cx="7" cy="7" r="1.5"/></svg> Kind</b><p>Links, Code, Text, Contacts, Colors, Files, Images, Sensitive, each with a count.</p></div>
   <div class="def"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> App</b><p>The apps you copy from most, such as Chrome, VS Code or Slack. Click again to clear.</p></div>
   <div class="def"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> Device</b><p>Once you sync, the clips from each device: this computer, your phone, another computer.</p></div>
   <div class="def"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg> Time range</b><p>All time, Today, 7 days or 30 days, at the top of the timeline.</p></div>
 </div>
 
+<h2 id="collections">Collections</h2>
+<p>Kinds sort clips automatically; collections are folders you make yourself, for the clips you want to find again: <em>Work</em>, <em>Recipes</em>, <em>Project X</em>.</p>
+<ul>
+  <li><strong>Make one</strong> with the <strong>+</strong> next to <em>Collections</em> in the sidebar (on Android, the <strong>+ Collection</strong> chip). Give it a name, and if you like an emoji and a colour.</li>
+  <li><strong>Save a clip to it</strong> with the folder button at the top of the clip panel, or drag the clip onto the collection in the sidebar. The menu also has <em>New collection…</em>, so you can make one and save the clip in one go.</li>
+  <li><strong>Move between collections</strong> the same way: a clip is in one collection at a time, so saving it to another one moves it. <em>Remove from …</em> takes it out. Each change shows an <em>Undo</em>.</li>
+  <li><strong>Kept forever.</strong> Like favorites, clips in a collection are never removed by <em>Keep history</em> or by <em>Clear history</em> when <em>Keep pinned clips</em> is ticked.</li>
+  <li><strong>Rename, recolour or delete</strong> with <em>Edit</em> at the top of a collection, the pencil on hover, or a right-click in the sidebar (a long press on the chip on Android). Deleting a collection keeps its clips in your history. Drag collections to reorder them (or <kbd>Alt</kbd> <kbd>↑</kbd> / <kbd>Alt</kbd> <kbd>↓</kbd>).</li>
+  <li><strong>Synced.</strong> With <a href="sync.html">sync</a> on, your collections and what's in them are the same on every paired device.</li>
+</ul>
+
 <h2 id="timeline">Timeline</h2>
 <p>Clips are listed newest first and grouped by day (<em>Today</em>, <em>Yesterday</em>, then dates). The list shows just what you copied; the source app, time, device and how many times you've copied it are in the preview pane. The list is virtualised, so scrolling stays smooth with tens of thousands of clips.</p>
-<p>Select a clip to see it in full in the preview pane: syntax-highlighted code, link details, colour swatches, image previews, file lists. From there you can copy it, copy it as plain text, run a <a href="smart-actions.html">smart action</a>, pin it or delete it (<kbd>Del</kbd>, with <kbd>Ctrl</kbd> <kbd>Z</kbd> to undo).</p>
+<p>Select a clip to see it in full in the preview pane: syntax-highlighted code, link details, colour swatches, image previews, file lists. From there you can copy it, copy it as plain text, run a <a href="smart-actions.html">smart action</a>, pin it, save it to a <a href="#collections">collection</a> or delete it (<kbd>Del</kbd>, with <kbd>Ctrl</kbd> <kbd>Z</kbd> to undo).</p>
 
 <h2 id="heatmap">Calendar heatmap</h2>
 <p>Above the timeline, a heatmap shows how much you copied each day over the last 16 weeks, with today's count, the 16-week total and your busiest day.</p>

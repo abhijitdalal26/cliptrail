@@ -48,7 +48,12 @@ pub const DEFAULT_LIST_LIMIT: u32 = 100;
 pub const MAX_LIST_LIMIT: u32 = 1000;
 
 /// Ordered schema migrations; entry `i` upgrades `user_version` i → i+1.
-const MIGRATIONS: &[&str] = &[SCHEMA_V1, SCHEMA_V2, crate::trash::SCHEMA_V3];
+const MIGRATIONS: &[&str] = &[
+    SCHEMA_V1,
+    SCHEMA_V2,
+    crate::trash::SCHEMA_V3,
+    crate::collections::SCHEMA_V4,
+];
 
 const SCHEMA_V1: &str = r#"
 CREATE TABLE clips (
@@ -147,8 +152,8 @@ pub(crate) const SUMMARY_COLS: &str = "c.id, c.kind, c.subkind, \
      CASE WHEN c.masked THEN NULL ELSE substr(c.text, 1, 401) END, \
      c.char_count, c.line_count, c.files, c.thumb_path, c.width, c.height, \
      c.source_app, c.device_id, c.created_at, c.last_seen_at, c.copy_count, \
-     c.pinned, c.masked, c.expires_at";
-pub(crate) const SUMMARY_COL_COUNT: usize = 18;
+     c.pinned, c.masked, c.expires_at, c.collection_id";
+pub(crate) const SUMMARY_COL_COUNT: usize = 19;
 
 /// What a repeat copy updates on the existing row.
 const BUMP_SET: &str = "last_seen_at = ?2, \
@@ -293,6 +298,10 @@ impl Store {
         if q.pinned_only {
             sql.push_str(" AND c.pinned = 1");
         }
+        if let Some(col) = &q.collection_id {
+            sql.push_str(" AND c.collection_id = ?");
+            args.push(Value::Text(col.clone()));
+        }
         if let Some(app) = &q.source_app {
             sql.push_str(" AND c.source_app = ?");
             args.push(Value::Text(app.clone()));
@@ -415,14 +424,15 @@ impl Store {
     /// How many clips [`Store::clear`] would remove right now.
     pub fn count_clearable(&self, keep_pinned: bool) -> Result<i64> {
         let sql = if keep_pinned {
-            "SELECT count(*) FROM clips WHERE pinned = 0"
+            "SELECT count(*) FROM clips WHERE pinned = 0 AND collection_id IS NULL"
         } else {
             "SELECT count(*) FROM clips"
         };
         Ok(self.conn().query_row(sql, [], |r| r.get(0))?)
     }
 
-    /// Delete every clip (except pinned ones when `keep_pinned`). Returns
+    /// Delete every clip (except pinned and collection ones when
+    /// `keep_pinned`). Returns
     /// paths of image/thumbnail files the caller should remove from disk.
     /// The delete triggers journal a tombstone per unmasked clip, so a sync
     /// engine will propagate them; use `Pipeline::clear_history` for the
@@ -490,12 +500,12 @@ impl Store {
     }
 
     /// Like [`Store::prune_expired`], also returning how many rows went.
-    /// Pinned clips are never pruned.
+    /// Pinned clips and clips in a collection are never pruned.
     pub fn prune_expired_counted(&self, now: Millis) -> Result<(usize, Vec<String>)> {
         let conn = self.conn();
         let mut stmt = conn.prepare(
             "DELETE FROM clips WHERE expires_at IS NOT NULL AND expires_at <= ?1 AND pinned = 0 \
-             RETURNING image_path, thumb_path",
+             AND collection_id IS NULL RETURNING image_path, thumb_path",
         )?;
         let pairs = stmt
             .query_map([now], file_pair)?
@@ -565,6 +575,7 @@ pub(crate) fn summary_from_row(r: &Row<'_>) -> rusqlite::Result<ClipSummary> {
         pinned: r.get(15)?,
         masked,
         expires_at: r.get(17)?,
+        collection_id: r.get(18)?,
     })
 }
 
@@ -587,7 +598,8 @@ fn kind_from_db(s: &str) -> Kind {
 /// (rows removed, file paths to delete).
 pub(crate) fn clear_rows(conn: &Connection, keep_pinned: bool) -> Result<(usize, Vec<String>)> {
     let sql = if keep_pinned {
-        "DELETE FROM clips WHERE pinned = 0 RETURNING image_path, thumb_path"
+        "DELETE FROM clips WHERE pinned = 0 AND collection_id IS NULL \
+         RETURNING image_path, thumb_path"
     } else {
         "DELETE FROM clips RETURNING image_path, thumb_path"
     };

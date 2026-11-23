@@ -35,6 +35,8 @@ interface Props {
   onTogglePin: (c: ClipSummary) => void;
   /** Trash: group by deletion day, no copy/favorite controls, trash empty state. */
   trash?: boolean;
+  /** Shown instead of the usual empty state (an empty collection). */
+  emptyState?: ReactNode;
 }
 
 export const Timeline = forwardRef<TimelineHandle, Props>(function Timeline(p, ref) {
@@ -119,7 +121,12 @@ export const Timeline = forwardRef<TimelineHandle, Props>(function Timeline(p, r
               {r.type === "top" && (
                 <>
                   {p.top}
-                  {empty && (p.trash ? <TrashEmpty /> : <Empty filtered={p.filtered} shortcut={p.shortcut} mobile={p.mobile} />)}
+                  {empty &&
+                    (p.trash ? (
+                      <TrashEmpty />
+                    ) : (
+                      (p.emptyState ?? <Empty filtered={p.filtered} shortcut={p.shortcut} mobile={p.mobile} />)
+                    ))}
                   {p.loading && p.items.length === 0 && <Skeleton />}
                 </>
               )}

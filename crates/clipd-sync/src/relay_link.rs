@@ -1162,6 +1162,11 @@ fn describe(engine: &Engine, env: &Envelope) -> Meta {
             .and_then(|i| ev.hash().ok().map(|h| (i.blob_id.clone(), h))),
         _ => None,
     };
+    // Relays only accept the kinds they know as compaction metadata; a
+    // collection event travels untagged (never compacted there).
+    if matches!(ev, Event::CollectionUpdated(_)) {
+        return Meta::default();
+    }
     Meta {
         tag: ev.hash().ok().map(|h| engine.keys.hash_tag(&h)),
         kind: Some(ev.kind_name().to_owned()),

@@ -46,6 +46,8 @@ export interface ClipSummary {
   pinned: boolean;
   masked: boolean;
   expires_at: Millis | null;
+  /** The user's collection this clip is saved to (kept forever, like pinned). */
+  collection_id?: string | null;
   /** Set on clips listed from the Trash (desktop). */
   deleted_at?: Millis;
 }
@@ -60,6 +62,8 @@ export interface ListQuery {
   kind?: Kind | null;
   search?: string | null;
   pinned_only?: boolean;
+  /** Only clips saved to this collection. */
+  collection_id?: string | null;
   source_app?: string | null;
   /** Only clips first copied on this device. */
   device_id?: string | null;
@@ -81,6 +85,20 @@ export interface Stats {
   trashed?: number;
   /** (device id, count), biggest first. */
   by_device?: [string, number][];
+}
+
+/** A folder the user made for clips. A clip is in at most one. */
+export interface Collection {
+  id: string;
+  name: string;
+  /** One emoji, or null. */
+  icon: string | null;
+  /** Palette key (see lib/collections.ts), or null for the default. */
+  color: string | null;
+  position: number;
+  created_at: Millis;
+  /** Clips in it now. */
+  count: number;
 }
 
 export interface DayCount {

@@ -328,6 +328,110 @@ async fn hub_and_clients_sync_everything() {
     hub.shutdown().await;
 }
 
+/// Collections and which clips are in them sync both ways, including to a
+/// device that reads the log after compaction moved a clip's add behind
+/// its pin / collection event.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn collections_sync() {
+    use clipd_core::CollectionFields;
+    let (hub_dir, a_dir) = (TempDir::new("colhub"), TempDir::new("cola"));
+    let (hub_ks, a_ks) = (
+        Arc::new(MemoryKeyStore::default()),
+        Arc::new(MemoryKeyStore::default()),
+    );
+    let hp = pipeline(&hub_dir.0);
+    let ap = pipeline(&a_dir.0);
+    let hub = hub::start(HubConfig {
+        data_dir: hub_dir.0.clone(),
+        keystore: hub_ks.clone(),
+        port: 0,
+        bind: IpAddr::V4(Ipv4Addr::LOCALHOST),
+        advertise: Some(vec!["127.0.0.1".into()]),
+        name: "Test Hub".into(),
+    })
+    .await
+    .unwrap();
+
+    // On the hub before A pairs: a pinned clip in "Work", copied again
+    // afterwards so its newest add is logged after its state.
+    let work = hp
+        .create_collection(CollectionFields {
+            name: "Work".into(),
+            icon: Some("💼".into()),
+            color: Some("blue".into()),
+        })
+        .unwrap();
+    let w = text(&hp, "in work");
+    hp.store().set_collection(&w, Some(&work.id)).unwrap();
+    hp.store().set_pinned(&w, true).unwrap();
+    hub.notify_local_change();
+    tokio::time::sleep(Duration::from_millis(1200)).await;
+    text(&hp, "in work");
+    hub.notify_local_change();
+    tokio::time::sleep(Duration::from_millis(1200)).await;
+
+    let offer = hub.create_offer();
+    client::pair(&a_dir.0, a_ks.clone(), &offer.uri, "Phone", "android")
+        .await
+        .unwrap();
+    let a = start_client(&a_dir.0, &a_ks);
+    wait("collection and its clip on A", || {
+        ap.store()
+            .collections()
+            .unwrap()
+            .iter()
+            .any(|c| c.id == work.id && c.name == "Work" && c.count == 1)
+            && find(&ap, "in work")
+                .is_some_and(|c| c.pinned && c.collection_id.as_deref() == Some(work.id.as_str()))
+    })
+    .await;
+
+    // A makes a collection and moves the clip into it.
+    let home = ap
+        .create_collection(CollectionFields {
+            name: "Home".into(),
+            ..Default::default()
+        })
+        .unwrap();
+    let id = find(&ap, "in work").unwrap().id;
+    ap.store().set_collection(&id, Some(&home.id)).unwrap();
+    a.notify_local_change();
+    wait("A's collection and move on the hub", || {
+        hp.store().collection(&home.id).unwrap().is_some()
+            && find(&hp, "in work")
+                .is_some_and(|c| c.collection_id.as_deref() == Some(home.id.as_str()) && c.pinned)
+    })
+    .await;
+
+    // Rename on the hub; delete on A (its clips stay, outside it).
+    hp.update_collection(
+        &work.id,
+        CollectionFields {
+            name: "Office".into(),
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    hub.notify_local_change();
+    wait("rename on A", || {
+        ap.store()
+            .collection(&work.id)
+            .unwrap()
+            .is_some_and(|c| c.name == "Office")
+    })
+    .await;
+    ap.delete_collection(&home.id).unwrap();
+    a.notify_local_change();
+    wait("delete on the hub", || {
+        hp.store().collection(&home.id).unwrap().is_none()
+            && find(&hp, "in work").is_some_and(|c| c.collection_id.is_none() && c.pinned)
+    })
+    .await;
+
+    a.shutdown().await;
+    hub.shutdown().await;
+}
+
 /// A phone that pairs again (reinstall, or unpair + pair) replaces its old
 /// entry instead of being listed twice, and a dead remembered address
 /// doesn't keep a client from the hub.

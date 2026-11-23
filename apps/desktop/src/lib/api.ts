@@ -6,6 +6,7 @@ import type {
   CaptureState,
   Clip,
   ClipSummary,
+  Collection,
   DayCount,
   IngestOutcome,
   ListQuery,
@@ -51,6 +52,17 @@ export const api = {
   dayCounts: (from: number, to: number) => call<DayCount[]>("day_counts", { from, to }),
   sourceApps: () => call<string[]>("source_apps"),
   setPinned: (id: string, pinned: boolean) => call<void>("set_pinned", { id, pinned }),
+  listCollections: () => call<Collection[]>("list_collections"),
+  createCollection: (name: string, icon: string | null, color: string | null) =>
+    call<Collection>("create_collection", { name, icon, color }),
+  updateCollection: (id: string, name: string, icon: string | null, color: string | null) =>
+    call<Collection>("update_collection", { id, name, icon, color }),
+  reorderCollections: (ids: string[]) => call<void>("reorder_collections", { ids }),
+  /** Deletes the collection; its clips stay in the history. Returns how many it held. */
+  deleteCollection: (id: string) => call<number>("delete_collection", { id }),
+  /** Save a clip to a collection (null: take it out). */
+  setClipCollection: (id: string, collectionId: string | null) =>
+    call<void>("set_clip_collection", { id, collectionId }),
   /** Desktop: moves the clip to the trash. Android: deletes it. */
   deleteClip: (id: string) => call<void>("delete_clip", { id }),
   /** Trashed clips, most recently deleted first (desktop). */

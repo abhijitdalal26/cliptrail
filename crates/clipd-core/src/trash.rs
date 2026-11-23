@@ -24,7 +24,7 @@ pub const TRASH_KEEP_MS: Millis = 30 * 24 * 60 * 60 * 1000;
 /// Every column of `clips` except `pk`, in the order both tables use.
 const CLIP_COLS: &str = "id, content_hash, kind, subkind, text, html, files, image_path, \
      thumb_path, width, height, char_count, line_count, source_app, device_id, created_at, \
-     last_seen_at, copy_count, pinned, masked, expires_at";
+     last_seen_at, copy_count, pinned, masked, expires_at, collection_id";
 
 /// Migration v3 (see `store::MIGRATIONS`).
 pub(crate) const SCHEMA_V3: &str = r#"

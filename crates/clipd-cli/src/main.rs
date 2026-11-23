@@ -564,6 +564,7 @@ mod tests {
             pinned: false,
             masked: false,
             expires_at: None,
+            collection_id: None,
         }
     }
 

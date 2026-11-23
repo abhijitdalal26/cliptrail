@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, ArrowLeft, Bell, ChevronRight, ClipboardPlus, Layers, Search, Settings, Star, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Bell, ChevronRight, ClipboardPlus, Layers, Plus, Search, Settings, Star, X } from "lucide-react";
 import { api, errorMessage, isTauri, onClipsChanged } from "../lib/api";
 import { androidApi, type AndroidStatus } from "../lib/android";
 import { cx } from "../lib/cx";
@@ -10,7 +10,9 @@ import { platformIcon, syncApi, useDeviceInfo, useSyncView } from "../lib/sync";
 import { remoteImageFile } from "../lib/media";
 import { useTheme } from "../lib/theme";
 import { dismiss, toast } from "../lib/toast";
-import { ALL_KINDS, type ClipSummary, type Kind, type ListQuery, type Stats } from "../lib/types";
+import { ALL_KINDS, type ClipSummary, type Collection, type Kind, type ListQuery, type Stats } from "../lib/types";
+import { collectionsLoaded, useCollections } from "../lib/collections";
+import { CollectionDialog, CollectionIcon } from "../components/Collections";
 import { useClips } from "../lib/useClips";
 import { Toasts } from "../components/Toasts";
 import { Preview } from "../dashboard/Preview";
@@ -18,14 +20,17 @@ import { Timeline, type TimelineHandle } from "../dashboard/Timeline";
 import { MobileSettings } from "./MobileSettings";
 import { UpdateCard } from "./MobileUpdates";
 
-/** A kind, favorites, or the clips from one device ("dev:<id>"). */
-type Filter = "all" | "pinned" | Kind | `dev:${string}`;
+/** A kind, favorites, the clips from one device ("dev:<id>") or in one collection ("col:<id>"). */
+type Filter = "all" | "pinned" | Kind | `dev:${string}` | `col:${string}`;
 const UNDO_MS = 5000;
 
 /** Phone layout: search on top, kind chips, day-grouped list, full-screen clip sheet, settings sheet. */
 export function MobileApp() {
   useTick(60_000);
   const [filter, setFilter] = useState<Filter>("all");
+  const collections = useCollections();
+  /** New (null) or edit (a collection) dialog; undefined = closed. */
+  const [collectionDialog, setCollectionDialog] = useState<Collection | null | undefined>(undefined);
   const deviceInfo = useDeviceInfo();
   const [search, setSearch] = useState("");
   const debounced = useDebounced(search.trim(), 160);
@@ -52,14 +57,22 @@ export function MobileApp() {
 
   const query = useMemo<ListQuery>(
     () => ({
-      kind: filter !== "all" && filter !== "pinned" && !filter.startsWith("dev:") ? (filter as Kind) : null,
+      kind: filter !== "all" && filter !== "pinned" && !/^(dev|col):/.test(filter) ? (filter as Kind) : null,
       pinned_only: filter === "pinned",
       device_id: filter.startsWith("dev:") ? filter.slice(4) : null,
+      collection_id: filter.startsWith("col:") ? filter.slice(4) : null,
       search: debounced || null,
     }),
     [filter, debounced],
   );
   const clips = useClips(query);
+
+  // The chosen collection was deleted (here or on another device).
+  useEffect(() => {
+    if (filter.startsWith("col:") && collectionsLoaded() && !collections.some((c) => `col:${c.id}` === filter)) {
+      setFilter("all");
+    }
+  }, [filter, collections]);
 
   // ---------- pending deletes (undo) ----------
   const [pending, setPending] = useState<Set<string>>(new Set());
@@ -259,9 +272,16 @@ export function MobileApp() {
   // ---------- derived ----------
   const byKind = new Map(stats?.by_kind ?? []);
   const byDevice = (stats?.by_device ?? []).length > 1 ? (stats?.by_device ?? []) : [];
-  const chips: { f: Filter; label: string; count?: number; icon: React.ReactNode }[] = [
+  const chips: { f: Filter; label: string; count?: number; icon: React.ReactNode; collection?: Collection }[] = [
     { f: "all", label: "All", count: stats?.total, icon: <Layers size={14} strokeWidth={2} /> },
     { f: "pinned", label: "Favorites", count: stats?.pinned, icon: <Star size={14} strokeWidth={2} /> },
+    ...collections.map((c) => ({
+      f: `col:${c.id}` as Filter,
+      label: c.name,
+      count: c.count,
+      icon: <CollectionIcon collection={c} size={14} />,
+      collection: c,
+    })),
     ...byDevice.map(([id, n]) => {
       const d = deviceInfo(id);
       const Icon = platformIcon(d.platform);
@@ -365,6 +385,11 @@ export function MobileApp() {
             <button
               key={c.f}
               onClick={() => pick(c.f)}
+              // Long-press a collection to rename, recolor or delete it.
+              onContextMenu={(e) => {
+                e.preventDefault();
+                if (c.collection) setCollectionDialog(c.collection);
+              }}
               className={cx(
                 "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-medium transition-colors",
                 on ? "border-transparent bg-accent text-accent-fg" : "border-line bg-panel text-fg-2 active:bg-hover",
@@ -378,7 +403,23 @@ export function MobileApp() {
             </button>
           );
         })}
+        <button
+          onClick={() => setCollectionDialog(null)}
+          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-dashed border-line-strong px-3.5 text-[13px] font-medium text-fg-3 active:bg-hover"
+        >
+          <Plus size={14} strokeWidth={2} />
+          Collection
+        </button>
       </nav>
+      {collectionDialog !== undefined && (
+        <CollectionDialog
+          collection={collectionDialog ?? undefined}
+          onClose={() => setCollectionDialog(undefined)}
+          onSaved={(c) => {
+            if (!collectionDialog) pick(`col:${c.id}`);
+          }}
+        />
+      )}
 
       <main className="min-h-0 flex-1">
         <Timeline

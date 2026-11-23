@@ -87,6 +87,10 @@ fn list_query(args: &Value) -> Result<ListQuery> {
             .get("device_id")
             .and_then(Value::as_str)
             .map(str::to_string),
+        collection_id: args
+            .get("collection_id")
+            .and_then(Value::as_str)
+            .map(str::to_string),
         from: time_arg(args, "from")?,
         to: time_arg(args, "to")?,
         before: time_arg(args, "before")?,
@@ -149,6 +153,7 @@ pub fn call(ctx: &Ctx, name: &str, args: &Value) -> Result<Value> {
         }
         "clip_stats" => Ok(text_result(&serde_json::to_value(store.stats()?)?)),
         "list_source_apps" => Ok(text_result(&json!(store.source_apps()?))),
+        "list_collections" => Ok(text_result(&serde_json::to_value(store.collections()?)?)),
         "day_counts" => {
             let days = limit_arg(args, 30, 365);
             let now = clipd_core::now_millis();
@@ -306,7 +311,7 @@ pub fn definitions() -> Value {
     json!([
             {
                 "name": "search_clips",
-                "description": "Search everything the user has copied on this computer and their synced phone: full-text query plus kind, source app, device, pinned and date filters. Use it whenever the user refers to something they copied, pasted or had earlier (an error, a link, a command, an address, a snippet). Returns clip summaries; sensitive clips show only a masked preview.",
+                "description": "Search everything the user has copied on this computer and their synced phone: full-text query plus kind, source app, device, collection, pinned and date filters. Use it whenever the user refers to something they copied, pasted or had earlier (an error, a link, a command, an address, a snippet). Returns clip summaries; sensitive clips show only a masked preview.",
                 "annotations": { "readOnlyHint": true, "openWorldHint": false },
                 "inputSchema": {
                     "type": "object",
@@ -316,6 +321,7 @@ pub fn definitions() -> Value {
                         "source_app": { "type": "string", "description": "Filter by the app the clip was copied from, e.g. chrome.exe" },
                         "device_id": { "type": "string", "description": "Only clips from this device (ids from list_devices), e.g. the user's phone" },
                         "pinned_only": { "type": "boolean", "description": "Only pinned clips" },
+                        "collection_id": { "type": "string", "description": "Only clips the user saved to this collection (ids from list_collections)" },
                         "from": { "description": "Start of time range: unix-ms or YYYY-MM-DD" },
                         "to": { "description": "End of time range: unix-ms or YYYY-MM-DD" },
                         "limit": { "type": "integer", "description": "Max results (default 25, max 200)" }
@@ -333,6 +339,7 @@ pub fn definitions() -> Value {
                         "source_app": { "type": "string" },
                         "device_id": { "type": "string", "description": "Only clips from this device (see list_devices)" },
                         "pinned_only": { "type": "boolean" },
+                        "collection_id": { "type": "string", "description": "Only clips in this collection (see list_collections)" },
                         "from": { "description": "unix-ms or YYYY-MM-DD" },
                         "to": { "description": "unix-ms or YYYY-MM-DD" },
                         "limit": { "type": "integer" }
@@ -360,6 +367,12 @@ pub fn definitions() -> Value {
             {
                 "name": "list_source_apps",
                 "description": "Apps clips were copied from (for filtering by source_app).",
+                "annotations": { "readOnlyHint": true, "openWorldHint": false },
+                "inputSchema": { "type": "object", "properties": {} }
+            },
+            {
+                "name": "list_collections",
+                "description": "The user's own collections (folders like 'Work' or 'Recipes' they save clips to), with ids for the collection_id filter and clip counts — for 'what's in my Work collection'.",
                 "annotations": { "readOnlyHint": true, "openWorldHint": false },
                 "inputSchema": { "type": "object", "properties": {} }
             },

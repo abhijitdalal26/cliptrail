@@ -35,6 +35,8 @@ import { Actions } from "./Actions";
 import { FilePreview } from "../components/FilePreview";
 import { mediaKind } from "../lib/media";
 import { toast as showToast } from "../lib/toast";
+import { CollectionIcon, CollectionMenu } from "../components/Collections";
+import { useCollections } from "../lib/collections";
 
 interface Props {
   summary: ClipSummary | null;
@@ -91,6 +93,7 @@ export function Preview({ summary, onCopy, onTogglePin, onDelete, toast, trash, 
           </div>
           {!trash && (
             <div className="-mt-0.5 -mr-1.5 flex shrink-0 items-center">
+              <CollectionMenu clip={s} compact />
               <button
                 aria-label={s.pinned ? "Remove from favorites" : "Add to favorites"}
                 aria-pressed={s.pinned}
@@ -156,6 +159,7 @@ export function Preview({ summary, onCopy, onTogglePin, onDelete, toast, trash, 
               </Row>
             )}
             <DeviceRow deviceId={s.device_id} />
+            <CollectionRow id={s.collection_id ?? null} />
             <Row label={s.kind === "image" ? "Resolution" : "Size"}>{sizeLabel(s)}</Row>
             <Row label="Copied">
               <span title={fullDate(s.created_at)}>
@@ -947,5 +951,19 @@ function ContactView({ value, sub }: { value: string; sub: string | null }) {
         <div className="mt-1 text-[12px] text-fg-3">{email ? "Email address" : "Phone number"}</div>
       </div>
     </div>
+  );
+}
+
+/** Which collection the clip is in, if any. */
+function CollectionRow({ id }: { id: string | null }) {
+  const c = useCollections().find((x) => x.id === id);
+  if (!c) return null;
+  return (
+    <Row label="Collection">
+      <span className="inline-flex items-center gap-1.5">
+        <CollectionIcon collection={c} size={13} />
+        {c.name}
+      </span>
+    </Row>
   );
 }
