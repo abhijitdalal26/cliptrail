@@ -58,6 +58,8 @@ pub const MAX_PUSH: usize = 500;
 pub const MAX_PAGE: u32 = 500;
 const EVENTS_BODY_LIMIT: usize = 64 * 1024 * 1024;
 const BLOB_BODY_LIMIT: usize = clipd_core::synced::MAX_SYNCED_IMAGE_BYTES + 1024;
+/// Largest WebSocket message a device may send on the stream.
+const MAX_WS_IN: usize = 64 * 1024;
 const PING_EVERY: Duration = Duration::from_secs(20);
 const REVOKE_CHECK_EVERY: Duration = Duration::from_secs(5);
 const LOCAL_POLL: Duration = Duration::from_secs(1);
@@ -639,7 +641,26 @@ async fn hello(State(hub): State<Arc<Hub>>) -> Result<axum::Json<Hello>, ApiErro
     }))
 }
 
-async fn pair(State(hub): State<Arc<Hub>>, body: Bytes) -> Result<Response, ApiError> {
+/// The address pairing attempts are counted by: IPv6 by /64, since one
+/// device can pick any address in its prefix.
+fn limit_key(ip: IpAddr) -> IpAddr {
+    match ip {
+        IpAddr::V6(v6) => match v6.to_ipv4_mapped() {
+            Some(v4) => IpAddr::V4(v4),
+            None => {
+                let s = v6.segments();
+                IpAddr::V6(std::net::Ipv6Addr::new(s[0], s[1], s[2], s[3], 0, 0, 0, 0))
+            }
+        },
+        v4 => v4,
+    }
+}
+
+async fn pair(
+    State(hub): State<Arc<Hub>>,
+    ConnectInfo(peer): ConnectInfo<SocketAddr>,
+    body: Bytes,
+) -> Result<Response, ApiError> {
     let req: PairRequest = serde_json::from_slice(&body)
         .map_err(|_| ApiError(StatusCode::BAD_REQUEST, "malformed pairing request".into()))?;
     let e = &hub.engine;
@@ -650,14 +671,19 @@ async fn pair(State(hub): State<Arc<Hub>>, body: Bytes) -> Result<Response, ApiE
         ));
     }
     let now = now_millis();
-    let res = lock(&hub.offers).accept(
-        &req,
-        now,
-        &e.space.space_id,
-        &e.space.device_id,
-        &e.space.hub_name,
-        e.keys.master(),
-    );
+    let res = {
+        let mut offers = lock(&hub.offers);
+        offers.allow(limit_key(peer.ip()), now).and_then(|_| {
+            offers.accept(
+                &req,
+                now,
+                &e.space.space_id,
+                &e.space.device_id,
+                &e.space.hub_name,
+                e.keys.master(),
+            )
+        })
+    };
     let (resp, dev) = match res {
         Ok(v) => v,
         Err(err) => {
@@ -877,6 +903,58 @@ fn attach_uploaded_blob(engine: &Engine, blob_id: &str, hash: &[u8]) {
     }
 }
 
+/// Most bytes of uploaded images waiting for their clip to arrive.
+const MAX_STAGED_BYTES: u64 = 512 * 1024 * 1024;
+/// An upload whose clip hasn't arrived after this long is an orphan.
+const ORPHAN_AFTER_MS: Millis = 60 * 60 * 1000;
+
+/// Uploads wait in the blob dir until their clip arrives (or a client asks
+/// for them). Paired devices must not be able to fill the disk with them:
+/// past `cap`, drop orphans (`waiting` says which ids still have a clip
+/// expecting them), then refuse. True when `len` more bytes fit.
+fn make_room(
+    dir: &std::path::Path,
+    blob_id: &str,
+    len: u64,
+    now: Millis,
+    cap: u64,
+    waiting: impl Fn(&str) -> bool,
+) -> bool {
+    let staged = || -> Vec<(PathBuf, u64, Millis)> {
+        let Ok(rd) = std::fs::read_dir(dir) else {
+            return Vec::new();
+        };
+        rd.filter_map(|e| e.ok())
+            // The same id is about to be replaced.
+            .filter(|e| e.file_name().to_str() != Some(blob_id))
+            .filter_map(|e| {
+                let m = e.metadata().ok()?;
+                let at = m
+                    .modified()
+                    .ok()?
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .ok()?;
+                Some((e.path(), m.len(), at.as_millis() as Millis))
+            })
+            .collect()
+    };
+    let total = |v: &[(PathBuf, u64, Millis)]| v.iter().map(|f| f.1).sum::<u64>();
+    let files = staged();
+    if total(&files) + len <= cap {
+        return true;
+    }
+    for (path, _, at) in &files {
+        let expected = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .is_some_and(&waiting);
+        if now - at > ORPHAN_AFTER_MS && !expected {
+            let _ = std::fs::remove_file(path);
+        }
+    }
+    total(&staged()) + len <= cap
+}
+
 async fn put_blob(
     State(hub): State<Arc<Hub>>,
     AxPath(blob_id): AxPath<String>,
@@ -899,6 +977,14 @@ async fn put_blob(
         }
         let dir = engine.blob_dir();
         std::fs::create_dir_all(&dir).context("create blob dir")?;
+        let waiting = |id: &str| engine.db.pending_blob_hash(id).ok().flatten().is_some();
+        let len = body.len() as u64;
+        if !make_room(&dir, &blob_id, len, now_millis(), MAX_STAGED_BYTES, waiting) {
+            return Ok(Err(ApiError(
+                StatusCode::INSUFFICIENT_STORAGE,
+                "too many images waiting for their clips".into(),
+            )));
+        }
         std::fs::write(dir.join(&blob_id), &body).context("store blob")?;
         let hash = match engine.db.pending_blob_hash(&blob_id)? {
             Some(h) => Some(h),
@@ -1042,6 +1128,8 @@ async fn stream(
     ws: WebSocketUpgrade,
 ) -> Result<Response, ApiError> {
     let device = authenticate(&hub, &method, &uri, &headers, b"")?;
+    // Devices never send anything but pongs and close frames.
+    let ws = ws.max_message_size(MAX_WS_IN).max_frame_size(MAX_WS_IN);
     Ok(ws.on_upgrade(move |socket| ws_session(hub, device, q.since, socket)))
 }
 
@@ -1169,6 +1257,38 @@ mod tests {
         for ip in ["8.8.8.8", "172.32.0.1", "2001:db8::1", "::ffff:1.1.1.1"] {
             assert!(!is_lan(ip.parse().unwrap()), "{ip}");
         }
+    }
+
+    #[test]
+    fn staged_uploads_are_bounded() {
+        let dir = std::env::temp_dir().join(format!("clipd-stage-{}", ulid::Ulid::generate()));
+        std::fs::create_dir_all(&dir).unwrap();
+        for id in ["orphan", "expected"] {
+            std::fs::write(dir.join(id), [0u8; 600]).unwrap();
+        }
+        let now = now_millis();
+        let waiting = |id: &str| id == "expected";
+        // Fits under the cap: nothing is touched.
+        assert!(make_room(&dir, "new", 100, now, 2000, waiting));
+        // Over the cap while both are fresh: refused, nothing deleted.
+        assert!(!make_room(&dir, "new", 1000, now, 2000, waiting));
+        assert!(dir.join("orphan").exists());
+        // Replacing an id doesn't count its old copy.
+        assert!(make_room(&dir, "orphan", 1000, now, 2000, waiting));
+        // An hour on: the orphan goes, the one a clip is waiting for stays.
+        let later = now + ORPHAN_AFTER_MS + 60_000;
+        assert!(make_room(&dir, "new", 1000, later, 2000, waiting));
+        assert!(!dir.join("orphan").exists() && dir.join("expected").exists());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn pairing_limits_ipv6_by_prefix() {
+        let a: IpAddr = "fd00:1:2:3:aaaa::1".parse().unwrap();
+        let b: IpAddr = "fd00:1:2:3:bbbb::9".parse().unwrap();
+        assert_eq!(limit_key(a), limit_key(b));
+        let v4: IpAddr = "::ffff:192.168.1.4".parse().unwrap();
+        assert_eq!(limit_key(v4), "192.168.1.4".parse::<IpAddr>().unwrap());
     }
 
     #[test]

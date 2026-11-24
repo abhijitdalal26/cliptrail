@@ -54,6 +54,8 @@ use crate::store::{Enrolled, Millis, Store};
 pub const MAX_PUSH: usize = 500;
 pub const MAX_PAGE: u32 = 500;
 const EVENTS_BODY_LIMIT: usize = 64 * 1024 * 1024;
+/// Largest WebSocket message a device may send on the stream.
+const MAX_WS_IN: usize = 64 * 1024;
 const PING_EVERY: Duration = Duration::from_secs(20);
 const REVOKE_CHECK_EVERY: Duration = Duration::from_secs(5);
 
@@ -877,6 +879,8 @@ async fn stream(
     ws: WebSocketUpgrade,
 ) -> Result<Response, ApiError> {
     let a = authenticate(&relay, peer, &method, &uri, &headers, b"").await?;
+    // Devices never send anything but pongs and close frames.
+    let ws = ws.max_message_size(MAX_WS_IN).max_frame_size(MAX_WS_IN);
     Ok(ws.on_upgrade(move |socket| ws_session(relay, a, q.since, socket)))
 }
 
