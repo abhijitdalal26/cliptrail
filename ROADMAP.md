@@ -5,15 +5,19 @@
 - [x] `clipd-capture`: Windows watcher + paste-back; Linux X11/Wayland (CI-checked)
 - [x] `clipd` CLI: watch, list, search, show, stats, pin, delete
 - [x] Desktop (Tauri 2): tray, hotkey picker with paste-back, timeline dashboard + category lanes + search, settings
-- [ ] Encrypted sync: desktop hosts on the LAN, QR pairing, echo suppression (in progress)
-- [ ] Local database encryption at rest
-- [ ] Release installers (workflow ready; first tag at v0.1.0)
+- [x] Encrypted sync: desktop hosts on the LAN, QR pairing, echo suppression, phone reconnects after the laptop's address changes
+- [x] Local database encryption at rest (SQLite3 Multiple Ciphers, ADR 0002; images encrypted too)
+- [x] Release installers (shipping since v0.1.0; latest v0.1.8)
 - [ ] Read-only web dashboard
 
 ## M2 — Mobile capture
-- [ ] Android: accessibility-triggered capture (no custom keyboard), Quick Settings tile, share target, battery onboarding — capture spike built, awaiting on-device test
+- [x] Android: tap-to-capture (no accessibility service, no custom keyboard): notification button, Quick Settings tile, share target, selection menu; sideloaded APK, tested on Galaxy S23 FE
 - [ ] iOS: share extension, Siri Shortcut, widget, keyboard
 - [ ] Import from Ditto / CopyQ / Win+V history
+
+## Also shipped
+- [x] Collections (your own folders, synced on desktop and Android)
+- [x] AI assistants: MCP server built into the desktop app (v0.1.7)
 
 ## M3 — Power features
 - [ ] OCR on image clips (searchable screenshots)
