@@ -1006,11 +1006,15 @@ async fn refresh_devices(sh: &Shared, host: &str) -> Result<()> {
                 .zip(&rows)
                 .any(|(a, b)| a.id != b.id || a.name != b.name);
         engine.db.replace_devices(&rows)?;
-        Ok(differs)
+        let merged = engine.merge_replaced_devices()?;
+        Ok((differs, merged))
     })
     .await?;
-    if changed {
+    if changed.0 {
         notice(sh, SyncNotice::StatusChanged);
+    }
+    if changed.1 > 0 {
+        notice(sh, SyncNotice::ClipsChanged { count: 0 });
     }
     Ok(())
 }

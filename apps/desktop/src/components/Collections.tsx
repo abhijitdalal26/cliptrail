@@ -88,8 +88,9 @@ export function CollectionDialog({
       ? api.updateCollection(collection.id, trimmed, icon, color)
       : api.createCollection(trimmed, icon, color);
     req
+      // Refresh first: views that select the new collection check it's in the list.
+      .then((c) => refreshCollections().then(() => c))
       .then((c) => {
-        void refreshCollections();
         toast(editing ? "Collection updated" : `Created “${c.name}”`);
         onSaved?.(c);
         onClose();
