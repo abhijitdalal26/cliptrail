@@ -401,25 +401,44 @@ pub fn disconnect_all() -> Result<()> {
     }
 }
 
-/// Run the `claude` CLI. Ok(false) when it isn't installed; Ok(true) when it
-/// ran and succeeded.
+/// `claude <args>` for `cmd /S /C "…"`, every word in double quotes so `&`,
+/// `|`, `^`, `<` and `>` in a path stay literal. None when a word has a
+/// character quotes don't protect from cmd (`"`, `%`) or a control char.
+#[cfg(any(windows, test))]
+fn cmd_line(args: &[&str]) -> Option<String> {
+    let words: Vec<String> = std::iter::once("claude")
+        .chain(args.iter().copied())
+        .map(|w| {
+            (!w.chars().any(|c| c == '"' || c == '%' || c.is_control())).then(|| format!("\"{w}\""))
+        })
+        .collect::<Option<_>>()?;
+    Some(words.join(" "))
+}
+
+/// Run the `claude` CLI. Ok(false) when it isn't installed (or can't be run
+/// safely with these arguments); Ok(true) when it ran and succeeded.
 fn claude_cli(args: &[&str]) -> Result<bool> {
-    let mut cmd = if cfg!(windows) {
-        // `claude` is often an npm .cmd shim, which only cmd resolves.
+    #[cfg(windows)]
+    let mut cmd = {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        // `claude` is often an npm .cmd shim, which only cmd resolves. cmd
+        // parses its own command line, so quote every word for it; a path
+        // it can't carry safely falls back to editing the file.
+        let Some(line) = cmd_line(args) else {
+            return Ok(false);
+        };
         let mut c = std::process::Command::new("cmd");
-        c.arg("/C").arg("claude").args(args);
+        c.raw_arg(format!("/D /S /C \"{line}\""));
+        c.creation_flags(CREATE_NO_WINDOW);
         c
-    } else {
+    };
+    #[cfg(not(windows))]
+    let mut cmd = {
         let mut c = std::process::Command::new("claude");
         c.args(args);
         c
     };
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-        cmd.creation_flags(CREATE_NO_WINDOW);
-    }
     let out = match cmd.stdin(std::process::Stdio::null()).output() {
         Ok(o) => o,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(false),
@@ -645,6 +664,22 @@ fn edit_toml(text: &str, server: Option<(&str, &[String])>) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn cmd_line_quotes_every_word() {
+        assert_eq!(
+            cmd_line(&[
+                "mcp",
+                "add",
+                "--",
+                r"C:\Users\Tom&Jerry\ClipTrail\cliptrail.exe"
+            ])
+            .unwrap(),
+            r#""claude" "mcp" "add" "--" "C:\Users\Tom&Jerry\ClipTrail\cliptrail.exe""#
+        );
+        assert!(cmd_line(&[r"C:\Users\%USERNAME%\x.exe"]).is_none());
+        assert!(cmd_line(&["a\"b"]).is_none());
+    }
 
     const ARGS: &[String] = &[];
 

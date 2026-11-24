@@ -14,6 +14,8 @@
 //! hub key in it, can't forge a proof without the secret, and can't open
 //! the reply without the device's private key.
 
+use std::net::IpAddr;
+
 use clipd_core::Millis;
 use serde::{Deserialize, Serialize};
 use x25519_dalek::{PublicKey, StaticSecret};
@@ -333,15 +335,18 @@ pub struct AcceptedDevice {
     pub check_code: String,
 }
 
-/// Hub side: live offers plus a global attempt limiter.
+/// Hub side: live offers plus an attempt limiter.
 #[derive(Default)]
 pub struct PairOffers {
     offers: Vec<PairOffer>,
-    attempts: Vec<Millis>,
+    attempts: Vec<(Millis, IpAddr)>,
 }
 
-/// Max `POST /v1/pair` attempts per minute (all sources together).
+/// Max `POST /v1/pair` attempts per minute from one address. Per address,
+/// so a noisy device on the LAN can't lock the user's phone out of pairing.
 pub const MAX_PAIR_ATTEMPTS_PER_MIN: usize = 10;
+/// Max attempts per minute from every address together (bounds the work).
+pub const MAX_PAIR_ATTEMPTS_TOTAL_PER_MIN: usize = 120;
 
 impl PairOffers {
     pub fn create(&mut self, hosts: Vec<String>, hub_name: &str, now: Millis) -> PairUri {
@@ -378,6 +383,20 @@ impl PairOffers {
         }
     }
 
+    /// Count a `POST /v1/pair` from `from`; Err when it's over the limit.
+    /// Call before [`PairOffers::accept`].
+    pub fn allow(&mut self, from: IpAddr, now: Millis) -> Result<(), PairError> {
+        self.attempts.retain(|(t, _)| now - t < 60_000);
+        let from_here = self.attempts.iter().filter(|(_, ip)| *ip == from).count();
+        if from_here >= MAX_PAIR_ATTEMPTS_PER_MIN
+            || self.attempts.len() >= MAX_PAIR_ATTEMPTS_TOTAL_PER_MIN
+        {
+            return Err(PairError::RateLimited);
+        }
+        self.attempts.push((now, from));
+        Ok(())
+    }
+
     /// Check a request against the live offers. On success the offer is
     /// burned and the sealed reply is returned with the new device's token.
     pub fn accept(
@@ -389,12 +408,6 @@ impl PairOffers {
         hub_name: &str,
         master: &SecretKey,
     ) -> Result<(PairResponse, AcceptedDevice), PairError> {
-        self.attempts.retain(|t| now - t < 60_000);
-        if self.attempts.len() >= MAX_PAIR_ATTEMPTS_PER_MIN {
-            return Err(PairError::RateLimited);
-        }
-        self.attempts.push(now);
-
         let id_ok = !req.device_id.is_empty()
             && req.device_id.len() <= 64
             && req
@@ -477,6 +490,8 @@ impl PairOffers {
 mod tests {
     use super::*;
 
+    const PHONE_IP: IpAddr = IpAddr::V4(std::net::Ipv4Addr::new(192, 168, 1, 20));
+
     fn offer(now: Millis) -> (PairOffers, PairUri) {
         let mut offers = PairOffers::default();
         let uri = offers.create(
@@ -493,6 +508,7 @@ mod tests {
         now: Millis,
         master: &SecretKey,
     ) -> Result<(PairResponse, AcceptedDevice), PairError> {
+        offers.allow(PHONE_IP, now)?;
         offers.accept(req, now, "SPACE", "HUB", "My PC", master)
     }
 
@@ -615,5 +631,41 @@ mod tests {
             Some(PairError::RateLimited)
         );
         assert!(accept(&mut offers, good.request(), 70_000, &master).is_ok());
+    }
+
+    #[test]
+    fn a_noisy_neighbour_cant_block_pairing() {
+        let (mut offers, uri) = offer(0);
+        let master = SecretKey::generate();
+        let mut bad = uri.clone();
+        bad.secret = random_bytes();
+        let c = ClientPairing::new(bad, "X", "x", "linux");
+        let attacker = IpAddr::V4(std::net::Ipv4Addr::new(192, 168, 1, 66));
+        for _ in 0..MAX_PAIR_ATTEMPTS_PER_MIN * 3 {
+            let _ = offers
+                .allow(attacker, 5)
+                .and_then(|_| offers.accept(c.request(), 5, "SPACE", "HUB", "My PC", &master));
+        }
+        let phone = ClientPairing::new(uri, "PHONE1", "Pixel", "android");
+        assert!(accept(&mut offers, phone.request(), 6, &master).is_ok());
+
+        // Many addresses together still hit the overall cap.
+        let (mut offers, uri) = offer(0);
+        for n in 0..MAX_PAIR_ATTEMPTS_TOTAL_PER_MIN {
+            let ip = IpAddr::V4(std::net::Ipv4Addr::new(
+                10,
+                0,
+                (n / 250) as u8,
+                (n % 250) as u8,
+            ));
+            let _ = offers
+                .allow(ip, 5)
+                .and_then(|_| offers.accept(c.request(), 5, "SPACE", "HUB", "My PC", &master));
+        }
+        let phone = ClientPairing::new(uri, "PHONE1", "Pixel", "android");
+        assert_eq!(
+            accept(&mut offers, phone.request(), 6, &master).err(),
+            Some(PairError::RateLimited)
+        );
     }
 }
