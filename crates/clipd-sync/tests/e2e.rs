@@ -432,6 +432,55 @@ async fn collections_sync() {
     hub.shutdown().await;
 }
 
+/// "Try now" skips the backoff: after the hub was away long enough for the
+/// client to wait several seconds between attempts, `reconnect_now`
+/// connects at once when the hub is back.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn reconnect_now_skips_the_backoff() {
+    let (hub_dir, a_dir) = (TempDir::new("rnhub"), TempDir::new("rna"));
+    let (hub_ks, a_ks) = (
+        Arc::new(MemoryKeyStore::default()),
+        Arc::new(MemoryKeyStore::default()),
+    );
+    let cfg = |port| HubConfig {
+        data_dir: hub_dir.0.clone(),
+        keystore: hub_ks.clone(),
+        port,
+        bind: IpAddr::V4(Ipv4Addr::LOCALHOST),
+        advertise: Some(vec!["127.0.0.1".into()]),
+        name: "Test Hub".into(),
+    };
+    let hub = hub::start(cfg(0)).await.unwrap();
+    let port = hub.port();
+    let offer = hub.create_offer();
+    client::pair(&a_dir.0, a_ks.clone(), &offer.uri, "Phone", "android")
+        .await
+        .unwrap();
+    let a = start_client(&a_dir.0, &a_ks);
+    wait("connected", || a.status().is_ok_and(|s| s.connected)).await;
+
+    // Hub away: failed attempts back off 1 s, 2 s, 4 s, then 8 s.
+    hub.shutdown().await;
+    wait("disconnected", || a.status().is_ok_and(|s| !s.connected)).await;
+    tokio::time::sleep(Duration::from_millis(7500)).await;
+
+    let hub = hub::start(cfg(port)).await.unwrap();
+    let t0 = std::time::Instant::now();
+    a.reconnect_now();
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(3);
+    while !a.status().is_ok_and(|s| s.connected) {
+        assert!(
+            tokio::time::Instant::now() < deadline,
+            "not reconnected within 3 s of reconnect_now"
+        );
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    assert!(t0.elapsed() < Duration::from_secs(3));
+
+    a.shutdown().await;
+    hub.shutdown().await;
+}
+
 /// A phone that pairs again (reinstall, or unpair + pair) replaces its old
 /// entry instead of being listed twice, and a dead remembered address
 /// doesn't keep a client from the hub.

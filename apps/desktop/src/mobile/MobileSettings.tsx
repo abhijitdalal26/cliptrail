@@ -10,6 +10,7 @@ import {
   Monitor,
   Moon,
   QrCode,
+  RefreshCw,
   ShieldCheck,
   Sun,
   Trash2,
@@ -20,7 +21,17 @@ import { androidApi, type AndroidStatus, type SettingsScreen } from "../lib/andr
 import { cx } from "../lib/cx";
 import { untilLabel } from "../lib/format";
 import { isAndroid } from "../lib/platform";
-import { otherDevices, platformIcon, refreshSync, setSyncView, SHOW_RELAY, syncApi, useSyncView, type PairOutcome } from "../lib/sync";
+import {
+  otherDevices,
+  platformIcon,
+  reconnectNow,
+  refreshSync,
+  setSyncView,
+  SHOW_RELAY,
+  syncApi,
+  useSyncView,
+  type PairOutcome,
+} from "../lib/sync";
 import { setThemePref } from "../lib/theme";
 import type { Settings, SettingsView, ThemePref } from "../lib/types";
 import { ClearHistoryDialog } from "../components/ClearHistoryDialog";
@@ -385,6 +396,7 @@ function DevicesSection({ pairLink, onPairLinkUsed }: { pairLink: string | null;
   const [error, setError] = useState<string | null>(null);
   const [paired, setPaired] = useState<PairOutcome | null>(null);
   const [confirmUnpair, setConfirmUnpair] = useState(false);
+  const [reconnecting, setReconnecting] = useState(false);
   const started = useRef<string | null>(null);
 
   useEffect(() => refreshSync(), []);
@@ -545,6 +557,31 @@ function DevicesSection({ pairLink, onPairLinkUsed }: { pairLink: string | null;
               }
             />
           </div>
+          {v.enabled && !st.connected && (
+            <div className="flex items-center gap-3 px-4 pb-3">
+              <div className="min-w-0 flex-1 text-[12px] leading-[1.45] text-fg-3">
+                It retries on its own every minute or so. Same Wi-Fi as the computer, and ClipTrail running there?
+              </div>
+              <Button
+                size="sm"
+                variant="primary"
+                icon={RefreshCw}
+                disabled={reconnecting}
+                onClick={() => {
+                  setReconnecting(true);
+                  setError(null);
+                  void reconnectNow()
+                    .then((ok) => {
+                      if (!ok) setError(`Still can't reach ${st.hub_name ?? "your computer"}.`);
+                    })
+                    .catch((e) => setError(errorMessage(e)))
+                    .finally(() => setReconnecting(false));
+                }}
+              >
+                {reconnecting ? "Connecting…" : "Reconnect"}
+              </Button>
+            </div>
+          )}
           {(st.outbox > 0 || st.pending_images > 0) && (
             <div className="px-4 py-2.5 text-[12px] text-fg-3">
               {st.outbox > 0 && `${st.outbox} change${st.outbox === 1 ? "" : "s"} waiting to send. `}

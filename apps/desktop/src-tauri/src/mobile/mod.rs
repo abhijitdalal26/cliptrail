@@ -205,6 +205,7 @@ pub fn run() {
             sync::sync_set_enabled,
             sync::sync_set_port,
             sync::sync_restart,
+            sync::sync_reconnect,
             sync::sync_create_offer,
             sync::sync_cancel_offer,
             sync::sync_revoke,

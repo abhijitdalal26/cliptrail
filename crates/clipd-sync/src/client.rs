@@ -267,6 +267,8 @@ struct Shared {
     http: reqwest::Client,
     notices: broadcast::Sender<SyncNotice>,
     local: Notify,
+    /// "Try now" from the user: end the offline wait and reconnect.
+    retry: Notify,
     live: Mutex<LiveState>,
     fetch_images: bool,
     stop: watch::Receiver<bool>,
@@ -308,6 +310,7 @@ pub fn start(cfg: ClientConfig) -> Result<ClientHandle> {
         http: http()?,
         notices,
         local: Notify::new(),
+        retry: Notify::new(),
         live: Mutex::new(LiveState::default()),
         fetch_images: cfg.fetch_images,
         stop: stop_rx,
@@ -340,6 +343,16 @@ impl ClientHandle {
     pub fn notify_local_change(&self) {
         self.shared.local.notify_one();
         self.relays.waker().wake();
+    }
+
+    /// Reconnect now instead of after the backoff (the user tapped the
+    /// offline computer). Also looks for the hub on the LAN if its known
+    /// addresses don't answer. No-op while connected.
+    pub fn reconnect_now(&self) {
+        if !lock(&self.shared.live).connected {
+            self.shared.retry.notify_one();
+        }
+        self.relays.wake();
     }
 
     /// The relay list changed (e.g. after [`crate::relay_add`]): apply it
@@ -543,16 +556,25 @@ async fn run(sh: Arc<Shared>) {
         }
         // Offline: keep turning local changes into outbox rows.
         let deadline = tokio::time::Instant::now() + backoff;
+        let mut retried = false;
         loop {
             let _ = pump_local(&sh).await;
             tokio::select! {
                 _ = tokio::time::sleep_until(deadline) => break,
                 _ = tokio::time::sleep(Duration::from_secs(1)) => {}
                 _ = sh.local.notified() => {}
+                _ = sh.retry.notified() => {
+                    retried = true;
+                    break;
+                }
                 _ = crate::engine::stopped(&mut stop) => return,
             }
         }
-        backoff = (backoff * 2).min(MAX_BACKOFF);
+        backoff = if retried {
+            Duration::from_secs(1)
+        } else {
+            (backoff * 2).min(MAX_BACKOFF)
+        };
     }
 }
 

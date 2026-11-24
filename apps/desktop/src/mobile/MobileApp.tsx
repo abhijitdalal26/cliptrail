@@ -1,12 +1,25 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, ArrowLeft, Bell, ChevronRight, ClipboardPlus, Layers, Plus, Search, Settings, Star, X } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Bell,
+  ChevronRight,
+  ClipboardPlus,
+  Layers,
+  Plus,
+  RefreshCw,
+  Search,
+  Settings,
+  Star,
+  X,
+} from "lucide-react";
 import { api, errorMessage, isTauri, onClipsChanged } from "../lib/api";
 import { androidApi, type AndroidStatus } from "../lib/android";
 import { cx } from "../lib/cx";
 import { useDebounced, useEvent, useTick } from "../lib/hooks";
 import { KIND_META } from "../lib/kinds";
 import { isAndroid } from "../lib/platform";
-import { platformIcon, syncApi, useDeviceInfo, useSyncView } from "../lib/sync";
+import { platformIcon, reconnectNow, syncApi, useDeviceInfo, useSyncView } from "../lib/sync";
 import { remoteImageFile } from "../lib/media";
 import { useTheme } from "../lib/theme";
 import { dismiss, toast } from "../lib/toast";
@@ -469,18 +482,49 @@ export function MobileApp() {
   );
 }
 
-/** Header pill: sync state once the phone is paired. */
+/** Header pill: sync state once the phone is paired. Offline: tap to try
+ *  reaching the computer now; connected or off: tap for the settings. */
 function SyncChip({ onOpen }: { onOpen: () => void }) {
   const v = useSyncView();
+  const [trying, setTrying] = useState(false);
   if (!v || !v.status.configured || v.status.role !== "client") return null;
   const ok = v.enabled && v.status.connected;
+  const offline = v.enabled && !ok;
+  const hub = v.status.hub_name ?? "your computer";
+
+  const tryNow = () => {
+    if (trying) return;
+    setTrying(true);
+    void reconnectNow()
+      .then((connected) =>
+        toast(
+          connected
+            ? `Connected to ${hub}`
+            : {
+                message: `Can't reach ${hub}. Is it on, on the same Wi-Fi?`,
+                tone: "error",
+                action: { label: "Details", run: onOpen },
+              },
+        ),
+      )
+      .catch((e) => toast({ message: errorMessage(e), tone: "error" }))
+      .finally(() => setTrying(false));
+  };
+
   return (
     <button
-      onClick={onOpen}
-      className="inline-flex h-8 max-w-[150px] items-center gap-1.5 rounded-full border border-line bg-panel px-2.5 text-[12px] font-medium text-fg-2"
+      onClick={offline ? tryNow : onOpen}
+      aria-label={offline ? `${hub} is offline. Tap to reconnect` : undefined}
+      className="inline-flex h-8 max-w-[160px] items-center gap-1.5 rounded-full border border-line bg-panel px-2.5 text-[12px] font-medium text-fg-2 active:bg-hover"
     >
-      <span className={cx("h-[7px] w-[7px] shrink-0 rounded-full", ok ? "bg-success" : "bg-[#f59e0b]")} />
-      <span className="truncate">{!v.enabled ? "Sync off" : ok ? (v.status.hub_name ?? "Synced") : "Offline"}</span>
+      {trying ? (
+        <RefreshCw size={12} strokeWidth={2.4} className="shrink-0 animate-spin text-fg-3" />
+      ) : (
+        <span className={cx("h-[7px] w-[7px] shrink-0 rounded-full", ok ? "bg-success" : "bg-[#f59e0b]")} />
+      )}
+      <span className="truncate">
+        {!v.enabled ? "Sync off" : ok ? (v.status.hub_name ?? "Synced") : trying ? "Connecting…" : "Offline · tap to retry"}
+      </span>
     </button>
   );
 }
