@@ -17,7 +17,7 @@ INDEX = r"""
 <section class="hero">
   <div class="wrap">
     <div class="hero-copy">
-      <a class="badge" href="{{R}}changelog.html"><span class="dot"></span>v0.1.8: import copied files to your phone <span class="arrow">→</span></a>
+      <a class="badge" href="{{R}}changelog.html"><span class="dot"></span>v0.1.9: collections and a security fix <span class="arrow">→</span></a>
       <h1 class="h1">Your clipboard,<br><span class="grad">everywhere, forever.</span></h1>
       <p class="lede">{{B}} remembers everything you copy, knows what each thing is, and puts it one keystroke away. Pair your devices and your history follows you, end-to-end encrypted. Open source, no account, no tracking.</p>
       <div class="hero-cta">
@@ -464,20 +464,12 @@ CHANGELOG = r"""
   <div class="wrap">
     <div class="changelog-entry">
       <div class="changelog-meta">
-        <div class="ver">v0.1.8</div>
-        <div class="date">2026-11-22</div>
+        <div class="ver">v0.1.9</div>
+        <div class="date">2026-11-25</div>
         <span class="chip chip-accent">Alpha</span>
       </div>
       <div class="prose">
-        <p>Bring a file you copied on your computer to your phone, only when you want it.</p>
-
-        <div class="cl-group">
-          <h3>Android</h3>
-          <ul>
-            <li>New <strong>Import</strong> button on every file you copied on your computer (a PDF, a document, a zip, any type). One tap fetches that one file from your computer, encrypted, and saves it to <strong>Downloads › ClipTrail</strong>; then <strong>Open</strong> and <strong>Share</strong> appear. Opening a clip never imports anything, and files you don't import never leave your computer (64 MB per file at most).</li>
-            <li>If your computer is off or the file moved, the clip says so and offers <strong>Try again</strong>.</li>
-          </ul>
-        </div>
+        <p>Your own collections for clips, a phone that finds your computer again by itself, and an important security fix. Update your computer to this version.</p>
 
         <div class="cl-group">
           <h3>Collections</h3>
@@ -494,6 +486,35 @@ CHANGELOG = r"""
             <li>Your phone finds your computer again on its own after the computer changes network or gets a new address (a different Wi-Fi, a hotspot, a new router lease). Before, it kept trying the old address until you paired again.</li>
             <li>When the phone shows your computer as <strong>Offline</strong>, tap it to reconnect right away instead of waiting for the next retry (also <strong>Reconnect</strong> in Settings).</li>
             <li>Pairing the same phone again (after a reinstall) replaces its old entry instead of listing the phone twice.</li>
+          </ul>
+        </div>
+
+        <div class="cl-group">
+          <h3>Security</h3>
+          <ul>
+            <li>Fixed a flaw that let a paired device read files on your computer: it could sync a clip naming any file and claim the clip had been copied on your computer, then ask for that file. A clip from another device is now always credited to that device, so only files you really copied on your computer can be fetched.</li>
+            <li>A device on your network can no longer stop you pairing by sending lots of pairing attempts: the limit now applies to each address separately.</li>
+            <li>Images a paired device uploads before their clip arrives are capped at 512 MB, and leftovers are cleaned up, so a device can't fill your disk.</li>
+            <li>Connecting Claude Code from Settings → AI assistants works safely when the app's folder has unusual characters (like <code>&amp;</code>) in its path.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="changelog-entry">
+      <div class="changelog-meta">
+        <div class="ver">v0.1.8</div>
+        <div class="date">2026-11-22</div>
+        <span class="chip chip-accent">Alpha</span>
+      </div>
+      <div class="prose">
+        <p>Bring a file you copied on your computer to your phone, only when you want it.</p>
+
+        <div class="cl-group">
+          <h3>Android</h3>
+          <ul>
+            <li>New <strong>Import</strong> button on every file you copied on your computer (a PDF, a document, a zip, any type). One tap fetches that one file from your computer, encrypted, and saves it to <strong>Downloads › ClipTrail</strong>; then <strong>Open</strong> and <strong>Share</strong> appear. Opening a clip never imports anything, and files you don't import never leave your computer (64 MB per file at most).</li>
+            <li>If your computer is off or the file moved, the clip says so and offers <strong>Try again</strong>.</li>
           </ul>
         </div>
 
