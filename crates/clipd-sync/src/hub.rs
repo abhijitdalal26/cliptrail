@@ -268,6 +268,11 @@ pub async fn start(cfg: HubConfig) -> Result<HubHandle> {
         }
     });
 
+    // Clips of a phone that was paired again show under its current id.
+    if let Err(e) = hub.engine.merge_replaced_devices() {
+        tracing::warn!("merging re-paired devices: {e:#}");
+    }
+
     let mut tasks = vec![server, pump, forward];
     if let Some(sock) = discovery {
         tasks.push(tokio::spawn(crate::discovery::serve(
@@ -325,6 +330,9 @@ impl HubHandle {
     pub fn revoke(&self, device_id: &str) -> Result<bool> {
         let ok = self.hub.engine.db.revoke_device(device_id, now_millis())?;
         if ok {
+            if self.hub.engine.merge_replaced_devices()? > 0 {
+                let _ = self.hub.notices.send(SyncNotice::ClipsChanged { count: 0 });
+            }
             // The bridge also deletes its key on relays and rotates the
             // space enroll key.
             self.relays.wake();
@@ -683,6 +691,9 @@ async fn pair(State(hub): State<Arc<Hub>>, body: Bytes) -> Result<Response, ApiE
     )?;
     tracing::info!(device = %dev.device_id, platform = %dev.platform, "device paired");
     retire_replaced(&hub, &dev.device_id, &dev.name, &dev.platform);
+    if e.merge_replaced_devices().unwrap_or(0) > 0 {
+        let _ = hub.notices.send(SyncNotice::ClipsChanged { count: 0 });
+    }
     let _ = hub.notices.send(SyncNotice::Paired {
         device_id: dev.device_id,
         name: dev.name,

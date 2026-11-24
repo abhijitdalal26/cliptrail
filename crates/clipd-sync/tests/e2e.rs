@@ -519,8 +519,22 @@ async fn pairing_again_replaces_the_old_entry() {
     let (old_dir, old_ks) = (TempDir::new("old"), Arc::new(MemoryKeyStore::default()));
     let (new_dir, new_ks) = (TempDir::new("new"), Arc::new(MemoryKeyStore::default()));
     let old_id = pair(&old_dir, &old_ks, "Phone").await;
+    // A clip copied on the old pairing reaches the hub under the old id.
+    let hp = pipeline(&hub_dir.0);
+    {
+        let old = start_client(&old_dir.0, &old_ks);
+        text(&pipeline(&old_dir.0), "from the old phone");
+        old.notify_local_change();
+        wait("old phone's clip on the hub", || {
+            find(&hp, "from the old phone").is_some_and(|c| c.device_id == old_id)
+        })
+        .await;
+        old.shutdown().await;
+    }
     let new_id = pair(&new_dir, &new_ks, "Phone").await;
     assert_eq!(active(&hub), vec![new_id.clone()]);
+    // ...and is credited to the phone's new pairing, so it isn't listed twice.
+    assert_eq!(find(&hp, "from the old phone").unwrap().device_id, new_id);
     assert!(
         clipd_sync::status(&hub_dir.0, &*hub_ks)
             .unwrap()

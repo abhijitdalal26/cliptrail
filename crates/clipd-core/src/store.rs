@@ -519,6 +519,22 @@ impl Store {
         Ok((count, paths))
     }
 
+    /// Credit clips copied on device `from` to device `to` (the same phone
+    /// paired again under a new id). Local only: not journaled or synced.
+    /// Returns how many clips (trash included) changed.
+    pub fn reassign_device(&self, from: &str, to: &str) -> Result<usize> {
+        let conn = self.conn();
+        let n = conn.execute(
+            "UPDATE clips SET device_id = ?2 WHERE device_id = ?1",
+            params![from, to],
+        )?;
+        let t = conn.execute(
+            "UPDATE trash SET device_id = ?2 WHERE device_id = ?1",
+            params![from, to],
+        )?;
+        Ok(n + t)
+    }
+
     /// Distinct source apps, most used first.
     pub fn source_apps(&self) -> Result<Vec<String>> {
         let conn = self.conn();

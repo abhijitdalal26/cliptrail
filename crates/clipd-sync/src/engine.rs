@@ -136,6 +136,30 @@ impl Engine {
         &self.space.device_id
     }
 
+    /// A revoked device with the same name and platform as a paired one is
+    /// that device paired again (reinstall, unpair + pair): credit its clips
+    /// to the current id, so it isn't listed twice. Returns how many clips
+    /// changed.
+    pub fn merge_replaced_devices(&self) -> Result<usize> {
+        let devices = self.db.devices()?;
+        let mut moved = 0;
+        for old in devices.iter().filter(|d| d.revoked_at.is_some()) {
+            let current = devices.iter().find(|d| {
+                d.revoked_at.is_none()
+                    && d.id != old.id
+                    && d.name == old.name
+                    && d.platform == old.platform
+            });
+            if let Some(cur) = current {
+                moved += self.pipeline.store().reassign_device(&old.id, &cur.id)?;
+            }
+        }
+        if moved > 0 {
+            tracing::info!(clips = moved, "credited clips of a re-paired device");
+        }
+        Ok(moved)
+    }
+
     pub fn role(&self) -> Role {
         self.space.role
     }
