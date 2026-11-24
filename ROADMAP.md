@@ -7,7 +7,7 @@
 - [x] Desktop (Tauri 2): tray, hotkey picker with paste-back, timeline dashboard + category lanes + search, settings
 - [x] Encrypted sync: desktop hosts on the LAN, QR pairing, echo suppression, phone reconnects after the laptop's address changes
 - [x] Local database encryption at rest (SQLite3 Multiple Ciphers, ADR 0002; images encrypted too)
-- [x] Release installers (shipping since v0.1.0; latest v0.1.8)
+- [x] Release installers (shipping since v0.1.0; latest v0.1.9)
 - [ ] Read-only web dashboard
 
 ## M2 — Mobile capture
