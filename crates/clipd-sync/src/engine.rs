@@ -374,11 +374,27 @@ impl Engine {
                     height: i.h,
                     thumb_png: i.thumb.as_deref().and_then(|t| unb64(t).ok()),
                 });
-                let origin = if c.origin.is_empty() {
+                let mut origin = if c.origin.is_empty() {
                     from_device.to_owned()
                 } else {
                     c.origin.clone()
                 };
+                // Only this device can say a clip was copied here. The hub
+                // serves files of its own file clips to paired devices, so a
+                // device that could claim this origin for paths it chose
+                // could read any file on this computer. Allow it only for a
+                // clip this device already holds as its own (an echo: its
+                // paths came from here and a merge never changes them).
+                if origin == self.space.device_id && from_device != self.space.device_id {
+                    let ours = self
+                        .pipeline
+                        .store()
+                        .get_by_hash(&hash)?
+                        .is_some_and(|h| h.clip.summary.device_id == self.space.device_id);
+                    if !ours {
+                        origin = from_device.to_owned();
+                    }
+                }
                 let outcome = self.pipeline.ingest_synced(SyncedClip {
                     content_hash: hash.clone(),
                     kind: c.kind,

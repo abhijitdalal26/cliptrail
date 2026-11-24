@@ -12,9 +12,10 @@ use std::time::Duration;
 use clipd_core::{
     IngestOutcome, Kind, ListQuery, Pipeline, PipelineConfig, RawClip, RawContent, now_millis,
 };
-use clipd_sync::crypto::{SecretKey, SpaceKeys};
+use clipd_sync::crypto::{SecretKey, SpaceKeys, b64};
 use clipd_sync::db::SyncDb;
-use clipd_sync::envelope::Event;
+use clipd_sync::engine::Engine;
+use clipd_sync::envelope::{ClipAdded, Event};
 use clipd_sync::keystore::MASTER_KEY;
 use clipd_sync::{ClientConfig, HubConfig, KeyStore, MemoryKeyStore, client, hub};
 
@@ -816,6 +817,42 @@ async fn copied_documents_import_on_request_only() {
     assert!(
         format!("{err:#}").contains("isn't on the computer"),
         "{err:#}"
+    );
+
+    // Nor by forging the clip's origin as the computer: the claim is
+    // credited to the device that sent it, so the file still isn't served.
+    let he = Engine::open(&hub_dir.0, &*hub_ks).unwrap();
+    let phone_id = a.status().unwrap().device_id;
+    let forged_hash = [7u8; 32];
+    let now = now_millis();
+    he.apply_event(
+        &Event::ClipAdded(Box::new(ClipAdded {
+            hash: b64(&forged_hash),
+            kind: Kind::File,
+            subkind: None,
+            text: Some(secret.to_string_lossy().into_owned()),
+            html: None,
+            files: vec![secret.to_string_lossy().into_owned()],
+            source_app: None,
+            origin: he.space.device_id.clone(),
+            created_at: now,
+            last_seen_at: now,
+            copy_count: 1,
+            image: None,
+        })),
+        &phone_id,
+    )
+    .unwrap();
+    let forged = he
+        .pipeline
+        .store()
+        .get_by_hash(&forged_hash)
+        .unwrap()
+        .unwrap();
+    assert_eq!(forged.clip.summary.device_id, phone_id);
+    assert!(
+        he.seal_file(&he.keys.blob_id(&forged_hash), 0, false)
+            .is_err()
     );
 
     // A clip that isn't in this history can't be used to read other files.
