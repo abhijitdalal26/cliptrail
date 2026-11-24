@@ -268,7 +268,7 @@ impl RelayAuth {
     }
 
     pub fn fresh(&self, now: Millis) -> bool {
-        (now - self.ts).abs() <= MAX_SKEW_MS
+        now.abs_diff(self.ts) <= MAX_SKEW_MS.unsigned_abs()
     }
 
     pub fn verify(

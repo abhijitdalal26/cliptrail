@@ -86,7 +86,7 @@ impl AuthHeader {
     }
 
     pub fn fresh(&self, now: Millis) -> bool {
-        (now - self.ts).abs() <= MAX_SKEW_MS
+        now.abs_diff(self.ts) <= MAX_SKEW_MS.unsigned_abs()
     }
 
     pub fn verify(&self, token: &[u8], method: &str, path_and_query: &str, body: &[u8]) -> bool {
@@ -122,6 +122,11 @@ mod tests {
         assert!(!a.verify(&token, "POST", "/v1/events?since=0", b"{}"));
         assert!(!a.verify(&[8u8; 32], "POST", "/v1/events", b"{}"));
         assert!(a.fresh(1000 + MAX_SKEW_MS) && !a.fresh(1001 + MAX_SKEW_MS));
+        // Unauthenticated callers pick ts: extremes must not overflow.
+        for ts in [Millis::MIN, Millis::MAX] {
+            let far = AuthHeader { ts, ..a.clone() };
+            assert!(!far.fresh(1000));
+        }
         // Changing the claimed device breaks the MAC.
         let mut other = a.clone();
         other.device_id = "DEV2".into();

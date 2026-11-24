@@ -584,7 +584,7 @@ async fn enroll(
     {
         return Err(err(StatusCode::UNAUTHORIZED, "bad signature"));
     }
-    if (now_millis() - req.ts).abs() > MAX_SKEW_MS {
+    if now_millis().abs_diff(req.ts) > MAX_SKEW_MS.unsigned_abs() {
         return Err(err(StatusCode::UNAUTHORIZED, "clock skew too large"));
     }
     check_fresh_once(&relay, &a)?;
